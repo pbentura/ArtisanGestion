@@ -228,7 +228,12 @@ function handleLogout() {
   color: #2563eb;
 }
 
-.nav-link.router-link-active {
+.nav-link.router-link-exact-active {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.nav-link.router-link-active:not([href="/dashboard"]) {
   background: #eff6ff;
   color: #2563eb;
 }

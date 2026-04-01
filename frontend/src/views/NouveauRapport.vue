@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, Plus, Trash2, Camera } from 'lucide-vue-next'
 
@@ -7,13 +7,40 @@ const router = useRouter()
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
 
+// Données de la société (récupérées depuis le backend)
+const societe = ref({
+  nom: '',
+  siret: '',
+  adresse: '',
+  code_postal: '',
+  ville: '',
+  telephone: '',
+  email: ''
+})
+
+// Charger les infos de la société au montage
+async function loadSociete() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:8000/api/societes/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    if (res.ok) {
+      const data = await res.json()
+      societe.value = data
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement de la société:', e)
+  }
+}
+
+onMounted(() => {
+  loadSociete()
+})
+
 interface Rapport {
   id?: number
-  nomEntreprise: string
-  siret: string
-  coordonneesAdresse: string
-  coordonneesTelephone: string
-  coordonneesEmail: string
   nomClient: string
   adresseIntervention: string
   contactClient: string
@@ -42,11 +69,6 @@ interface Rapport {
 }
 
 const rapport = ref<Rapport>({
-  nomEntreprise: '',
-  siret: '',
-  coordonneesAdresse: '',
-  coordonneesTelephone: '',
-  coordonneesEmail: '',
   nomClient: '',
   adresseIntervention: '',
   contactClient: '',
@@ -105,8 +127,7 @@ function removePhoto(index: number) {
 }
 
 const isValid = computed(() => {
-  return rapport.value.nomEntreprise.trim() &&
-         rapport.value.nomClient.trim() &&
+  return rapport.value.nomClient.trim() &&
          rapport.value.dateIntervention &&
          rapport.value.nomTechnicien.trim()
 })
@@ -136,7 +157,7 @@ function saveToLocalStorage() {
 
 async function saveRapport() {
   if (!isValid.value) {
-    alert('Veuillez remplir les champs obligatoires : Entreprise, Client, Date, Technicien')
+    alert('Veuillez remplir les champs obligatoires : Client, Date, Technicien')
     return
   }
 
@@ -172,6 +193,11 @@ function generatePDF() {
     partielle: 'Partielle',
     aSuivre: 'À suivre'
   }
+
+  // Adresse complète de la société
+  const adresseSociete = [societe.value.adresse, societe.value.code_postal, societe.value.ville]
+    .filter(Boolean)
+    .join(' ')
 
   const photosHtml = rapport.value.photos.length > 0
     ? `<div class="section"><h2>Photos</h2><div class="photos-grid">${rapport.value.photos.map(photo => `<img src="${photo}" class="photo" />`).join('')}</div></div>`
@@ -218,9 +244,9 @@ function generatePDF() {
     <h2>Informations générales</h2>
     <div class="grid-2">
       <div>
-        <div class="info-group"><div class="info-label">Entreprise / Artisan</div><div class="info-value">${rapport.value.nomEntreprise || '-'}</div></div>
-        <div class="info-group"><div class="info-label">SIRET</div><div class="info-value">${rapport.value.siret || '-'}</div></div>
-        <div class="info-group"><div class="info-label">Coordonnées</div><div class="info-value">${rapport.value.coordonneesAdresse || '-'}<br/>${rapport.value.coordonneesTelephone || ''}<br/>${rapport.value.coordonneesEmail || ''}</div></div>
+        <div class="info-group"><div class="info-label">Entreprise / Artisan</div><div class="info-value">${societe.value.nom || '-'}</div></div>
+        <div class="info-group"><div class="info-label">SIRET</div><div class="info-value">${societe.value.siret || '-'}</div></div>
+        <div class="info-group"><div class="info-label">Coordonnées</div><div class="info-value">${adresseSociete || '-'}<br/>${societe.value.telephone || ''}<br/>${societe.value.email || ''}</div></div>
       </div>
       <div>
         <div class="info-group"><div class="info-label">Client</div><div class="info-value">${rapport.value.nomClient || '-'}</div></div>
@@ -345,16 +371,42 @@ async function saveAndGeneratePDF() {
     <h1 class="text-2xl font-bold text-foreground mb-6">Nouveau Rapport d'Intervention</h1>
 
     <div class="space-y-8">
-      <section class="bg-card border border-border rounded-xl p-6">
-        <h2 class="text-lg font-semibold text-foreground mb-4">1. Informations de base *</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label class="block text-sm font-medium text-foreground mb-1">Nom de l'entreprise / Artisan *</label><input v-model="rapport.nomEntreprise" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Votre entreprise" /></div>
-          <div><label class="block text-sm font-medium text-foreground mb-1">SIRET</label><input v-model="rapport.siret" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="123 456 789 00012" /></div>
-          <div><label class="block text-sm font-medium text-foreground mb-1">Adresse entreprise</label><input v-model="rapport.coordonneesAdresse" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="123 rue Example, 75000 Paris" /></div>
-          <div class="grid grid-cols-2 gap-2">
-            <div><label class="block text-sm font-medium text-foreground mb-1">Téléphone</label><input v-model="rapport.coordonneesTelephone" type="tel" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="01 23 45 67 89" /></div>
-            <div><label class="block text-sm font-medium text-foreground mb-1">Email</label><input v-model="rapport.coordonneesEmail" type="email" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="contact@entreprise.fr" /></div>
+      <!-- Info Société (affichage uniquement, récupéré depuis la BDD) -->
+      <section class="bg-blue-50/50 border border-blue-200 rounded-xl p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <h2 class="text-lg font-semibold text-foreground">Informations de l'entreprise</h2>
+          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Auto-rempli depuis votre profil</span>
+        </div>
+        <div v-if="societe.nom" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-muted-foreground">Entreprise:</span>
+            <span class="font-medium ml-2">{{ societe.nom }}</span>
           </div>
+          <div>
+            <span class="text-muted-foreground">SIRET:</span>
+            <span class="font-medium ml-2">{{ societe.siret || '-' }}</span>
+          </div>
+          <div class="md:col-span-2">
+            <span class="text-muted-foreground">Adresse:</span>
+            <span class="font-medium ml-2">{{ [societe.adresse, societe.code_postal, societe.ville].filter(Boolean).join(' ') || '-' }}</span>
+          </div>
+          <div>
+            <span class="text-muted-foreground">Téléphone:</span>
+            <span class="font-medium ml-2">{{ societe.telephone || '-' }}</span>
+          </div>
+          <div>
+            <span class="text-muted-foreground">Email:</span>
+            <span class="font-medium ml-2">{{ societe.email || '-' }}</span>
+          </div>
+        </div>
+        <div v-else class="text-muted-foreground text-sm">
+          Chargement des informations...
+        </div>
+      </section>
+
+      <section class="bg-card border border-border rounded-xl p-6">
+        <h2 class="text-lg font-semibold text-foreground mb-4">1. Informations client *</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label class="block text-sm font-medium text-foreground mb-1">Nom du client *</label><input v-model="rapport.nomClient" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nom du client" /></div>
           <div><label class="block text-sm font-medium text-foreground mb-1">Adresse d'intervention *</label><input v-model="rapport.adresseIntervention" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Adresse où l'intervention a lieu" /></div>
           <div class="md:col-span-2"><label class="block text-sm font-medium text-foreground mb-1">Contact client (tél/email)</label><input v-model="rapport.contactClient" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contact direct du client" /></div>
