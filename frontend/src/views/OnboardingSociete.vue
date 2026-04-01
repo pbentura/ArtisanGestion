@@ -91,12 +91,32 @@ function prevStep() {
 
 async function submitForm() {
   isLoading.value = true
-  // Mock API call
+  const token = localStorage.getItem('token')
+  
+  if (!token) {
+    router.push('/auth')
+    return
+  }
+
   try {
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    const res = await fetch('http://localhost:8000/api/societes/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(form.value)
+    })
+
+    if (!res.ok) {
+      const errorData = await res.json()
+      throw new Error(errorData.detail || "Erreur lors de la création de l'entreprise")
+    }
+
     localStorage.removeItem(STORAGE_KEY)
-    router.push('/') // Change config when backend is ready
-  } catch (error) {
+    router.push('/dashboard')
+  } catch (error: any) {
+    alert(error.message)
     console.error(error)
   } finally {
     isLoading.value = false

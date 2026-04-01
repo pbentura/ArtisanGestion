@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
+from .societe import SocieteRead
 
 class UserBase(BaseModel):
     nom: str
@@ -14,3 +15,6 @@ class UserRead(UserBase):
 
     class Config:
         from_attributes = True
+
+class UserReadWithSocietes(UserRead):
+    societes: List[SocieteRead] = []

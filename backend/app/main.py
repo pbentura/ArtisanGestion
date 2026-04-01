@@ -6,7 +6,7 @@ from app.core.database import engine, Base
 from app.models.user import User
 from app.models.societe import Societe
 
-from app.api.endpoints import auth
+from app.api.endpoints import auth, users, societes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,6 +23,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(societes.router, prefix="/api/societes", tags=["societes"])
 
 @app.get("/")
 async def hello_world():

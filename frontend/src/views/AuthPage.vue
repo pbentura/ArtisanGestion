@@ -62,7 +62,7 @@ async function handleLogin() {
     
     const data = await res.json()
     localStorage.setItem('token', data.access_token)
-    router.push('/') // Or dashboard view
+    router.push('/dashboard')
   } catch (error: any) {
     errorMessage.value = error.message
   } finally {

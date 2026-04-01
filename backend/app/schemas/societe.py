@@ -1,0 +1,33 @@
+from pydantic import BaseModel
+from typing import Optional
+from decimal import Decimal
+
+class SocieteBase(BaseModel):
+    nom: str
+    forme_juridique: Optional[str] = None
+    logo: Optional[str] = None
+    adresse: Optional[str] = None
+    code_postal: Optional[str] = None
+    ville: Optional[str] = None
+    telephone: Optional[str] = None
+    email: Optional[str] = None
+    siret: Optional[str] = None
+    iban: Optional[str] = None
+    bic: Optional[str] = None
+    nom_banque: Optional[str] = None
+    capital_social: Optional[Decimal] = None
+    rcs: Optional[str] = None
+    tva_intracommunautaire: Optional[str] = None
+    tva_defaut: Optional[Decimal] = None
+    objectif_mensuel_ca: Optional[Decimal] = None
+    texte_pied_page: Optional[str] = None
+
+class SocieteCreate(SocieteBase):
+    pass
+
+class SocieteRead(SocieteBase):
+    id: int
+    id_user: int
+
+    class Config:
+        from_attributes = True
