@@ -42,7 +42,12 @@ const routes = [
       {
         path: 'rapports',
         name: 'rapports',
-        component: { template: '<div>Page Rapports (Bientôt disponible)</div>' }
+        component: () => import('@/views/RapportsList.vue')
+      },
+      {
+        path: 'rapports/new',
+        name: 'nouveau-rapport',
+        component: () => import('@/views/NouveauRapport.vue')
       },
       {
         path: 'settings',
