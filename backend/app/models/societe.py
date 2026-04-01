@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, Numeric
+from sqlalchemy import Column, Integer, String, Text, Numeric, ForeignKey
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class Societe(Base):
@@ -24,3 +25,6 @@ class Societe(Base):
     dernier_numero_facture = Column(String, default="2024-001")
     objectif_mensuel_ca = Column(Numeric(15, 2), nullable=True) # in €
     texte_pied_page = Column(Text, nullable=True)
+
+    id_user = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", back_populates="societes")

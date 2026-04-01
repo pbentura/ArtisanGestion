@@ -36,22 +36,75 @@ const signupForm = ref({
   password: ''
 })
 
+const errorMessage = ref('')
+const successMessage = ref('')
+
 async function handleLogin() {
+  errorMessage.value = ''
+  successMessage.value = ''
   isLoading.value = true
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1500))
-  isLoading.value = false
-  // TODO: Implement actual login logic
-  console.log('Login:', loginForm.value)
+  
+  try {
+    const formData = new URLSearchParams()
+    formData.append('username', loginForm.value.email)
+    formData.append('password', loginForm.value.password)
+
+    const res = await fetch('http://localhost:8000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData
+    })
+    
+    if (!res.ok) {
+      const errorData = await res.json()
+      throw new Error(errorData.detail || "Erreur de connexion")
+    }
+    
+    const data = await res.json()
+    localStorage.setItem('token', data.access_token)
+    router.push('/') // Or dashboard view
+  } catch (error: any) {
+    errorMessage.value = error.message
+  } finally {
+    isLoading.value = false
+  }
 }
 
 async function handleSignup() {
+  errorMessage.value = ''
+  successMessage.value = ''
   isLoading.value = true
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1500))
-  isLoading.value = false
-  // TODO: Implement actual signup logic
-  console.log('Signup:', signupForm.value)
+
+  try {
+    const res = await fetch('http://localhost:8000/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nom: signupForm.value.lastName,
+        prenom: signupForm.value.firstName,
+        email: signupForm.value.email,
+        mdp: signupForm.value.password
+      })
+    })
+
+    if (!res.ok) {
+      const errorData = await res.json()
+      // Fallback for different FastAPI ValidationError structures
+      const errorText = Array.isArray(errorData.detail) 
+        ? errorData.detail[0]?.msg 
+        : (errorData.detail || "Erreur lors de l'inscription")
+      throw new Error(errorText)
+    }
+
+    successMessage.value = "Votre compte a bien été créé ! Vous pouvez maintenant vous connecter."
+    activeTab.value = 'login'
+    loginForm.value.email = signupForm.value.email
+    loginForm.value.password = ''
+  } catch (error: any) {
+    errorMessage.value = error.message
+  } finally {
+    isLoading.value = false
+  }
 }
 
 function goBack() {
@@ -164,6 +217,15 @@ function handleGoogleAuth() {
                 Ou continuer avec email
               </span>
             </div>
+          </div>
+
+          <!-- Messages -->
+          <div v-if="errorMessage" class="p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
+            {{ errorMessage }}
+          </div>
+          
+          <div v-if="successMessage" class="p-3 bg-green-500/10 border border-green-500/50 rounded-xl text-green-500 text-sm text-center">
+            {{ successMessage }}
           </div>
 
           <!-- Tabs -->

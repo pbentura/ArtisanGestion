@@ -1,0 +1,16 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+
+class UserBase(BaseModel):
+    nom: str
+    prenom: str
+    email: EmailStr
+
+class UserCreate(UserBase):
+    mdp: str
+
+class UserRead(UserBase):
+    id: int
+
+    class Config:
+        from_attributes = True

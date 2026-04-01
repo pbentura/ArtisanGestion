@@ -12,6 +12,11 @@ const routes = [
     path: '/auth',
     name: 'auth',
     component: AuthPage
+  },
+  {
+    path: '/onboarding',
+    name: 'onboarding',
+    component: () => import('@/views/OnboardingSociete.vue')
   }
 ]
 
