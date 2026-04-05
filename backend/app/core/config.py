@@ -11,6 +11,10 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "b443ad5a4bc032128711bd420fc28ddfd30431ae18742d48dce6db3cbeedb95f")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    
+    # CORS
+    _CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    CORS_ORIGINS: list[str] = [origin.strip() for origin in _CORS_ORIGINS.split(",")]
 
     @property
     def DATABASE_URI(self) -> str:
