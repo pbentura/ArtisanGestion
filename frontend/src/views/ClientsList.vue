@@ -294,7 +294,7 @@ onMounted(fetchClients)
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--foreground);
 }
 
 .btn-primary {
@@ -302,8 +302,8 @@ onMounted(fetchClients)
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #2563eb;
-  color: white;
+  background: var(--primary);
+  color: var(--primary-foreground);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -312,13 +312,14 @@ onMounted(fetchClients)
 }
 
 .btn-primary:hover {
-  background: #1d4ed8;
+  background: var(--primary);
+  opacity: 0.9;
 }
 
 .btn-secondary {
   padding: 10px 16px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--muted);
+  color: var(--muted-foreground);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -326,7 +327,7 @@ onMounted(fetchClients)
 }
 
 .btn-secondary:hover {
-  background: #e2e8f0;
+  background: var(--accent);
 }
 
 .btn-icon {
@@ -335,42 +336,43 @@ onMounted(fetchClients)
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: #f1f5f9;
+  background: var(--accent);
   border: none;
   border-radius: 6px;
-  color: #64748b;
+  color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-icon:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .btn-danger:hover {
-  background: #fef2f2;
-  color: #ef4444;
+  background: var(--destructive);
+  color: var(--primary-foreground);
 }
 
 .alert-error {
   padding: 12px 16px;
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--destructive);
+  color: var(--primary-foreground);
   border-radius: 8px;
   margin-bottom: 16px;
+  opacity: 0.9;
 }
 
 .loading {
   text-align: center;
-  color: #64748b;
+  color: var(--muted-foreground);
   padding: 40px;
 }
 
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #64748b;
+  color: var(--muted-foreground);
 }
 
 .empty-state p {
@@ -378,7 +380,7 @@ onMounted(fetchClients)
 }
 
 .btn-link {
-  color: #2563eb;
+  color: var(--primary);
   background: none;
   border: none;
   font-weight: 600;
@@ -393,9 +395,9 @@ onMounted(fetchClients)
 }
 
 .client-card {
-  background: white;
+  background: var(--card);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   padding: 20px;
 }
 
@@ -409,7 +411,7 @@ onMounted(fetchClients)
 .client-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--foreground);
   margin: 0;
 }
 
@@ -427,12 +429,13 @@ onMounted(fetchClients)
 .info-row {
   margin: 0;
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--muted-foreground);
 }
 
 .label {
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 0.85rem;
+  opacity: 0.7;
 }
 
 /* Modal */
@@ -449,7 +452,7 @@ onMounted(fetchClients)
 }
 
 .modal {
-  background: white;
+  background: var(--card);
   border-radius: 16px;
   width: 100%;
   max-width: 500px;
@@ -463,13 +466,13 @@ onMounted(fetchClients)
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 1.25rem;
-  color: #0f172a;
+  color: var(--foreground);
 }
 
 .modal-body {
@@ -487,23 +490,25 @@ onMounted(fetchClients)
   margin-bottom: 6px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--foreground);
 }
 
 .input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 0.9rem;
   transition: border-color 0.2s;
   box-sizing: border-box;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .input:focus {
   outline: none;
-  border-color: #2563eb;
-  ring: 2px solid #eff6ff;
+  border-color: var(--primary);
+  ring: 2px solid var(--primary);
 }
 
 .form-row {
@@ -518,7 +523,7 @@ onMounted(fetchClients)
   gap: 12px;
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border);
 }
 
 .delete-modal {
@@ -527,8 +532,8 @@ onMounted(fetchClients)
 
 .btn-danger-confirm {
   padding: 10px 24px;
-  background: #ef4444;
-  color: white;
+  background: var(--destructive);
+  color: var(--primary-foreground);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -539,7 +544,7 @@ onMounted(fetchClients)
 }
 
 .btn-danger-confirm:hover {
-  background: #dc2626;
+  opacity: 0.9;
 }
 
 .btn-danger-confirm:disabled {

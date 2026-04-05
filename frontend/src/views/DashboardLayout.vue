@@ -5,6 +5,7 @@ import {
   Building2, Home, FileText, Settings, LogOut, 
   Receipt, Menu, X, Bell, BarChart3, Users
 } from 'lucide-vue-next'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -116,6 +117,7 @@ function handleLogout() {
         
         <div class="header-right">
           <button class="icon-btn"><Bell class="w-5 h-5" /></button>
+          <ThemeToggle />
           <div class="user-pill">Mon compte</div>
         </div>
       </header>
@@ -132,7 +134,7 @@ function handleLogout() {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  background-color: #f8fafc;
+  background-color: var(--background);
   font-family: sans-serif;
 }
 
@@ -147,8 +149,8 @@ function handleLogout() {
 /* Sidebar Styling */
 .sidebar {
   width: 280px;
-  background: white;
-  border-right: 1px solid #e2e8f0;
+  background: var(--card);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -176,7 +178,7 @@ function handleLogout() {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border);
 }
 
 .logo-box {
@@ -199,7 +201,7 @@ function handleLogout() {
 .logo-name {
   font-weight: 800;
   font-size: 1.25rem;
-  color: #0f172a;
+  color: var(--foreground);
 }
 
 .sidebar-nav {
@@ -213,7 +215,7 @@ function handleLogout() {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin-bottom: 12px;
   padding-left: 12px;
 }
@@ -224,7 +226,7 @@ function handleLogout() {
   gap: 12px;
   padding: 12px;
   border-radius: 12px;
-  color: #475569;
+  color: var(--muted-foreground);
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s;
@@ -232,24 +234,24 @@ function handleLogout() {
 }
 
 .nav-link:hover {
-  background: #f1f5f9;
-  color: #2563eb;
+  background: var(--accent);
+  color: var(--primary);
 }
 
 .nav-link.router-link-exact-active {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .nav-link.router-link-active:not([href="/dashboard"]) {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .sidebar-footer {
   padding: 24px;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-top: 1px solid var(--border);
+  background: var(--muted);
 }
 
 .user-info {
@@ -274,13 +276,13 @@ function handleLogout() {
 .user-name {
   font-weight: 700;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--foreground);
   margin: 0;
 }
 
 .user-company {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin: 0;
 }
 
@@ -308,8 +310,8 @@ function handleLogout() {
 
 .main-header {
   height: 80px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -325,7 +327,7 @@ function handleLogout() {
 .current-page-title {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--foreground);
   text-transform: capitalize;
 }
 
@@ -338,17 +340,17 @@ function handleLogout() {
 .icon-btn {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 
 .user-pill {
   padding: 8px 16px;
-  background: #f1f5f9;
+  background: var(--accent);
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--muted-foreground);
 }
 
 .page-content {
