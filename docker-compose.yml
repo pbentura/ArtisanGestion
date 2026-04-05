@@ -26,6 +26,7 @@ services:
       - 8000
     environment:
       - POSTGRES_SERVER=db
+      - CORS_ORIGINS=https://ventura-e277f.web.app,https://ventura-e277f.firebaseapp.com
     env_file:
       - .env
     depends_on:
