@@ -9,7 +9,6 @@ import {
   Users,
   CheckCircle2,
   Clock,
-  MoreHorizontal,
   Search,
   Bell,
   Settings,

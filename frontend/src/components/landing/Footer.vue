@@ -2,7 +2,6 @@
 import { 
   TrendingUp,
   Mail,
-  Phone,
   MapPin,
   Twitter,
   Linkedin,
