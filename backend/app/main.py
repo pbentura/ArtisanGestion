@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.models.user import User
 from app.models.societe import Societe
+from app.models.client import Client
 
 from app.api.endpoints import auth, users, societes
 
