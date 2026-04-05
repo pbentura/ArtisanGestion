@@ -12,3 +12,4 @@ class User(Base):
     mdp = Column(String, nullable=False)
 
     societes = relationship("Societe", back_populates="user")
+    clients = relationship("Client", back_populates="user")

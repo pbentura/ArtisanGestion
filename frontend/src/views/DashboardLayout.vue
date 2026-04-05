@@ -74,6 +74,11 @@ function handleLogout() {
           <Receipt class="w-5 h-5" /> Factures
         </router-link>
 
+        <p class="nav-section-title mt-8">Administration</p>
+        <router-link to="/dashboard/entreprise" class="nav-link" @click="isMobileMenuOpen = false">
+          <Building2 class="w-5 h-5" /> Mon entreprise
+        </router-link>
+
         <p class="nav-section-title mt-8">Configuration</p>
         <router-link to="/dashboard/settings" class="nav-link" @click="isMobileMenuOpen = false">
           <Settings class="w-5 h-5" /> Paramètres

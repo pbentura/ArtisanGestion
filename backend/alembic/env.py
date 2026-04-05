@@ -26,6 +26,7 @@ from app.core.config import settings
 from app.core.database import Base
 from app.models.user import User
 from app.models.societe import Societe
+from app.models.client import Client
 
 target_metadata = Base.metadata
 

@@ -54,6 +54,12 @@ interface Rapport {
   id?: number
   dateIntervention: string
   titre: string
+  nomClient: string
+  clientSiret: string
+  adresseIntervention: string
+  clientCodePostal: string
+  clientVille: string
+  contactClient: string
   contenu: string
   photo: string | null
   createdAt: string
@@ -62,6 +68,12 @@ interface Rapport {
 const rapport = ref<Rapport>({
   dateIntervention: new Date().toISOString().split('T')[0],
   titre: "RAPPORT D'INTERVENTION",
+  nomClient: '',
+  clientSiret: '',
+  adresseIntervention: '',
+  clientCodePostal: '',
+  clientVille: '',
+  contactClient: '',
   contenu: '',
   photo: null,
   createdAt: new Date().toISOString()
@@ -97,7 +109,7 @@ function removePhoto() {
 }
 
 const isValid = computed(() => {
-  return rapport.value.dateIntervention && rapport.value.titre.trim()
+  return rapport.value.dateIntervention && rapport.value.titre.trim() && rapport.value.nomClient.trim() && rapport.value.adresseIntervention.trim()
 })
 
 const activeFormats = ref({
@@ -188,9 +200,9 @@ function generatePDF() {
     .photo { max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb; }
     .text-content { font-size: 12px; line-height: 1.8; }
     .text-content p { margin: 0 0 10px 0; }
-    .text-content ul, .text-content ol { margin: 10px 0; padding-left: 20px; }
     .text-content li { margin: 5px 0; }
     .societe-info { margin-bottom: 15px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
   </style>
 </head>
 <body>
@@ -199,16 +211,40 @@ function generatePDF() {
   </div>
 
   <div class="section societe-info">
-    <div class="info-group">
-      <div class="info-label">Entreprise</div>
-      <div class="info-value">${societe.value.nom || '-'}${societe.value.siret ? ` (SIRET: ${societe.value.siret})` : ''}</div>
-    </div>
-    <div class="info-group">
-      <div class="info-label">Coordonnées</div>
-      <div class="info-value">
-        ${adresseSociete || '-'}<br/>
-        ${societe.value.telephone ? `Tél: ${societe.value.telephone}<br/>` : ''}
-        ${societe.value.email ? `Email: ${societe.value.email}` : ''}
+    <div class="grid-2">
+      <div>
+        <div class="info-group">
+          <div class="info-label">Entreprise</div>
+          <div class="info-value">${societe.value.nom || '-'}${societe.value.siret ? ` (SIRET: ${societe.value.siret})` : ''}</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Coordonnées</div>
+          <div class="info-value">
+            ${adresseSociete || '-'}<br/>
+            ${societe.value.telephone ? `Tél: ${societe.value.telephone}<br/>` : ''}
+            ${societe.value.email ? `Email: ${societe.value.email}` : ''}
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="info-group">
+          <div class="info-label">Client</div>
+          <div class="info-value"><strong>${rapport.value.nomClient || '-'}</strong></div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Adresse d'intervention</div>
+          <div class="info-value">
+            ${rapport.value.adresseIntervention || '-'}<br/>
+            ${[rapport.value.clientCodePostal, rapport.value.clientVille].filter(Boolean).join(' ')}${[rapport.value.clientCodePostal, rapport.value.clientVille].filter(Boolean).length > 0 ? '<br/>' : ''}
+            ${rapport.value.contactClient ? `Tél: ${rapport.value.contactClient}` : ''}
+          </div>
+        </div>
+        ${rapport.value.clientSiret ? `
+        <div class="info-group">
+          <div class="info-label">SIRET / SIREN</div>
+          <div class="info-value">${rapport.value.clientSiret}</div>
+        </div>
+        ` : ''}
       </div>
     </div>
   </div>
@@ -288,6 +324,37 @@ async function saveAndGeneratePDF() {
         <label class="block text-sm font-medium text-foreground mb-2">Titre du document PDF *</label>
         <input v-model="rapport.titre" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="RAPPORT D'INTERVENTION" />
         <p class="text-xs text-muted-foreground mt-1">Ce titre apparaîtra en haut du document PDF généré</p>
+      </section>
+
+      <!-- Client Infos -->
+      <section class="bg-card border border-border rounded-xl p-6 space-y-4">
+        <h3 class="text-lg font-semibold text-foreground mb-4">Informations du Client</h3>
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Nom complet du client *</label>
+          <input v-model="rapport.nomClient" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nom du client" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">SIRET / SIREN</label>
+          <input v-model="rapport.clientSiret" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Numéro SIRET ou SIREN" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Adresse d'intervention *</label>
+          <input v-model="rapport.adresseIntervention" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Adresse (N° et rue)" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2">Code Postal</label>
+            <input v-model="rapport.clientCodePostal" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Code postal" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2">Ville</label>
+            <input v-model="rapport.clientVille" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ville" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Numéro de téléphone</label>
+          <input v-model="rapport.contactClient" type="tel" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="06 XX XX XX XX" />
+        </div>
       </section>
 
       <!-- Rich Editor complet -->

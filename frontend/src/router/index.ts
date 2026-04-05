@@ -53,6 +53,11 @@ const routes = [
         path: 'settings',
         name: 'settings',
         component: { template: '<div>Page Paramètres (Bientôt disponible)</div>' }
+      },
+      {
+        path: 'entreprise',
+        name: 'entreprise',
+        component: { template: '<div>Page Mon entreprise (Bientôt disponible)</div>' }
       }
     ]
   }
