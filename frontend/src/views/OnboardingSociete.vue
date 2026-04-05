@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_BASE_URL } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -99,7 +100,7 @@ async function submitForm() {
   }
 
   try {
-    const res = await fetch('http://localhost:8000/api/societes/', {
+    const res = await fetch(`${API_BASE_URL}/api/societes/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

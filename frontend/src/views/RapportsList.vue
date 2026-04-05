@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, FileText, Calendar, Download, Trash2 } from 'lucide-vue-next'
 
+import { API_BASE_URL } from '@/lib/api'
+
 interface Client {
   nom: string
 }
@@ -36,7 +38,7 @@ async function fetchRapports() {
   loading.value = true
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch('http://localhost:8000/api/rapports/', {
+    const res = await fetch(`${API_BASE_URL}/api/rapports/`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -68,7 +70,7 @@ async function confirmDelete() {
   isDeleting.value = true
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`http://localhost:8000/api/rapports/${idToDelete.value}`, {
+    const res = await fetch(`${API_BASE_URL}/api/rapports/${idToDelete.value}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -90,14 +92,14 @@ async function confirmDelete() {
 async function generateFullPDF(rapport: Rapport) {
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`http://localhost:8000/api/rapports/${rapport.id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/rapports/${rapport.id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (!res.ok) return
     const r = await res.json()
     
     // Fetch societe information
-    const societeRes = await fetch('http://localhost:8000/api/societes/me', {
+    const societeRes = await fetch(`${API_BASE_URL}/api/societes/me`, {
        headers: { 'Authorization': `Bearer ${token}` }
     })
     let societe = { nom: '', adresse: '', code_postal: '', ville: '', telephone: '', email: '', siret: '' }

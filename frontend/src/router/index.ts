@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '@/views/LandingPage.vue'
 import AuthPage from '@/views/AuthPage.vue'
 
+import { API_BASE_URL } from '@/lib/api'
+
 const routes = [
   {
     path: '/',
@@ -82,7 +84,7 @@ router.beforeEach(async (to, _from, next) => {
 
   if (token && (to.meta.requiresSociete || to.meta.requiresNoSociete)) {
     try {
-      const res = await fetch('http://localhost:8000/api/users/me', {
+      const res = await fetch(`${API_BASE_URL}/api/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       

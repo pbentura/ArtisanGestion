@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { API_BASE_URL } from '@/lib/api'
 
 const userName = ref('')
 const companyName = ref('')
@@ -8,7 +9,7 @@ const loading = ref(true)
 onMounted(async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch('http://localhost:8000/api/users/me', {
+    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {

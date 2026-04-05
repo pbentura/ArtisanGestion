@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_BASE_URL } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -27,7 +28,7 @@ let stream: MediaStream | null = null
 async function loadClients() {
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch('http://localhost:8000/api/clients/', {
+    const res = await fetch(`${API_BASE_URL}/api/clients/`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {
@@ -80,7 +81,7 @@ function capturePhoto() {
 async function loadSociete() {
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch('http://localhost:8000/api/societes/me', {
+    const res = await fetch(`${API_BASE_URL}/api/societes/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {
@@ -226,7 +227,7 @@ async function saveClientToDatabase(): Promise<number | null> {
       telephone: rapport.value.contactClient
     }
     
-    const res = await fetch('http://localhost:8000/api/clients/', {
+    const res = await fetch(`${API_BASE_URL}/api/clients/`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,
@@ -258,7 +259,7 @@ async function saveRapportToDatabase(clientId: number) {
     url_pdf: null
   }
   
-  const res = await fetch('http://localhost:8000/api/rapports/', {
+  const res = await fetch(`${API_BASE_URL}/api/rapports/`, {
     method: 'POST',
     headers: { 
       'Authorization': `Bearer ${token}`,

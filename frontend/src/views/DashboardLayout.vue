@@ -6,6 +6,7 @@ import {
   Receipt, Menu, X, Bell, BarChart3, Users
 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { API_BASE_URL } from '@/lib/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -18,7 +19,7 @@ onMounted(async () => {
   if (!token) return
 
   try {
-    const res = await fetch('http://localhost:8000/api/users/me', {
+    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {

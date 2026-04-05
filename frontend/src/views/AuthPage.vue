@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
+import { API_BASE_URL } from '@/lib/api'
 import { 
   TrendingUp, 
   ArrowLeft,
@@ -49,7 +50,7 @@ async function handleLogin() {
     formData.append('username', loginForm.value.email)
     formData.append('password', loginForm.value.password)
 
-    const res = await fetch('http://localhost:8000/api/auth/login', {
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData
@@ -76,7 +77,7 @@ async function handleSignup() {
   isLoading.value = true
 
   try {
-    const res = await fetch('http://localhost:8000/api/auth/register', {
+    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

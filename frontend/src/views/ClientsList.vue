@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Plus, Pencil, Trash2, X, Building2 } from 'lucide-vue-next'
+import { API_BASE_URL } from '@/lib/api'
 
 interface Client {
   id: number
@@ -32,7 +33,7 @@ const form = ref({
   siret: ''
 })
 
-const API_URL = 'http://localhost:8000/api/clients'
+const API_URL = `${API_BASE_URL}/api/clients`
 
 function getToken() {
   return localStorage.getItem('token')
