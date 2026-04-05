@@ -1,15 +1,41 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:16-alpine
     container_name: ventura-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ventura
-      POSTGRES_USER: ventura
-      POSTGRES_PASSWORD: ventura
+      POSTGRES_DB: ${POSTGRES_DB:-ventura}
+      POSTGRES_USER: ${POSTGRES_USER:-ventura}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ventura}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ventura-backend
+    restart: unless-stopped
+    expose:
+      - 8000
+    environment:
+      - POSTGRES_SERVER=db
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true
 
 volumes:
   pgdata:
