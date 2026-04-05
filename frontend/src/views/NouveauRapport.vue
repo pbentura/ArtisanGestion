@@ -18,6 +18,65 @@ const societe = ref({
   email: ''
 })
 
+const clients = ref<any[]>([])
+const selectedClientId = ref<number | null>(null)
+const isCameraActive = ref(false)
+const videoRef = ref<HTMLVideoElement | null>(null)
+let stream: MediaStream | null = null
+
+async function loadClients() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:8000/api/clients/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      clients.value = await res.json()
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement des clients:', e)
+  }
+}
+
+async function openCamera() {
+  isCameraActive.value = true
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'environment' },
+      audio: false 
+    })
+    if (videoRef.value) {
+      videoRef.value.srcObject = stream
+    }
+  } catch (err) {
+    console.error("Erreur accès caméra:", err)
+    alert("Impossible d'accéder à la caméra. Vérifiez les autorisations.")
+    isCameraActive.value = false
+  }
+}
+
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop())
+    stream = null
+  }
+  isCameraActive.value = false
+}
+
+function capturePhoto() {
+  if (!videoRef.value) return
+  
+  const canvas = document.createElement('canvas')
+  canvas.width = videoRef.value.videoWidth
+  canvas.height = videoRef.value.videoHeight
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.drawImage(videoRef.value, 0, 0)
+    rapport.value.photo = canvas.toDataURL('image/jpeg')
+    stopCamera()
+  }
+}
+
 async function loadSociete() {
   try {
     const token = localStorage.getItem('token')
@@ -38,6 +97,7 @@ const editorRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
   loadSociete()
+  loadClients()
   // Initialize editor content once (don't use v-html)
   if (editorRef.value) {
     editorRef.value.innerHTML = rapport.value.contenu
@@ -79,15 +139,27 @@ const rapport = ref<Rapport>({
   createdAt: new Date().toISOString()
 })
 
+function onClientSelect() {
+  if (selectedClientId.value) {
+    const c = clients.value.find(cl => cl.id === selectedClientId.value)
+    if (c) {
+      rapport.value.nomClient = c.nom
+      rapport.value.clientSiret = c.siret || ''
+      rapport.value.adresseIntervention = c.adresse || ''
+      rapport.value.clientCodePostal = c.code_postal || ''
+      rapport.value.clientVille = c.ville || ''
+      rapport.value.contactClient = c.telephone || ''
+    }
+  } else {
+    // Si on désélectionne, on peut soit laisser, soit vider. 
+    // Ici on laisse l'utilisateur vider lui-même ou on peut vider.
+  }
+}
+
 const fileInput = ref<HTMLInputElement | null>(null)
-const cameraInput = ref<HTMLInputElement | null>(null)
 
 function openGallery() {
   fileInput.value?.click()
-}
-
-function openCamera() {
-  cameraInput.value?.click()
 }
 
 function handlePhotoUpload(event: Event) {
@@ -105,7 +177,6 @@ function handlePhotoUpload(event: Event) {
 function removePhoto() {
   rapport.value.photo = null
   if (fileInput.value) fileInput.value.value = ''
-  if (cameraInput.value) cameraInput.value.value = ''
 }
 
 const isValid = computed(() => {
@@ -135,26 +206,92 @@ function updateActiveFormats() {
   }
 }
 
-function saveToLocalStorage() {
-  const rapports = JSON.parse(localStorage.getItem('rapports') || '[]')
-  const newRapport = { ...rapport.value, id: Date.now() }
-  rapports.push(newRapport)
-  localStorage.setItem('rapports', JSON.stringify(rapports))
-  return newRapport
+async function saveClientToDatabase(): Promise<number | null> {
+  // Si un client est déjà sélectionné et que le nom correspond toujours, on utilise cet ID
+  if (selectedClientId.value) {
+    const c = clients.value.find(cl => cl.id === selectedClientId.value)
+    if (c && c.nom === rapport.value.nomClient) {
+      return selectedClientId.value
+    }
+  }
+
+  try {
+    const token = localStorage.getItem('token')
+    const clientData = {
+      nom: rapport.value.nomClient,
+      siret: rapport.value.clientSiret,
+      adresse: rapport.value.adresseIntervention,
+      code_postal: rapport.value.clientCodePostal,
+      ville: rapport.value.clientVille,
+      telephone: rapport.value.contactClient
+    }
+    
+    const res = await fetch('http://localhost:8000/api/clients/', {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(clientData)
+    })
+    
+    if (!res.ok) {
+      console.error('Erreur API Client:', await res.text())
+      return null
+    }
+    const data = await res.json()
+    return data.id
+  } catch (e) {
+    console.error('Erreur lors de la sauvegarde du client en base:', e)
+    return null
+  }
+}
+
+async function saveRapportToDatabase(clientId: number) {
+  const token = localStorage.getItem('token')
+  const rapportData = {
+    date_intervention: rapport.value.dateIntervention,
+    titre_document_pdf: rapport.value.titre,
+    id_client: clientId,
+    contenu: rapport.value.contenu || null,
+    photo_url: rapport.value.photo || null,
+    url_pdf: null
+  }
+  
+  const res = await fetch('http://localhost:8000/api/rapports/', {
+    method: 'POST',
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(rapportData)
+  })
+  
+  if (!res.ok) {
+    throw new Error('Erreur API Rapport: ' + await res.text())
+  }
+  return await res.json()
 }
 
 async function saveRapport() {
   if (!isValid.value) {
-    alert('Veuillez remplir la date et le titre du rapport')
+    alert('Veuillez remplir les informations obligatoires (Date, Titre, Client, Adresse)')
     return
   }
 
   isSaving.value = true
   try {
-    saveToLocalStorage()
+    const clientId = await saveClientToDatabase()
+    if (!clientId) throw new Error("Impossible de créer le client")
+    
+    const savedRapport = await saveRapportToDatabase(clientId)
+    console.log("Rapport sauvegardé avec url_pdf (si présent):", savedRapport.url_pdf)
+    
+    generatePDF()
     router.push('/dashboard/rapports')
-  } catch (e) {
-    alert('Erreur lors de la sauvegarde')
+  } catch (e: any) {
+    console.error(e)
+    alert('Erreur lors de la sauvegarde du rapport : ' + e.message)
   } finally {
     isSaving.value = false
   }
@@ -276,17 +413,23 @@ function generatePDF() {
 
 async function saveAndGeneratePDF() {
   if (!isValid.value) {
-    alert('Veuillez remplir la date et le titre du rapport')
+    alert('Veuillez remplir les informations obligatoires (Date, Titre, Client, Adresse)')
     return
   }
 
   isSaving.value = true
   try {
-    saveToLocalStorage()
+    const clientId = await saveClientToDatabase()
+    if (!clientId) throw new Error("Impossible de créer le client")
+    
+    const savedRapport = await saveRapportToDatabase(clientId)
+    console.log("Rapport sauvegardé avec url_pdf (si présent):", savedRapport.url_pdf)
+    
     generatePDF()
     router.push('/dashboard/rapports')
-  } catch (e) {
-    alert('Erreur lors de la sauvegarde')
+  } catch (e: any) {
+    console.error(e)
+    alert('Erreur lors de la sauvegarde du rapport : ' + e.message)
   } finally {
     isSaving.value = false
   }
@@ -329,6 +472,24 @@ async function saveAndGeneratePDF() {
       <!-- Client Infos -->
       <section class="bg-card border border-border rounded-xl p-6 space-y-4">
         <h3 class="text-lg font-semibold text-foreground mb-4">Informations du Client</h3>
+        
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Choisir un client existant (Optionnel)</label>
+          <select 
+            v-model="selectedClientId" 
+            @change="onClientSelect"
+            class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none text-foreground"
+          >
+            <option :value="null">-- Nouveau client --</option>
+            <option v-for="c in clients" :key="c.id" :value="c.id">
+              {{ c.nom }} {{ c.ville ? `(${c.ville})` : '' }}
+            </option>
+          </select>
+          <p class="text-[10px] text-muted-foreground mt-1">Sélectionnez un client pour remplir automatiquement ses informations</p>
+        </div>
+
+        <div class="h-px bg-border my-4"></div>
+
         <div>
           <label class="block text-sm font-medium text-foreground mb-2">Nom complet du client *</label>
           <input v-model="rapport.nomClient" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nom du client" />
@@ -416,10 +577,24 @@ OBSERVATIONS ET RECOMMANDATIONS :
 
         <!-- Hidden inputs -->
         <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handlePhotoUpload" />
-        <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="handlePhotoUpload" />
+
+        <!-- Camera interface -->
+        <div v-if="isCameraActive" class="space-y-4">
+          <div class="relative bg-black rounded-lg overflow-hidden aspect-video border border-border shadow-inner">
+            <video ref="videoRef" autoplay playsinline class="w-full h-full object-cover"></video>
+          </div>
+          <div class="flex gap-3">
+            <button @click="capturePhoto" class="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-bold shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2">
+              <Camera class="w-5 h-5" /> Capturer la photo
+            </button>
+            <button @click="stopCamera" class="px-4 py-3 border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors">
+              Annuler
+            </button>
+          </div>
+        </div>
 
         <!-- Buttons -->
-        <div v-if="!rapport.photo" class="flex flex-wrap gap-3">
+        <div v-else-if="!rapport.photo" class="flex flex-wrap gap-3">
           <button @click="openGallery" class="inline-flex items-center gap-2 px-4 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
             <ImageIcon class="w-5 h-5" />
             <span>Choisir depuis la galerie</span>
@@ -438,7 +613,7 @@ OBSERVATIONS ET RECOMMANDATIONS :
           </button>
         </div>
 
-        <p class="text-xs text-muted-foreground mt-2">Ajoutez une photo de l'intervention, du matériel installé ou d'un problème identifié</p>
+        <p class="text-xs text-muted-foreground mt-2">Ajoutez une photo de l'intervention ou du matériel installé</p>
       </section>
     </div>
 

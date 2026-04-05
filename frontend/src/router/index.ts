@@ -58,6 +58,11 @@ const routes = [
         path: 'entreprise',
         name: 'entreprise',
         component: { template: '<div>Page Mon entreprise (Bientôt disponible)</div>' }
+      },
+      {
+        path: 'clients',
+        name: 'clients',
+        component: () => import('@/views/ClientsList.vue')
       }
     ]
   }

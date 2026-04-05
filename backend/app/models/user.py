@@ -13,3 +13,4 @@ class User(Base):
 
     societes = relationship("Societe", back_populates="user")
     clients = relationship("Client", back_populates="user")
+    rapports = relationship("Rapport", back_populates="user")

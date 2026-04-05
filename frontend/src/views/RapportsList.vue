@@ -3,26 +3,49 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, FileText, Calendar, Download, Trash2 } from 'lucide-vue-next'
 
+interface Client {
+  nom: string
+}
+
 interface Rapport {
   id: number
-  titre: string
-  nomEntreprise: string
-  nomClient: string
-  dateIntervention: string
-  nomTechnicien: string
-  statut: 'terminee' | 'partielle' | 'aSuivre'
-  totalTTC: number
-  createdAt: string
+  titre_document_pdf: string
+  date_intervention: string
+  client?: Client
+  created_at: string
 }
 
 const router = useRouter()
 const rapports = ref<Rapport[]>([])
 const loading = ref(true)
+const showDeleteConfirm = ref(false)
+const idToDelete = ref<number | null>(null)
+const isDeleting = ref(false)
 
-function fetchRapports() {
+function openDeleteModal(id: number) {
+  idToDelete.value = id
+  showDeleteConfirm.value = true
+}
+
+function closeDeleteModal() {
+  idToDelete.value = null
+  showDeleteConfirm.value = false
+}
+
+async function fetchRapports() {
+  loading.value = true
   try {
-    const stored = localStorage.getItem('rapports')
-    rapports.value = stored ? JSON.parse(stored) : []
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:8000/api/rapports/', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    if (res.ok) {
+      rapports.value = await res.json()
+    } else {
+      console.error('Erreur API rapports', await res.text())
+    }
   } catch (e) {
     console.error('Erreur lors du chargement des rapports', e)
   } finally {
@@ -39,38 +62,48 @@ function formatDate(dateString: string): string {
   })
 }
 
-function deleteRapport(id: number) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer ce rapport ?')) return
+async function confirmDelete() {
+  if (idToDelete.value === null) return
   
-  rapports.value = rapports.value.filter(r => r.id !== id)
-  localStorage.setItem('rapports', JSON.stringify(rapports.value))
-}
-
-function getStatutLabel(statut: string) {
-  const labels: Record<string, string> = {
-    terminee: 'Terminée',
-    partielle: 'Partielle',
-    aSuivre: 'À suivre'
+  isDeleting.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`http://localhost:8000/api/rapports/${idToDelete.value}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      rapports.value = rapports.value.filter(r => r.id !== idToDelete.value)
+      closeDeleteModal()
+    } else {
+      alert("Erreur lors de la suppression.")
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isDeleting.value = false
   }
-  return labels[statut] || statut
 }
 
-function getStatutClass(statut: string) {
-  const classes: Record<string, string> = {
-    terminee: 'bg-green-100 text-green-700',
-    partielle: 'bg-yellow-100 text-yellow-700',
-    aSuivre: 'bg-red-100 text-red-700'
-  }
-  return classes[statut] || 'bg-gray-100 text-gray-700'
-}
 
-function generateFullPDF(rapport: Rapport) {
-  // Récupérer le rapport complet depuis localStorage
-  const stored = localStorage.getItem('rapports')
-  const allRapports = stored ? JSON.parse(stored) : []
-  const fullRapport = allRapports.find((r: any) => r.id === rapport.id)
-  
-  if (!fullRapport) return
+
+async function generateFullPDF(rapport: Rapport) {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`http://localhost:8000/api/rapports/${rapport.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (!res.ok) return
+    const r = await res.json()
+    
+    // Fetch societe information
+    const societeRes = await fetch('http://localhost:8000/api/societes/me', {
+       headers: { 'Authorization': `Bearer ${token}` }
+    })
+    let societe = { nom: '', adresse: '', code_postal: '', ville: '', telephone: '', email: '', siret: '' }
+    if (societeRes.ok) {
+       societe = await societeRes.json()
+    }
   
   const printWindow = window.open('', '_blank')
   if (!printWindow) return
@@ -82,134 +115,93 @@ function generateFullPDF(rapport: Rapport) {
     })
   }
 
-  const statutLabel = {
-    terminee: 'Terminée',
-    partielle: 'Partielle',
-    aSuivre: 'À suivre'
-  }
-
-  const r = fullRapport
-  const photosHtml = r.photos?.length > 0
-    ? `<div class="section"><h2>Photos</h2><div class="photos-grid">${r.photos.map((photo: string) => `<img src="${photo}" class="photo" />`).join('')}</div></div>`
+  const adresseSociete = [societe.adresse, societe.code_postal, societe.ville]
+    .filter(Boolean)
+    .join(' ')
+    
+  const photoHtml = r.photo_url
+    ? `<div class="section"><h2>Photo</h2><img src="${r.photo_url}" class="photo" /></div>`
     : ''
 
   const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
-  <title>${r.titre}</title>
+  <title>${r.titre_document_pdf}</title>
   <style>
     @page { margin: 15mm; size: A4; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.5; color: #1f2937; max-width: 210mm; margin: 0 auto; padding: 15px; background: white; font-size: 12px; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 210mm; margin: 0 auto; padding: 15px; background: white; font-size: 12px; }
     .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 15px; }
     .header h1 { color: #1f2937; margin: 0; font-size: 22px; font-weight: 700; }
-    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-top: 8px; }
-    .badge-terminee { background: #dcfce7; color: #166534; }
-    .badge-partielle { background: #fef3c7; color: #92400e; }
-    .badge-aSuivre { background: #fee2e2; color: #991b1b; }
-    .section { margin-bottom: 15px; page-break-inside: avoid; }
-    .section h2 { color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 8px; font-size: 13px; font-weight: 600; text-transform: uppercase; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .info-group { margin-bottom: 8px; }
+    .section { margin-bottom: 20px; page-break-inside: avoid; }
+    .section h2 { color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; }
+    .info-group { margin-bottom: 10px; }
     .info-label { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
     .info-value { font-size: 12px; color: #1f2937; }
-    .facture-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .facture-table th, .facture-table td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 11px; }
-    .facture-table th { background: #f3f4f6; font-weight: 600; }
-    .facture-table .total-row { font-weight: 700; background: #f3f4f6; }
-    .photos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .photo { width: 100%; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #e5e7eb; }
-    .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-    .signature-box { border: 1px dashed #d1d5db; min-height: 80px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 11px; }
-    .signature-label { text-align: center; margin-top: 8px; font-size: 11px; color: #6b7280; }
-    .text-content { white-space: pre-wrap; font-size: 11px; line-height: 1.6; }
+    .photo { max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb; }
+    .text-content { font-size: 12px; line-height: 1.8; }
+    .text-content p { margin: 0 0 10px 0; }
+    .text-content li { margin: 5px 0; }
+    .societe-info { margin-bottom: 15px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>${r.titre || "RAPPORT D'INTERVENTION"}</h1>
-    <span class="badge badge-${r.statut}">${statutLabel[r.statut as keyof typeof statutLabel] || r.statut}</span>
+    <h1>${r.titre_document_pdf}</h1>
   </div>
 
-  <div class="section">
-    <h2>Informations générales</h2>
+  <div class="section societe-info">
     <div class="grid-2">
       <div>
-        <div class="info-group"><div class="info-label">Entreprise / Artisan</div><div class="info-value">${r.nomEntreprise || '-'}</div></div>
-        <div class="info-group"><div class="info-label">SIRET</div><div class="info-value">${r.siret || '-'}</div></div>
-        <div class="info-group"><div class="info-label">Coordonnées</div><div class="info-value">${r.coordonneesAdresse || '-'}<br/>${r.coordonneesTelephone || ''}<br/>${r.coordonneesEmail || ''}</div></div>
+        <div class="info-group">
+          <div class="info-label">Entreprise</div>
+          <div class="info-value">${societe.nom || '-'}${societe.siret ? ` (SIRET: ${societe.siret})` : ''}</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Coordonnées</div>
+          <div class="info-value">
+            ${adresseSociete || '-'}<br/>
+            ${societe.telephone ? `Tél: ${societe.telephone}<br/>` : ''}
+            ${societe.email ? `Email: ${societe.email}` : ''}
+          </div>
+        </div>
       </div>
       <div>
-        <div class="info-group"><div class="info-label">Client</div><div class="info-value">${r.nomClient || '-'}</div></div>
-        <div class="info-group"><div class="info-label">Adresse d'intervention</div><div class="info-value">${r.adresseIntervention || '-'}</div></div>
-        <div class="info-group"><div class="info-label">Contact client</div><div class="info-value">${r.contactClient || '-'}</div></div>
+        <div class="info-group">
+          <div class="info-label">Client</div>
+          <div class="info-value"><strong>${r.client?.nom || '-'}</strong></div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Adresse d'intervention</div>
+          <div class="info-value">
+            ${r.client?.adresse || '-'}<br/>
+            ${[r.client?.code_postal, r.client?.ville].filter(Boolean).join(' ')}${[r.client?.code_postal, r.client?.ville].filter(Boolean).length > 0 ? '<br/>' : ''}
+            ${r.client?.telephone ? `Tél: ${r.client.telephone}` : ''}
+          </div>
+        </div>
+        ${r.client?.siret ? `
+        <div class="info-group">
+          <div class="info-label">SIRET / SIREN</div>
+          <div class="info-value">${r.client.siret}</div>
+        </div>
+        ` : ''}
       </div>
     </div>
   </div>
 
   <div class="section">
-    <h2>Détails de l'intervention</h2>
-    <div class="grid-2">
-      <div>
-        <div class="info-group"><div class="info-label">Date</div><div class="info-value">${formatDate(r.dateIntervention)}</div></div>
-        <div class="info-group"><div class="info-label">Heures</div><div class="info-value">De ${r.heureDebut || '--:--'} à ${r.heureFin || '--:--'}</div></div>
-        <div class="info-group"><div class="info-label">Durée totale</div><div class="info-value">${r.dureeTotale || '-'}</div></div>
-      </div>
-      <div>
-        <div class="info-group"><div class="info-label">Technicien</div><div class="info-value">${r.nomTechnicien || '-'}</div></div>
-      </div>
+    <div class="info-group">
+      <div class="info-label">Date d'intervention</div>
+      <div class="info-value">${formatDate(r.date_intervention)}</div>
     </div>
   </div>
 
   <div class="section">
-    <h2>Motif de l'intervention</h2>
-    <div class="text-content">${r.motifIntervention || 'Non spécifié'}</div>
+    <h2>Rapport d'intervention</h2>
+    <div class="text-content">${r.contenu || '<p>Aucun contenu</p>'}</div>
   </div>
 
-  <div class="section">
-    <h2>Diagnostic</h2>
-    <div class="text-content">${r.diagnostic || 'Non spécifié'}</div>
-  </div>
-
-  <div class="section">
-    <h2>Travaux réalisés</h2>
-    <div class="text-content">${r.travauxRealises || 'Non spécifié'}</div>
-  </div>
-
-  <div class="section">
-    <h2>Matériel utilisé</h2>
-    <div class="text-content">${r.materielUtilise || 'Non spécifié'}</div>
-  </div>
-
-  <div class="section">
-    <h2>Facturation</h2>
-    <table class="facture-table">
-      <tr><th>Description</th><th style="text-align:right">Montant</th></tr>
-      <tr><td>Main d'œuvre</td><td style="text-align:right">${(r.mainOeuvre || 0).toFixed(2)} €</td></tr>
-      <tr><td>Déplacement</td><td style="text-align:right">${(r.deplacement || 0).toFixed(2)} €</td></tr>
-      <tr><td>Matériel</td><td style="text-align:right">${(r.materielFacturation || 0).toFixed(2)} €</td></tr>
-      <tr><td><strong>Total HT</strong></td><td style="text-align:right"><strong>${(r.totalHT || 0).toFixed(2)} €</strong></td></tr>
-      <tr><td>TVA (${r.tva || 20}%)</td><td style="text-align:right">${((r.totalTTC || 0) - (r.totalHT || 0)).toFixed(2)} €</td></tr>
-      <tr class="total-row"><td><strong>Total TTC</strong></td><td style="text-align:right"><strong>${(r.totalTTC || 0).toFixed(2)} €</strong></td></tr>
-    </table>
-  </div>
-
-  ${photosHtml}
-
-  <div class="section">
-    <h2>Observations & Recommandations</h2>
-    <div class="text-content">${r.observations || 'Aucune observation'}</div>
-  </div>
-
-  <div class="signatures">
-    <div>
-      <div class="signature-box">${r.signatureClient ? `<img src="${r.signatureClient}" style="max-height:70px" />` : 'Signature client'}</div>
-      <div class="signature-label">Signature du client</div>
-    </div>
-    <div>
-      <div class="signature-box">${r.signatureTechnicien ? `<img src="${r.signatureTechnicien}" style="max-height:70px" />` : 'Signature technicien'}</div>
-      <div class="signature-label">Signature du technicien</div>
-    </div>
-  </div>
+  ${photoHtml}
 </body>
 </html>`
 
@@ -219,6 +211,9 @@ function generateFullPDF(rapport: Rapport) {
   setTimeout(() => {
     printWindow.print()
   }, 500)
+  } catch (e) {
+    console.error('Erreur lors de la génération du PDF', e)
+  }
 }
 
 onMounted(fetchRapports)
@@ -275,21 +270,17 @@ onMounted(fetchRapports)
         <div class="flex items-start justify-between">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 mb-2">
-              <h3 class="text-lg font-semibold text-foreground truncate">{{ rapport.titre || "Rapport d'intervention" }}</h3>
-              <span :class="getStatutClass(rapport.statut)" class="px-2 py-1 rounded-full text-xs font-medium">
-                {{ getStatutLabel(rapport.statut) }}
+              <h3 class="text-lg font-semibold text-foreground truncate">{{ rapport.titre_document_pdf || "Rapport d'intervention" }}</h3>
+              <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                Terminée
               </span>
             </div>
             <div class="flex items-center gap-4 text-sm text-muted-foreground">
               <span class="flex items-center gap-1">
                 <Calendar class="w-4 h-4" />
-                {{ formatDate(rapport.dateIntervention) }}
+                {{ formatDate(rapport.date_intervention) }}
               </span>
-              <span>{{ rapport.nomClient }}</span>
-              <span>{{ rapport.nomTechnicien }}</span>
-            </div>
-            <div class="mt-2 text-sm font-medium">
-              Total: {{ (rapport.totalTTC || 0).toFixed(2) }} € TTC
+              <span>{{ rapport.client?.nom || 'Client inconnu' }}</span>
             </div>
           </div>
           <div class="flex items-center gap-2 ml-4">
@@ -301,13 +292,39 @@ onMounted(fetchRapports)
               <Download class="w-5 h-5" />
             </button>
             <button
-              @click="deleteRapport(rapport.id)"
+              @click="openDeleteModal(rapport.id)"
               class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
               title="Supprimer"
             >
               <Trash2 class="w-5 h-5" />
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-background/80 backdrop-blur-sm" @click="closeDeleteModal"></div>
+      <div class="relative bg-card border border-border rounded-xl shadow-lg max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+        <h3 class="text-lg font-semibold text-foreground mb-2">Confirmer la suppression</h3>
+        <p class="text-muted-foreground mb-6">Voulez-vous vraiment supprimer ce rapport ? Cette action est irréversible.</p>
+        <div class="flex justify-end gap-3">
+          <button 
+            @click="closeDeleteModal" 
+            class="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors"
+            :disabled="isDeleting"
+          >
+            Annuler
+          </button>
+          <button 
+            @click="confirmDelete" 
+            class="px-4 py-2 text-sm font-medium bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors flex items-center gap-2"
+            :disabled="isDeleting"
+          >
+            <span v-if="isDeleting" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+            Supprimer
+          </button>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Building2, Home, FileText, Settings, LogOut, 
-  Receipt, Menu, X, Bell, BarChart3
+  Receipt, Menu, X, Bell, BarChart3, Users
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -77,6 +77,9 @@ function handleLogout() {
         <p class="nav-section-title mt-8">Administration</p>
         <router-link to="/dashboard/entreprise" class="nav-link" @click="isMobileMenuOpen = false">
           <Building2 class="w-5 h-5" /> Mon entreprise
+        </router-link>
+        <router-link to="/dashboard/clients" class="nav-link" @click="isMobileMenuOpen = false">
+          <Users class="w-5 h-5" /> Mes clients
         </router-link>
 
         <p class="nav-section-title mt-8">Configuration</p>

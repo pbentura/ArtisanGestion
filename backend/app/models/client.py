@@ -16,3 +16,4 @@ class Client(Base):
     
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="clients")
+    rapports = relationship("Rapport", back_populates="client", cascade="all, delete-orphan")
