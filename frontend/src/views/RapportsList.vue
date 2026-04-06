@@ -14,6 +14,7 @@ interface Rapport {
   titre_document_pdf: string
   date_intervention: string
   client?: Client
+  statut: string
   created_at: string
 }
 
@@ -291,8 +292,15 @@ onMounted(fetchRapports)
           <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               <h3 class="text-base sm:text-lg font-semibold text-foreground truncate">{{ rapport.titre_document_pdf || "Rapport d'intervention" }}</h3>
-              <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap">
-                Terminée
+              <span 
+                :class="[
+                  'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap',
+                  rapport.statut === 'terminée' 
+                    ? 'bg-green-100 text-green-700 font-bold border border-green-200' 
+                    : 'bg-blue-100 text-blue-700 font-bold border border-blue-200'
+                ]"
+              >
+                {{ rapport.statut === 'terminée' ? 'Terminée' : 'En cours' }}
               </span>
             </div>
             <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">

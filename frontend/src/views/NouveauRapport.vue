@@ -144,6 +144,7 @@ async function loadExistingRapport(id: number) {
       contactClient: data.client?.telephone || '',
       contenu: data.contenu || '',
       photo: data.photo_url || null,
+      statut: data.statut || 'en cours',
       createdAt: data.created_at
     }
     
@@ -181,6 +182,7 @@ interface Rapport {
   contactClient: string
   contenu: string
   photo: string | null
+  statut: string
   createdAt: string
 }
 
@@ -195,6 +197,7 @@ const rapport = ref<Rapport>({
   contactClient: '',
   contenu: '',
   photo: null,
+  statut: 'en cours',
   createdAt: new Date().toISOString()
 })
 
@@ -314,7 +317,7 @@ async function saveRapportToDatabase(clientId: number) {
     id_client: clientId,
     contenu: rapport.value.contenu || null,
     photo_url: rapport.value.photo || null,
-    url_pdf: null
+    statut: rapport.value.statut
   }
   
   const url = isEditMode.value && rapportId.value
@@ -350,7 +353,7 @@ async function saveRapport() {
     if (!clientId) throw new Error("Impossible de créer le client")
     
     const savedRapport = await saveRapportToDatabase(clientId)
-    console.log("Rapport sauvegardé avec url_pdf (si présent):", savedRapport.url_pdf)
+    console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
     
     await generatePDF()
     router.push('/dashboard/rapports')
@@ -506,7 +509,7 @@ async function saveAndGeneratePDF() {
     if (!clientId) throw new Error("Impossible de créer le client")
     
     const savedRapport = await saveRapportToDatabase(clientId)
-    console.log("Rapport sauvegardé avec url_pdf (si présent):", savedRapport.url_pdf)
+    console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
     
     await generatePDF()
     router.push('/dashboard/rapports')
@@ -552,7 +555,35 @@ async function saveAndGeneratePDF() {
 
       <!-- Titre du document PDF -->
       <section class="bg-card border border-border rounded-xl p-6">
-        <label class="block text-sm font-medium text-foreground mb-2">Titre du document PDF *</label>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <label class="block text-sm font-medium text-foreground">Titre du document PDF *</label>
+          <div class="flex items-center bg-muted rounded-lg p-1">
+            <button 
+              @click="rapport.statut = 'en cours'"
+              type="button"
+              :class="[
+                'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                rapport.statut === 'en cours' 
+                  ? 'bg-primary text-primary-foreground shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              ]"
+            >
+              En cours
+            </button>
+            <button 
+              @click="rapport.statut = 'terminée'"
+              type="button"
+              :class="[
+                'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                rapport.statut === 'terminée' 
+                  ? 'bg-green-600 text-white shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              ]"
+            >
+              Terminée
+            </button>
+          </div>
+        </div>
         <input v-model="rapport.titre" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="RAPPORT D'INTERVENTION" />
         <p class="text-xs text-muted-foreground mt-1">Ce titre apparaîtra en haut du document PDF généré</p>
       </section>

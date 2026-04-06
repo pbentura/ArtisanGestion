@@ -11,7 +11,7 @@ class Rapport(Base):
     titre_document_pdf = Column(String, nullable=False)
     contenu = Column(Text, nullable=True)
     photo_url = Column(String, nullable=True)
-    url_pdf = Column(String, nullable=True)
+    statut = Column(String, nullable=False, server_default="en cours")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
