@@ -246,34 +246,30 @@ onMounted(fetchClients)
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click="closeDeleteModal">
-      <div class="modal delete-modal" @click.stop>
-        <div class="modal-body p-6 text-center">
-          <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 class="w-8 h-8" />
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-2">Supprimer le client</h3>
-          <p class="text-gray-500 mb-6">
-            Êtes-vous sûr de vouloir supprimer <strong>{{ clientToDelete?.nom }}</strong> ? 
-            Cette action est irréversible.
-          </p>
-          <div class="flex justify-center gap-3">
-            <button 
-              @click="closeDeleteModal" 
-              class="btn-secondary" 
-              :disabled="isDeleting"
-            >
-              Annuler
-            </button>
-            <button 
-              @click="confirmDelete" 
-              class="btn-danger-confirm" 
-              :disabled="isDeleting"
-            >
-              <span v-if="isDeleting" class="spinner mr-2"></span>
-              {{ isDeleting ? 'Suppression...' : 'Supprimer' }}
-            </button>
-          </div>
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-background/80 backdrop-blur-sm" @click="closeDeleteModal"></div>
+      <div class="relative bg-card border border-border rounded-xl shadow-lg max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+        <h3 class="text-lg font-semibold text-foreground mb-2">Confirmer la suppression</h3>
+        <p class="text-muted-foreground mb-6">
+          Voulez-vous vraiment supprimer le client <strong>{{ clientToDelete?.nom }}</strong> ? 
+          Cette action est irréversible.
+        </p>
+        <div class="flex justify-end gap-3">
+          <button 
+            @click="closeDeleteModal" 
+            class="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors"
+            :disabled="isDeleting"
+          >
+            Annuler
+          </button>
+          <button 
+            @click="confirmDelete" 
+            class="px-4 py-2 text-sm font-medium bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors flex items-center gap-2"
+            :disabled="isDeleting"
+          >
+            <span v-if="isDeleting" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+            Supprimer
+          </button>
         </div>
       </div>
     </div>
@@ -509,7 +505,7 @@ onMounted(fetchClients)
 .input:focus {
   outline: none;
   border-color: var(--primary);
-  ring: 2px solid var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 .form-row {
@@ -525,41 +521,6 @@ onMounted(fetchClients)
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
-}
-
-.delete-modal {
-  max-width: 400px;
-}
-
-.btn-danger-confirm {
-  padding: 10px 24px;
-  background: var(--destructive);
-  color: var(--primary-foreground);
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: background 0.2s;
-}
-
-.btn-danger-confirm:hover {
-  opacity: 0.9;
-}
-
-.btn-danger-confirm:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-t-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
