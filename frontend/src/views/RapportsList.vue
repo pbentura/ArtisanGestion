@@ -102,15 +102,12 @@ async function generateFullPDF(rapport: Rapport) {
     const societeRes = await fetch(`${API_BASE_URL}/api/societes/me`, {
        headers: { 'Authorization': `Bearer ${token}` }
     })
-    let societe = { nom: '', adresse: '', code_postal: '', ville: '', telephone: '', email: '', siret: '' }
+    let societe: Record<string, string> = { nom: '', adresse: '', code_postal: '', ville: '', telephone: '', email: '', siret: '', texte_pied_page: '' }
     if (societeRes.ok) {
        societe = await societeRes.json()
     }
   
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) return
-
-  const formatDate = (dateString: string) => {
+  const pdfFormatDate = (dateString: string) => {
     if (!dateString) return '-'
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit', month: '2-digit', year: 'numeric'
@@ -125,94 +122,114 @@ async function generateFullPDF(rapport: Rapport) {
     ? `<div class="section"><h2>Photo</h2><img src="${r.photo_url}" class="photo" /></div>`
     : ''
 
-  const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-  <title>${r.titre_document_pdf}</title>
-  <style>
-    @page { margin: 15mm; size: A4; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 210mm; margin: 0 auto; padding: 15px; background: white; font-size: 12px; }
-    .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 15px; }
-    .header h1 { color: #1f2937; margin: 0; font-size: 22px; font-weight: 700; }
-    .section { margin-bottom: 20px; page-break-inside: avoid; }
-    .section h2 { color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; }
-    .info-group { margin-bottom: 10px; }
-    .info-label { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
-    .info-value { font-size: 12px; color: #1f2937; }
-    .photo { max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb; }
-    .text-content { font-size: 12px; line-height: 1.8; }
-    .text-content p { margin: 0 0 10px 0; }
-    .text-content li { margin: 5px 0; }
-    .societe-info { margin-bottom: 15px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${r.titre_document_pdf}</h1>
-  </div>
+  const footerText = societe.texte_pied_page || ''
 
-  <div class="section societe-info">
-    <div class="grid-2">
-      <div>
-        <div class="info-group">
-          <div class="info-label">Entreprise</div>
-          <div class="info-value">${societe.nom || '-'}${societe.siret ? ` (SIRET: ${societe.siret})` : ''}</div>
-        </div>
-        <div class="info-group">
-          <div class="info-label">Coordonnées</div>
-          <div class="info-value">
-            ${adresseSociete || '-'}<br/>
-            ${societe.telephone ? `Tél: ${societe.telephone}<br/>` : ''}
-            ${societe.email ? `Email: ${societe.email}` : ''}
+  // Create a temporary container for html2pdf
+  const container = document.createElement('div')
+  container.innerHTML = `
+  <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
+    <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 15px;">
+      <h1 style="color: #1f2937; margin: 0; font-size: 22px; font-weight: 700;">${r.titre_document_pdf}</h1>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Entreprise</div>
+            <div style="font-size: 12px; color: #1f2937;">${societe.nom || '-'}${societe.siret ? ` (SIRET: ${societe.siret})` : ''}</div>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Coordonnées</div>
+            <div style="font-size: 12px; color: #1f2937;">
+              ${adresseSociete || '-'}<br/>
+              ${societe.telephone ? `Tél: ${societe.telephone}<br/>` : ''}
+              ${societe.email ? `Email: ${societe.email}` : ''}
+            </div>
           </div>
         </div>
-      </div>
-      <div>
-        <div class="info-group">
-          <div class="info-label">Client</div>
-          <div class="info-value"><strong>${r.client?.nom || '-'}</strong></div>
-        </div>
-        <div class="info-group">
-          <div class="info-label">Adresse d'intervention</div>
-          <div class="info-value">
-            ${r.client?.adresse || '-'}<br/>
-            ${[r.client?.code_postal, r.client?.ville].filter(Boolean).join(' ')}${[r.client?.code_postal, r.client?.ville].filter(Boolean).length > 0 ? '<br/>' : ''}
-            ${r.client?.telephone ? `Tél: ${r.client.telephone}` : ''}
+        <div>
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Client</div>
+            <div style="font-size: 12px; color: #1f2937;"><strong>${r.client?.nom || '-'}</strong></div>
           </div>
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Adresse d'intervention</div>
+            <div style="font-size: 12px; color: #1f2937;">
+              ${r.client?.adresse || '-'}<br/>
+              ${[r.client?.code_postal, r.client?.ville].filter(Boolean).join(' ')}${[r.client?.code_postal, r.client?.ville].filter(Boolean).length > 0 ? '<br/>' : ''}
+              ${r.client?.telephone ? `Tél: ${r.client.telephone}` : ''}
+            </div>
+          </div>
+          ${r.client?.siret ? `
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">SIRET / SIREN</div>
+            <div style="font-size: 12px; color: #1f2937;">${r.client.siret}</div>
+          </div>
+          ` : ''}
         </div>
-        ${r.client?.siret ? `
-        <div class="info-group">
-          <div class="info-label">SIRET / SIREN</div>
-          <div class="info-value">${r.client.siret}</div>
-        </div>
-        ` : ''}
       </div>
     </div>
-  </div>
 
-  <div class="section">
-    <div class="info-group">
-      <div class="info-label">Date d'intervention</div>
-      <div class="info-value">${formatDate(r.date_intervention)}</div>
+    <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 10px;">
+        <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Date d'intervention</div>
+        <div style="font-size: 12px; color: #1f2937;">${pdfFormatDate(r.date_intervention)}</div>
+      </div>
     </div>
-  </div>
 
-  <div class="section">
-    <h2>Rapport d'intervention</h2>
-    <div class="text-content">${r.contenu || '<p>Aucun contenu</p>'}</div>
-  </div>
+    <div style="margin-bottom: 20px;">
+      <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Rapport d'intervention</h2>
+      <div style="font-size: 12px; line-height: 1.8;">${r.contenu || '<p>Aucun contenu</p>'}</div>
+    </div>
 
-  ${photoHtml}
-</body>
-</html>`
+    ${photoHtml ? `
+    <div style="margin-bottom: 20px;">
+      <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photo</h2>
+      <img src="${r.photo_url}" style="max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb;" />
+    </div>
+    ` : ''}
+  </div>`
 
-  printWindow.document.write(htmlContent)
-  printWindow.document.close()
+  document.body.appendChild(container)
 
-  setTimeout(() => {
-    printWindow.print()
-  }, 500)
+  const filename = (r.titre_document_pdf || 'rapport').replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ _-]/g, '').replace(/\s+/g, '_')
+
+  const { default: html2pdf } = await import('html2pdf.js')
+
+  const worker = html2pdf()
+    .set({
+      margin: [15, 15, footerText ? 25 : 15, 15],
+      filename: `${filename}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    } as any)
+    .from(container)
+    .toPdf()
+
+  // Get the jsPDF instance to add footer text
+  const pdf: any = await worker.get('pdf')
+  if (footerText && pdf) {
+    const totalPages = pdf.internal.getNumberOfPages()
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i)
+      pdf.setFontSize(8)
+      pdf.setTextColor(107, 114, 128)
+      const lines = pdf.splitTextToSize(footerText, pageWidth - 30)
+      const startY = pdf.internal.pageSize.getHeight() - 10
+      lines.forEach((line: string, idx: number) => {
+        pdf.text(line, pageWidth / 2, startY + (idx * 3.5), { align: 'center' })
+      })
+    }
+  }
+
+  await worker.save()
+
+  document.body.removeChild(container)
+
   } catch (e) {
     console.error('Erreur lors de la génération du PDF', e)
   }
@@ -223,14 +240,14 @@ onMounted(fetchRapports)
 
 <template>
   <div class="max-w-6xl mx-auto">
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-foreground">Rapports d'intervention</h1>
-        <p class="text-muted-foreground mt-1">Gérez vos rapports d'intervention et créez-en de nouveaux</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Rapports d'intervention</h1>
+        <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos rapports d'intervention et créez-en de nouveaux</p>
       </div>
       <button
         @click="router.push('/dashboard/rapports/new')"
-        class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+        class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0 w-full sm:w-auto"
       >
         <Plus class="w-5 h-5" />
         Nouveau rapport
@@ -267,17 +284,17 @@ onMounted(fetchRapports)
       <div
         v-for="rapport in rapports"
         :key="rapport.id"
-        class="bg-card border border-border rounded-xl p-6 hover:border-primary/50 transition-colors"
+        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors"
       >
-        <div class="flex items-start justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-3 mb-2">
-              <h3 class="text-lg font-semibold text-foreground truncate">{{ rapport.titre_document_pdf || "Rapport d'intervention" }}</h3>
-              <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+              <h3 class="text-base sm:text-lg font-semibold text-foreground truncate">{{ rapport.titre_document_pdf || "Rapport d'intervention" }}</h3>
+              <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap">
                 Terminée
               </span>
             </div>
-            <div class="flex items-center gap-4 text-sm text-muted-foreground">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
               <span class="flex items-center gap-1">
                 <Calendar class="w-4 h-4" />
                 {{ formatDate(rapport.date_intervention) }}
@@ -285,7 +302,7 @@ onMounted(fetchRapports)
               <span>{{ rapport.client?.nom || 'Client inconnu' }}</span>
             </div>
           </div>
-          <div class="flex items-center gap-2 ml-4">
+          <div class="flex items-center gap-2 sm:ml-4">
             <button
               @click="generateFullPDF(rapport)"
               class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"

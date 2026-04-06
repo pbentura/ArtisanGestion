@@ -16,7 +16,8 @@ const societe = ref({
   code_postal: '',
   ville: '',
   telephone: '',
-  email: ''
+  email: '',
+  texte_pied_page: ''
 })
 
 const clients = ref<any[]>([])
@@ -288,7 +289,7 @@ async function saveRapport() {
     const savedRapport = await saveRapportToDatabase(clientId)
     console.log("Rapport sauvegardé avec url_pdf (si présent):", savedRapport.url_pdf)
     
-    generatePDF()
+    await generatePDF()
     router.push('/dashboard/rapports')
   } catch (e: any) {
     console.error(e)
@@ -298,118 +299,136 @@ async function saveRapport() {
   }
 }
 
-function generatePDF() {
+async function generatePDF(download = true) {
   isGeneratingPDF.value = true
 
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) {
-    isGeneratingPDF.value = false
-    return
-  }
+  try {
+    const pdfFormatDate = (dateString: string) => {
+      return new Date(dateString).toLocaleDateString('fr-FR', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      })
+    }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric'
-    })
-  }
+    const adresseSociete = [societe.value.adresse, societe.value.code_postal, societe.value.ville]
+      .filter(Boolean)
+      .join(' ')
 
-  const adresseSociete = [societe.value.adresse, societe.value.code_postal, societe.value.ville]
-    .filter(Boolean)
-    .join(' ')
+    const footerText = societe.value.texte_pied_page || ''
 
-  const photoHtml = rapport.value.photo
-    ? `<div class="section"><h2>Photo</h2><img src="${rapport.value.photo}" class="photo" /></div>`
-    : ''
+    const container = document.createElement('div')
+    container.innerHTML = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
+      <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 15px;">
+        <h1 style="color: #1f2937; margin: 0; font-size: 22px; font-weight: 700;">${rapport.value.titre}</h1>
+      </div>
 
-  const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-  <title>${rapport.value.titre}</title>
-  <style>
-    @page { margin: 15mm; size: A4; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 210mm; margin: 0 auto; padding: 15px; background: white; font-size: 12px; }
-    .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 15px; }
-    .header h1 { color: #1f2937; margin: 0; font-size: 22px; font-weight: 700; }
-    .section { margin-bottom: 20px; page-break-inside: avoid; }
-    .section h2 { color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; }
-    .info-group { margin-bottom: 10px; }
-    .info-label { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
-    .info-value { font-size: 12px; color: #1f2937; }
-    .photo { max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb; }
-    .text-content { font-size: 12px; line-height: 1.8; }
-    .text-content p { margin: 0 0 10px 0; }
-    .text-content li { margin: 5px 0; }
-    .societe-info { margin-bottom: 15px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${rapport.value.titre}</h1>
-  </div>
-
-  <div class="section societe-info">
-    <div class="grid-2">
-      <div>
-        <div class="info-group">
-          <div class="info-label">Entreprise</div>
-          <div class="info-value">${societe.value.nom || '-'}${societe.value.siret ? ` (SIRET: ${societe.value.siret})` : ''}</div>
-        </div>
-        <div class="info-group">
-          <div class="info-label">Coordonnées</div>
-          <div class="info-value">
-            ${adresseSociete || '-'}<br/>
-            ${societe.value.telephone ? `Tél: ${societe.value.telephone}<br/>` : ''}
-            ${societe.value.email ? `Email: ${societe.value.email}` : ''}
+      <div style="margin-bottom: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <div style="margin-bottom: 10px;">
+              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Entreprise</div>
+              <div style="font-size: 12px; color: #1f2937;">${societe.value.nom || '-'}${societe.value.siret ? ` (SIRET: ${societe.value.siret})` : ''}</div>
+            </div>
+            <div style="margin-bottom: 10px;">
+              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Coordonnées</div>
+              <div style="font-size: 12px; color: #1f2937;">
+                ${adresseSociete || '-'}<br/>
+                ${societe.value.telephone ? `Tél: ${societe.value.telephone}<br/>` : ''}
+                ${societe.value.email ? `Email: ${societe.value.email}` : ''}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="margin-bottom: 10px;">
+              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Client</div>
+              <div style="font-size: 12px; color: #1f2937;"><strong>${rapport.value.nomClient || '-'}</strong></div>
+            </div>
+            <div style="margin-bottom: 10px;">
+              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Adresse d'intervention</div>
+              <div style="font-size: 12px; color: #1f2937;">
+                ${rapport.value.adresseIntervention || '-'}<br/>
+                ${[rapport.value.clientCodePostal, rapport.value.clientVille].filter(Boolean).join(' ')}${[rapport.value.clientCodePostal, rapport.value.clientVille].filter(Boolean).length > 0 ? '<br/>' : ''}
+                ${rapport.value.contactClient ? `Tél: ${rapport.value.contactClient}` : ''}
+              </div>
+            </div>
+            ${rapport.value.clientSiret ? `
+            <div style="margin-bottom: 10px;">
+              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">SIRET / SIREN</div>
+              <div style="font-size: 12px; color: #1f2937;">${rapport.value.clientSiret}</div>
+            </div>
+            ` : ''}
           </div>
         </div>
       </div>
-      <div>
-        <div class="info-group">
-          <div class="info-label">Client</div>
-          <div class="info-value"><strong>${rapport.value.nomClient || '-'}</strong></div>
+
+      <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 10px;">
+          <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Date d'intervention</div>
+          <div style="font-size: 12px; color: #1f2937;">${pdfFormatDate(rapport.value.dateIntervention)}</div>
         </div>
-        <div class="info-group">
-          <div class="info-label">Adresse d'intervention</div>
-          <div class="info-value">
-            ${rapport.value.adresseIntervention || '-'}<br/>
-            ${[rapport.value.clientCodePostal, rapport.value.clientVille].filter(Boolean).join(' ')}${[rapport.value.clientCodePostal, rapport.value.clientVille].filter(Boolean).length > 0 ? '<br/>' : ''}
-            ${rapport.value.contactClient ? `Tél: ${rapport.value.contactClient}` : ''}
-          </div>
-        </div>
-        ${rapport.value.clientSiret ? `
-        <div class="info-group">
-          <div class="info-label">SIRET / SIREN</div>
-          <div class="info-value">${rapport.value.clientSiret}</div>
-        </div>
-        ` : ''}
       </div>
-    </div>
-  </div>
 
-  <div class="section">
-    <div class="info-group">
-      <div class="info-label">Date d'intervention</div>
-      <div class="info-value">${formatDate(rapport.value.dateIntervention)}</div>
-    </div>
-  </div>
+      <div style="margin-bottom: 20px;">
+        <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Rapport d'intervention</h2>
+        <div style="font-size: 12px; line-height: 1.8;">${rapport.value.contenu || '<p>Aucun contenu</p>'}</div>
+      </div>
 
-  <div class="section">
-    <h2>Rapport d'intervention</h2>
-    <div class="text-content">${rapport.value.contenu || '<p>Aucun contenu</p>'}</div>
-  </div>
+      ${rapport.value.photo ? `
+      <div style="margin-bottom: 20px;">
+        <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photo</h2>
+        <img src="${rapport.value.photo}" style="max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb;" />
+      </div>
+      ` : ''}
+    </div>`
 
-  ${photoHtml}
-</body>
-</html>`
+    document.body.appendChild(container)
 
-  printWindow.document.write(htmlContent)
-  printWindow.document.close()
+    const filename = (rapport.value.titre || 'rapport').replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ _-]/g, '').replace(/\s+/g, '_')
 
-  setTimeout(() => {
-    printWindow.print()
+    const { default: html2pdf } = await import('html2pdf.js')
+
+    const worker = html2pdf()
+      .set({
+        margin: [15, 15, footerText ? 25 : 15, 15],
+        filename: `${filename}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      } as any)
+      .from(container)
+      .toPdf()
+
+    const pdf: any = await worker.get('pdf')
+    if (footerText && pdf) {
+      const totalPages = pdf.internal.getNumberOfPages()
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i)
+        pdf.setFontSize(8)
+        pdf.setTextColor(107, 114, 128)
+        const lines = pdf.splitTextToSize(footerText, pageWidth - 30)
+        const startY = pdf.internal.pageSize.getHeight() - 10
+        lines.forEach((line: string, idx: number) => {
+          pdf.text(line, pageWidth / 2, startY + (idx * 3.5), { align: 'center' })
+        })
+      }
+    }
+
+    if (download) {
+      await worker.save()
+    } else {
+      const blob = await worker.output('blob')
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    }
+
+    document.body.removeChild(container)
+  } catch (e) {
+    console.error('Erreur lors de la génération du PDF', e)
+  } finally {
     isGeneratingPDF.value = false
-  }, 500)
+  }
 }
 
 async function saveAndGeneratePDF() {
@@ -426,7 +445,7 @@ async function saveAndGeneratePDF() {
     const savedRapport = await saveRapportToDatabase(clientId)
     console.log("Rapport sauvegardé avec url_pdf (si présent):", savedRapport.url_pdf)
     
-    generatePDF()
+    await generatePDF()
     router.push('/dashboard/rapports')
   } catch (e: any) {
     console.error(e)
@@ -445,7 +464,7 @@ async function saveAndGeneratePDF() {
         <ArrowLeft class="w-5 h-5" /> Retour
       </button>
       <div class="flex items-center gap-3">
-        <button @click="generatePDF" :disabled="!isValid || isGeneratingPDF" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50">
+        <button @click="generatePDF(false)" :disabled="!isValid || isGeneratingPDF" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50">
           <FileDown class="w-5 h-5" /> {{ isGeneratingPDF ? 'Génération...' : 'Aperçu PDF' }}
         </button>
         <button @click="saveAndGeneratePDF" :disabled="!isValid || isSaving" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
