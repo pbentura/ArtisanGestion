@@ -4,6 +4,9 @@ All endpoints require a valid JWT token from a user with role == "ADMIN".
 """
 
 from typing import Any, Dict, List
+import datetime
+from decimal import Decimal, InvalidOperation
+from passlib.context import CryptContext
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -17,6 +20,12 @@ from app.models.rapport import Rapport
 from app.core.database import Base
 
 router = APIRouter()
+
+# Contexte bcrypt — utilisé pour hasher le mdp si un user est créé via l'admin
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Colonnes qui ne doivent jamais être écrites directement depuis le payload
+READONLY_COLS = {"id", "created_at"}
 
 # ---------------------------------------------------------------------------
 # Mapping table_name -> SQLAlchemy model
@@ -61,10 +70,16 @@ def _row_to_dict(row) -> Dict[str, Any]:
     result = {}
     for col in mapper.columns:
         value = getattr(row, col.key)
-        # Convert non-JSON-serializable types to string
-        if value is not None and not isinstance(value, (str, int, float, bool)):
-            value = str(value)
-        result[col.key] = value
+        if value is None:
+            result[col.key] = None
+        elif isinstance(value, (datetime.date, datetime.datetime)):
+            result[col.key] = value.isoformat()
+        elif isinstance(value, Decimal):
+            result[col.key] = float(value)
+        elif not isinstance(value, (str, int, float, bool)):
+            result[col.key] = str(value)
+        else:
+            result[col.key] = value
     return result
 
 
@@ -81,9 +96,46 @@ def _get_table_schema(model) -> List[Dict[str, Any]]:
             "type": col_type,
             "nullable": col.nullable if hasattr(col, "nullable") else True,
             "primary_key": col.primary_key if hasattr(col, "primary_key") else False,
-            "default": str(col.default.arg) if col.default is not None and hasattr(col.default, "arg") else None,
+            "default": (
+                str(col.default.arg)
+                if col.default is not None
+                and hasattr(col.default, "arg")
+                and not callable(col.default.arg)
+                else None
+            ),
         })
     return columns
+
+
+# ---------------------------------------------------------------------------
+# Helper: coerce a raw JSON value to the Python type expected by SQLAlchemy
+# ---------------------------------------------------------------------------
+def _coerce_value(col, value: Any) -> Any:
+    """Convert a string value to the appropriate Python type based on the SA column type."""
+    if value is None:
+        return None
+    col_type = type(col.type).__name__.upper()
+    try:
+        if col_type == "DATE":
+            if isinstance(value, str):
+                return datetime.date.fromisoformat(value[:10])  # coupe le T+heure si present
+        elif col_type in ("DATETIME", "TIMESTAMP"):
+            if isinstance(value, str):
+                return datetime.datetime.fromisoformat(value)
+        elif col_type in ("NUMERIC", "FLOAT", "REAL", "DOUBLE_PRECISION"):
+            if isinstance(value, str):
+                return Decimal(value)
+            if isinstance(value, float):
+                return Decimal(str(value))
+        elif col_type in ("INTEGER", "BIGINTEGER", "SMALLINTEGER"):
+            if isinstance(value, (str, float)):
+                return int(value)
+        elif col_type == "BOOLEAN":
+            if isinstance(value, str):
+                return value.lower() in ("true", "1", "yes")
+    except (ValueError, InvalidOperation):
+        pass
+    return value
 
 
 # ===========================================================================
@@ -135,8 +187,16 @@ async def create_row(
 
     # Filter out keys that are not valid columns
     mapper = sa_inspect(model)
-    valid_keys = {col.key for col in mapper.columns}
-    filtered = {k: v for k, v in data.items() if k in valid_keys and k != "id"}
+    col_map = {col.key: col for col in mapper.columns}
+    filtered = {
+        k: _coerce_value(col_map[k], v)
+        for k, v in data.items()
+        if k in col_map and k not in READONLY_COLS
+    }
+
+    # Hash le mot de passe si on crée un user
+    if table_name == "users" and "mdp" in filtered and filtered["mdp"]:
+        filtered["mdp"] = _pwd_context.hash(filtered["mdp"][:72])
 
     row = model(**filtered)
     db.add(row)
@@ -162,11 +222,15 @@ async def update_row(
         raise HTTPException(status_code=404, detail="Ligne introuvable")
 
     mapper = sa_inspect(model)
-    valid_keys = {col.key for col in mapper.columns}
+    col_map = {col.key: col for col in mapper.columns}
 
     for key, value in data.items():
-        if key in valid_keys and key != "id":
-            setattr(row, key, value)
+        if key in col_map and key not in READONLY_COLS:
+            setattr(row, key, _coerce_value(col_map[key], value))
+
+    # Hash le mot de passe si on met à jour un user
+    if table_name == "users" and "mdp" in data and data["mdp"]:
+        row.mdp = _pwd_context.hash(data["mdp"][:72])
 
     await db.commit()
     await db.refresh(row)
