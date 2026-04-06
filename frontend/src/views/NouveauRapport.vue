@@ -28,7 +28,7 @@ let stream: MediaStream | null = null
 async function loadClients() {
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/clients/`, {
+    const res = await fetch(`${API_BASE_URL}/api/clients`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {
@@ -227,7 +227,7 @@ async function saveClientToDatabase(): Promise<number | null> {
       telephone: rapport.value.contactClient
     }
     
-    const res = await fetch(`${API_BASE_URL}/api/clients/`, {
+    const res = await fetch(`${API_BASE_URL}/api/clients`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,
