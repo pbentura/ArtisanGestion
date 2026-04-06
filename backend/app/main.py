@@ -10,7 +10,7 @@ from app.models.societe import Societe
 from app.models.client import Client
 from app.models.rapport import Rapport
 
-from app.api.endpoints import auth, users, societes, clients, rapports
+from app.api.endpoints import auth, users, societes, clients, rapports, admin
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,6 +32,7 @@ app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(societes.router, prefix="/api/societes", tags=["societes"])
 app.include_router(clients.router, prefix="/api/clients", tags=["clients"])
 app.include_router(rapports.router, prefix="/api/rapports", tags=["rapports"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 @app.get("/")
 async def hello_world():

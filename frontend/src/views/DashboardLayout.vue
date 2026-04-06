@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Building2, Home, FileText, Settings, LogOut, 
-  Receipt, Menu, X, Bell, BarChart3, Users
+  Receipt, Menu, X, Bell, BarChart3, Users, ShieldCheck
 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { API_BASE_URL } from '@/lib/api'
@@ -11,7 +11,7 @@ import { API_BASE_URL } from '@/lib/api'
 const router = useRouter()
 const route = useRoute()
 const isMobileMenuOpen = ref(false)
-const user = ref({ prenom: '', nom: '', email: '' })
+const user = ref({ prenom: '', nom: '', email: '', role: '' })
 const societe = ref({ nom: '' })
 
 onMounted(async () => {
@@ -24,7 +24,7 @@ onMounted(async () => {
     })
     if (res.ok) {
       const data = await res.json()
-      user.value = { prenom: data.prenom, nom: data.nom, email: data.email }
+      user.value = { prenom: data.prenom, nom: data.nom, email: data.email, role: data.role || 'USER' }
       if (data.societes?.length > 0) {
         societe.value = data.societes[0]
       }
@@ -83,6 +83,13 @@ function handleLogout() {
         <router-link to="/dashboard/clients" class="nav-link" @click="isMobileMenuOpen = false">
           <Users class="w-5 h-5" /> Mes clients
         </router-link>
+
+        <template v-if="user.role === 'ADMIN'">
+          <p class="nav-section-title mt-8">Système</p>
+          <router-link to="/dashboard/admin" class="nav-link admin-link" @click="isMobileMenuOpen = false">
+            <ShieldCheck class="w-5 h-5" /> Admin
+          </router-link>
+        </template>
 
         <p class="nav-section-title mt-8">Configuration</p>
         <router-link to="/dashboard/settings" class="nav-link" @click="isMobileMenuOpen = false">
@@ -367,5 +374,24 @@ function handleLogout() {
   .page-content {
     padding: 16px;
   }
+}
+.mt-8 {
+  margin-top: 32px;
+}
+
+.admin-link {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.admin-link:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15)) !important;
+  color: #6366f1 !important;
+}
+
+.admin-link.router-link-active {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  color: white !important;
+  border-color: transparent;
 }
 </style>

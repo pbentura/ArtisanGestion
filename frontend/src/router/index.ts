@@ -65,6 +65,12 @@ const routes = [
         path: 'clients',
         name: 'clients',
         component: () => import('@/views/ClientsList.vue')
+      },
+      {
+        path: 'admin',
+        name: 'admin',
+        component: () => import('@/views/AdminPanel.vue'),
+        meta: { requiresAdmin: true }
       }
     ]
   }
