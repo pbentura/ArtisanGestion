@@ -52,6 +52,12 @@ const routes = [
         component: () => import('@/views/NouveauRapport.vue')
       },
       {
+        path: 'rapports/:id',
+        name: 'edit-rapport',
+        component: () => import('@/views/NouveauRapport.vue'),
+        props: true
+      },
+      {
         path: 'settings',
         name: 'settings',
         component: { template: '<div>Page Paramètres (Bientôt disponible)</div>' }

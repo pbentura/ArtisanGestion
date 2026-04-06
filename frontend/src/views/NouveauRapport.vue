@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
+const isLoading = ref(false)
+
+// Mode édition
+const isEditMode = computed(() => !!route.params.id)
+const rapportId = computed(() => route.params.id ? Number(route.params.id) : null)
 
 // Données de la société
 const societe = ref({
@@ -97,14 +103,65 @@ async function loadSociete() {
 // Rich Editor ref
 const editorRef = ref<HTMLElement | null>(null)
 
-onMounted(() => {
+onMounted(async () => {
   loadSociete()
   loadClients()
+  
+  // Si mode édition, charger le rapport existant
+  if (isEditMode.value && rapportId.value) {
+    await loadExistingRapport(rapportId.value)
+  }
+  
   // Initialize editor content once (don't use v-html)
   if (editorRef.value) {
     editorRef.value.innerHTML = rapport.value.contenu
   }
 })
+
+async function loadExistingRapport(id: number) {
+  isLoading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/rapports/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (!res.ok) {
+      alert('Rapport introuvable')
+      router.push('/dashboard/rapports')
+      return
+    }
+    const data = await res.json()
+    
+    rapport.value = {
+      id: data.id,
+      dateIntervention: data.date_intervention,
+      titre: data.titre_document_pdf || "RAPPORT D'INTERVENTION",
+      nomClient: data.client?.nom || '',
+      clientSiret: data.client?.siret || '',
+      adresseIntervention: data.client?.adresse || '',
+      clientCodePostal: data.client?.code_postal || '',
+      clientVille: data.client?.ville || '',
+      contactClient: data.client?.telephone || '',
+      contenu: data.contenu || '',
+      photo: data.photo_url || null,
+      createdAt: data.created_at
+    }
+    
+    // Set selected client
+    if (data.client?.id) {
+      selectedClientId.value = data.client.id
+    }
+    
+    // Update editor content
+    if (editorRef.value) {
+      editorRef.value.innerHTML = rapport.value.contenu
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement du rapport:', e)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 function onEditorInput() {
   if (editorRef.value) {
@@ -260,8 +317,14 @@ async function saveRapportToDatabase(clientId: number) {
     url_pdf: null
   }
   
-  const res = await fetch(`${API_BASE_URL}/api/rapports`, {
-    method: 'POST',
+  const url = isEditMode.value && rapportId.value
+    ? `${API_BASE_URL}/api/rapports/${rapportId.value}`
+    : `${API_BASE_URL}/api/rapports`
+  
+  const method = isEditMode.value ? 'PUT' : 'POST'
+  
+  const res = await fetch(url, {
+    method,
     headers: { 
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -473,9 +536,14 @@ async function saveAndGeneratePDF() {
       </div>
     </div>
 
-    <h1 class="text-2xl font-bold text-foreground mb-6">Nouveau Rapport d'Intervention</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ isEditMode ? 'Modifier le Rapport' : 'Nouveau Rapport d\'Intervention' }}</h1>
 
-    <div class="space-y-6">
+    <!-- Loading state for edit mode -->
+    <div v-if="isLoading" class="flex items-center justify-center py-20">
+      <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <div v-else class="space-y-6">
       <!-- Date d'intervention -->
       <section class="bg-card border border-border rounded-xl p-6">
         <label class="block text-sm font-medium text-foreground mb-2">Date d'intervention *</label>
@@ -638,10 +706,10 @@ OBSERVATIONS ET RECOMMANDATIONS :
     </div>
 
     <!-- Footer actions -->
-    <div class="flex items-center justify-between mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
+    <div v-if="!isLoading" class="flex items-center justify-between mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
       <button @click="router.push('/dashboard/rapports')" class="px-4 py-2.5 rounded-lg font-medium text-muted-foreground hover:text-foreground transition-colors">Annuler</button>
       <button @click="saveRapport" :disabled="!isValid || isSaving" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-        <Save class="w-5 h-5" /> {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder le rapport' }}
+        <Save class="w-5 h-5" /> {{ isSaving ? 'Sauvegarde...' : (isEditMode ? 'Mettre à jour' : 'Sauvegarder le rapport') }}
       </button>
     </div>
   </div>

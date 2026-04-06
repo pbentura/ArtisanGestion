@@ -284,7 +284,8 @@ onMounted(fetchRapports)
       <div
         v-for="rapport in rapports"
         :key="rapport.id"
-        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors"
+        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer"
+        @click="router.push(`/dashboard/rapports/${rapport.id}`)"
       >
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div class="flex-1 min-w-0">
@@ -304,14 +305,14 @@ onMounted(fetchRapports)
           </div>
           <div class="flex items-center gap-2 sm:ml-4">
             <button
-              @click="generateFullPDF(rapport)"
+              @click.stop="generateFullPDF(rapport)"
               class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
               title="Télécharger PDF"
             >
               <Download class="w-5 h-5" />
             </button>
             <button
-              @click="openDeleteModal(rapport.id)"
+              @click.stop="openDeleteModal(rapport.id)"
               class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
               title="Supprimer"
             >
