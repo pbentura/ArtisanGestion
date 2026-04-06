@@ -10,6 +10,7 @@ class User(Base):
     prenom = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     mdp = Column(String, nullable=False)
+    role = Column(String, default="USER", nullable=False)
 
     societes = relationship("Societe", back_populates="user")
     clients = relationship("Client", back_populates="user")

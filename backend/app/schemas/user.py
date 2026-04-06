@@ -6,6 +6,7 @@ class UserBase(BaseModel):
     nom: str
     prenom: str
     email: EmailStr
+    role: str = "USER"
 
 class UserCreate(UserBase):
     mdp: str
