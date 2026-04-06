@@ -161,7 +161,7 @@ async def update_row(
     if not row:
         raise HTTPException(status_code=404, detail="Ligne introuvable")
 
-    mapper = sa_inspect(model.__class__)
+    mapper = sa_inspect(model)
     valid_keys = {col.key for col in mapper.columns}
 
     for key, value in data.items():
