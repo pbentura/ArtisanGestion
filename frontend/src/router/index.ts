@@ -88,7 +88,7 @@ router.beforeEach(async (to, _from, next) => {
     return next('/auth')
   }
 
-  if (token && (to.meta.requiresSociete || to.meta.requiresNoSociete)) {
+  if (token && (to.meta.requiresSociete || to.meta.requiresNoSociete || to.matched.some(r => r.meta.requiresAdmin))) {
     try {
       const res = await fetch(`${API_BASE_URL}/api/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -107,6 +107,11 @@ router.beforeEach(async (to, _from, next) => {
       }
       
       if (to.meta.requiresNoSociete && hasSociete) {
+        return next('/dashboard')
+      }
+
+      // Block /admin for non-ADMIN users
+      if (to.matched.some(r => r.meta.requiresAdmin) && user.role !== 'ADMIN') {
         return next('/dashboard')
       }
     } catch (error) {
