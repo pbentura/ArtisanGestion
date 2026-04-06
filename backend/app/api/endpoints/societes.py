@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Any
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, is_admin
 from app.models.societe import Societe
 from app.models.user import User
 from app.schemas.societe import SocieteCreate, SocieteRead

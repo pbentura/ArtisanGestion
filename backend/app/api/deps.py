@@ -40,3 +40,8 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def is_admin(user: User) -> bool:
+    """Retourne True si l'utilisateur a le rôle ADMIN."""
+    return getattr(user, "role", None) == "ADMIN"
