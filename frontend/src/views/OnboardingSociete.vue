@@ -99,14 +99,18 @@ async function submitForm() {
     return
   }
 
+  const sanitizedForm = Object.fromEntries(
+    Object.entries(form.value).map(([key, value]) => [key, value === '' ? null : value])
+  )
+
   try {
-    const res = await fetch(`${API_BASE_URL}/api/societes/`, {
+    const res = await fetch(`${API_BASE_URL}/api/societes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(form.value)
+      body: JSON.stringify(sanitizedForm)
     })
 
     if (!res.ok) {
