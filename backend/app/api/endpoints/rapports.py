@@ -12,7 +12,7 @@ from app.schemas.rapport import Rapport as RapportSchema, RapportCreate, Rapport
 
 router = APIRouter()
 
-@router.get("/", response_model=List[RapportSchema])
+@router.get("", response_model=List[RapportSchema])
 async def read_rapports(
     skip: int = 0,
     limit: int = 100,
@@ -31,7 +31,7 @@ async def read_rapports(
     )
     return result.scalars().all()
 
-@router.post("/", response_model=RapportSchema)
+@router.post("", response_model=RapportSchema)
 async def create_rapport(
     rapport_in: RapportCreate,
     db: AsyncSession = Depends(deps.get_db),

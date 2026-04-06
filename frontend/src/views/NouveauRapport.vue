@@ -259,7 +259,7 @@ async function saveRapportToDatabase(clientId: number) {
     url_pdf: null
   }
   
-  const res = await fetch(`${API_BASE_URL}/api/rapports/`, {
+  const res = await fetch(`${API_BASE_URL}/api/rapports`, {
     method: 'POST',
     headers: { 
       'Authorization': `Bearer ${token}`,

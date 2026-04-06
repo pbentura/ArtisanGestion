@@ -11,7 +11,7 @@ from app.schemas.client import Client as ClientSchema, ClientCreate, ClientUpdat
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ClientSchema])
+@router.get("", response_model=List[ClientSchema])
 async def read_clients(
     skip: int = 0,
     limit: int = 100,
@@ -26,7 +26,7 @@ async def read_clients(
     )
     return result.scalars().all()
 
-@router.post("/", response_model=ClientSchema)
+@router.post("", response_model=ClientSchema)
 async def create_client(
     client_in: ClientCreate,
     db: AsyncSession = Depends(deps.get_db),
