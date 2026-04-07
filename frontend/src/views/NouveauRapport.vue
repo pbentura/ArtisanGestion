@@ -2,13 +2,38 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
 const isLoading = ref(false)
+
+// AI Generation
+const showAIModal = ref(false)
+const isGeneratingAI = ref(false)
+const aiForm = ref({
+  type_intervention: '',
+  description: ''
+})
+const aiError = ref('')
+
+const aiInterventionTypes = [
+  'Plomberie',
+  'Électricité',
+  'Climatisation / CVC',
+  'Menuiserie',
+  'Peinture',
+  'Maçonnerie',
+  'Toiture / Couverture',
+  'Serrurerie',
+  'Nettoyage',
+  'Dépannage informatique',
+  'Maintenance industrielle',
+  'Inspection / Contrôle',
+  'Autre'
+]
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
@@ -529,10 +554,175 @@ async function saveAndGeneratePDF() {
     isSaving.value = false
   }
 }
+
+async function generateWithAI() {
+  if (!aiForm.value.type_intervention || !aiForm.value.description.trim()) {
+    aiError.value = 'Veuillez renseigner le type d\'intervention et une description.'
+    return
+  }
+  aiError.value = ''
+  isGeneratingAI.value = true
+
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/ai/generate-rapport`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type_intervention: aiForm.value.type_intervention,
+        description: aiForm.value.description,
+        nom_client: rapport.value.nomClient || undefined,
+        adresse: rapport.value.adresseIntervention || undefined,
+        date_intervention: rapport.value.dateIntervention || undefined
+      })
+    })
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}))
+      throw new Error(errData.detail || 'Erreur lors de la génération')
+    }
+
+    const data = await res.json()
+    rapport.value.contenu = data.contenu
+
+    // Update editor
+    if (editorRef.value) {
+      editorRef.value.innerHTML = data.contenu
+    }
+
+    showAIModal.value = false
+    aiForm.value = { type_intervention: '', description: '' }
+  } catch (e: any) {
+    aiError.value = e.message || 'Une erreur est survenue'
+  } finally {
+    isGeneratingAI.value = false
+  }
+}
 </script>
 
 <template>
   <div class="max-w-4xl mx-auto pb-20">
+    <!-- AI Modal Overlay -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showAIModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="!isGeneratingAI && (showAIModal = false)">
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+          <!-- Modal card -->
+          <div class="relative w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+
+            <!-- Generating overlay -->
+            <Transition name="fade">
+              <div v-if="isGeneratingAI" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/95 backdrop-blur-sm gap-6">
+                <div class="relative">
+                  <div class="w-20 h-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <Sparkles class="w-8 h-8 text-primary animate-pulse" />
+                  </div>
+                </div>
+                <div class="text-center">
+                  <p class="text-lg font-semibold text-foreground">L'IA rédige votre rapport...</p>
+                  <p class="text-sm text-muted-foreground mt-1">Cela prend généralement 5 à 15 secondes</p>
+                </div>
+                <!-- Animated dots -->
+                <div class="flex gap-1.5">
+                  <span class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                  <span class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                  <span class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                </div>
+              </div>
+            </Transition>
+
+            <!-- Header -->
+            <div class="relative px-6 pt-6 pb-4 bg-gradient-to-br from-primary/5 via-card to-card border-b border-border">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Sparkles class="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-foreground">Générer avec l'IA</h2>
+                  <p class="text-sm text-muted-foreground">Quelques informations suffisent pour rédiger un rapport professionnel</p>
+                </div>
+                <button
+                  @click="showAIModal = false"
+                  :disabled="isGeneratingAI"
+                  class="ml-auto p-1.5 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  <X class="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Form -->
+            <div class="px-6 py-5 space-y-4">
+              <!-- Type d'intervention -->
+              <div>
+                <label class="block text-sm font-medium text-foreground mb-1.5">Type d'intervention <span class="text-destructive">*</span></label>
+                <select
+                  v-model="aiForm.type_intervention"
+                  :disabled="isGeneratingAI"
+                  class="w-full px-3 py-2.5 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none text-foreground transition-shadow disabled:opacity-50"
+                >
+                  <option value="" disabled>Sélectionner un type...</option>
+                  <option v-for="t in aiInterventionTypes" :key="t" :value="t">{{ t }}</option>
+                </select>
+              </div>
+
+              <!-- Description courte -->
+              <div>
+                <label class="block text-sm font-medium text-foreground mb-1.5">Description rapide <span class="text-destructive">*</span></label>
+                <textarea
+                  v-model="aiForm.description"
+                  :disabled="isGeneratingAI"
+                  rows="4"
+                  placeholder="Ex: Remplacement du chauffe-eau défectueux, fuite au niveau du raccord, installation du nouveau modèle 150L..."
+                  class="w-full px-3 py-2.5 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none text-foreground text-sm transition-shadow disabled:opacity-50"
+                ></textarea>
+                <p class="text-xs text-muted-foreground mt-1">Plus vous êtes précis, meilleur sera le rapport généré.</p>
+              </div>
+
+              <!-- Info client pré-remplie -->
+              <div v-if="rapport.nomClient" class="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+                <Sparkles class="w-4 h-4 text-primary flex-shrink-0" />
+                <p class="text-xs text-foreground">
+                  L'IA utilisera les infos du client <strong>{{ rapport.nomClient }}</strong> pour personnaliser le rapport.
+                </p>
+              </div>
+
+              <!-- Error -->
+              <div v-if="aiError" class="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
+                <p class="text-xs text-destructive">{{ aiError }}</p>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 pb-6 flex items-center gap-3">
+              <button
+                @click="showAIModal = false"
+                :disabled="isGeneratingAI"
+                class="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                @click="generateWithAI"
+                :disabled="isGeneratingAI || !aiForm.type_intervention || !aiForm.description.trim()"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Loader2 v-if="isGeneratingAI" class="w-4 h-4 animate-spin" />
+                <Sparkles v-else class="w-4 h-4" />
+                {{ isGeneratingAI ? 'Génération...' : 'Générer le rapport' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
       <button @click="router.push('/dashboard/rapports')" class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -548,7 +738,32 @@ async function saveAndGeneratePDF() {
       </div>
     </div>
 
-    <h1 class="text-2xl font-bold text-foreground mb-6">{{ isEditMode ? 'Modifier le Rapport' : 'Nouveau Rapport d\'Intervention' }}</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? 'Modifier le Rapport' : 'Nouveau Rapport d\'Intervention' }}</h1>
+
+    <!-- AI Generation Banner (creation only) -->
+    <div v-if="!isEditMode" class="mb-6">
+      <div class="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl p-4">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div class="flex items-center gap-3 flex-1">
+            <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <Sparkles class="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p class="font-semibold text-foreground text-sm">Générer le rapport avec l'IA</p>
+              <p class="text-xs text-muted-foreground">Mistral AI rédige un rapport professionnel et structuré en quelques secondes</p>
+            </div>
+          </div>
+          <button
+            @click="showAIModal = true"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 flex-shrink-0"
+          >
+            <Sparkles class="w-4 h-4" />
+            Générer avec l'IA
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Loading state for edit mode -->
     <div v-if="isLoading" class="flex items-center justify-center py-20">
@@ -772,5 +987,33 @@ OBSERVATIONS ET RECOMMANDATIONS :
 }
 [contenteditable]:focus:empty:before {
   content: attr(placeholder);
+}
+
+/* Modal transitions */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-active .relative,
+.modal-fade-leave-active .relative {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.modal-fade-enter-from .relative {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
+}
+
+/* Fade overlay transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

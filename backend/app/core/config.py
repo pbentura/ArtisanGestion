@@ -21,6 +21,9 @@ class Settings:
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "https://ventura-e277f.web.app/api/auth/google/callback")
 
+    # Mistral AI
+    MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
+
     @property
     def DATABASE_URI(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
