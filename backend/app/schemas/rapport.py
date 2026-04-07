@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import date, datetime
 from app.schemas.client import Client as ClientSchema
 
@@ -8,7 +8,8 @@ class RapportBase(BaseModel):
     titre_document_pdf: str
     id_client: int
     contenu: Optional[str] = None
-    photo_url: Optional[str] = None
+    photo_url: Optional[str] = None  # Legacy single photo
+    photos: Optional[List[str]] = [] # Multiple photos
     statut: str = "en cours"
 
 class RapportCreate(RapportBase):
@@ -19,6 +20,7 @@ class RapportUpdate(RapportBase):
     titre_document_pdf: Optional[str] = None
     id_client: Optional[int] = None
     statut: Optional[str] = None
+    photos: Optional[List[str]] = None
 
 class Rapport(RapportBase):
     id: int

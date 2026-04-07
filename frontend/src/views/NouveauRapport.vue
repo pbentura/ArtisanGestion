@@ -14,6 +14,37 @@ const isLoading = ref(false)
 const isEditMode = computed(() => !!route.params.id)
 const rapportId = computed(() => route.params.id ? Number(route.params.id) : null)
 
+interface Rapport {
+  id?: number
+  dateIntervention: string
+  titre: string
+  nomClient: string
+  clientSiret: string
+  adresseIntervention: string
+  clientCodePostal: string
+  clientVille: string
+  contactClient: string
+  contenu: string
+  photos: string[]
+  statut: string
+  createdAt: string
+}
+
+const rapport = ref<Rapport>({
+  dateIntervention: new Date().toISOString().split('T')[0],
+  titre: "RAPPORT D'INTERVENTION",
+  nomClient: '',
+  clientSiret: '',
+  adresseIntervention: '',
+  clientCodePostal: '',
+  clientVille: '',
+  contactClient: '',
+  contenu: '',
+  photos: [],
+  statut: 'en cours',
+  createdAt: new Date().toISOString()
+})
+
 // Données de la société
 const societe = ref({
   nom: '',
@@ -80,7 +111,7 @@ function capturePhoto() {
   const ctx = canvas.getContext('2d')
   if (ctx) {
     ctx.drawImage(videoRef.value, 0, 0)
-    rapport.value.photo = canvas.toDataURL('image/jpeg')
+    rapport.value.photos.push(canvas.toDataURL('image/jpeg'))
     stopCamera()
   }
 }
@@ -143,7 +174,7 @@ async function loadExistingRapport(id: number) {
       clientVille: data.client?.ville || '',
       contactClient: data.client?.telephone || '',
       contenu: data.contenu || '',
-      photo: data.photo_url || null,
+      photos: data.photos && data.photos.length > 0 ? data.photos : (data.photo_url ? [data.photo_url] : []),
       statut: data.statut || 'en cours',
       createdAt: data.created_at
     }
@@ -170,36 +201,6 @@ function onEditorInput() {
   }
 }
 
-interface Rapport {
-  id?: number
-  dateIntervention: string
-  titre: string
-  nomClient: string
-  clientSiret: string
-  adresseIntervention: string
-  clientCodePostal: string
-  clientVille: string
-  contactClient: string
-  contenu: string
-  photo: string | null
-  statut: string
-  createdAt: string
-}
-
-const rapport = ref<Rapport>({
-  dateIntervention: new Date().toISOString().split('T')[0],
-  titre: "RAPPORT D'INTERVENTION",
-  nomClient: '',
-  clientSiret: '',
-  adresseIntervention: '',
-  clientCodePostal: '',
-  clientVille: '',
-  contactClient: '',
-  contenu: '',
-  photo: null,
-  statut: 'en cours',
-  createdAt: new Date().toISOString()
-})
 
 function onClientSelect() {
   if (selectedClientId.value) {
@@ -226,19 +227,21 @@ function openGallery() {
 
 function handlePhotoUpload(event: Event) {
   const target = event.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    const file = target.files[0]
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      rapport.value.photo = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
+  if (target.files) {
+    const files = Array.from(target.files)
+    files.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        rapport.value.photos.push(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    })
+    if (fileInput.value) fileInput.value.value = ''
   }
 }
 
-function removePhoto() {
-  rapport.value.photo = null
-  if (fileInput.value) fileInput.value.value = ''
+function removePhoto(index: number) {
+  rapport.value.photos.splice(index, 1)
 }
 
 const isValid = computed(() => {
@@ -316,7 +319,7 @@ async function saveRapportToDatabase(clientId: number) {
     titre_document_pdf: rapport.value.titre,
     id_client: clientId,
     contenu: rapport.value.contenu || null,
-    photo_url: rapport.value.photo || null,
+    photos: rapport.value.photos,
     statut: rapport.value.statut
   }
   
@@ -439,10 +442,16 @@ async function generatePDF(download = true) {
         <div style="font-size: 12px; line-height: 1.8;">${rapport.value.contenu || '<p>Aucun contenu</p>'}</div>
       </div>
 
-      ${rapport.value.photo ? `
-      <div style="margin-bottom: 20px;">
-        <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photo</h2>
-        <img src="${rapport.value.photo}" style="max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb;" />
+      ${rapport.value.photos && rapport.value.photos.length > 0 ? `
+      <div style="margin-top: 20px;">
+        <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 15px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photos (${rapport.value.photos.length})</h2>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+          ${rapport.value.photos.map(p => `
+            <div style="margin-bottom: 10px; page-break-inside: avoid;">
+              <img src="${p}" style="max-width: 100%; max-height: 500px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb;" />
+            </div>
+          `).join('')}
+        </div>
       </div>
       ` : ''}
     </div>`
@@ -690,21 +699,21 @@ OBSERVATIONS ET RECOMMANDATIONS :
         </div>
       </section>
 
-      <!-- Photo (Galerie + Caméra) -->
+      <!-- Photos (Galerie + Caméra) -->
       <section class="bg-card border border-border rounded-xl p-6">
-        <label class="block text-sm font-medium text-foreground mb-4">Photo</label>
+        <label class="block text-sm font-medium text-foreground mb-4">Photos d'intervention</label>
 
         <!-- Hidden inputs -->
-        <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handlePhotoUpload" />
+        <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handlePhotoUpload" />
 
         <!-- Camera interface -->
-        <div v-if="isCameraActive" class="space-y-4">
+        <div v-if="isCameraActive" class="space-y-4 mb-6">
           <div class="relative bg-black rounded-lg overflow-hidden aspect-video border border-border shadow-inner">
             <video ref="videoRef" autoplay playsinline class="w-full h-full object-cover"></video>
           </div>
           <div class="flex gap-3">
             <button @click="capturePhoto" class="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-bold shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2">
-              <Camera class="w-5 h-5" /> Capturer la photo
+              <Camera class="w-5 h-5" /> Capturer
             </button>
             <button @click="stopCamera" class="px-4 py-3 border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors">
               Annuler
@@ -712,11 +721,25 @@ OBSERVATIONS ET RECOMMANDATIONS :
           </div>
         </div>
 
-        <!-- Buttons -->
-        <div v-else-if="!rapport.photo" class="flex flex-wrap gap-3">
+        <!-- Photo preview grid -->
+        <div v-if="rapport.photos.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+          <div v-for="(p, index) in rapport.photos" :key="index" class="relative group aspect-square bg-muted rounded-lg overflow-hidden border border-border">
+            <img :src="p" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            <button 
+              @click="removePhoto(index)" 
+              class="absolute top-2 right-2 w-7 h-7 bg-destructive text-white rounded-full flex items-center justify-center opacity-90 hover:opacity-100 hover:scale-110 transition-all shadow-lg"
+              title="Supprimer cette photo"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex flex-wrap gap-3">
           <button @click="openGallery" class="inline-flex items-center gap-2 px-4 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
             <ImageIcon class="w-5 h-5" />
-            <span>Choisir depuis la galerie</span>
+            <span>{{ rapport.photos.length > 0 ? 'Ajouter une autre photo' : 'Choisir depuis la galerie' }}</span>
           </button>
           <button @click="openCamera" class="inline-flex items-center gap-2 px-4 py-3 border border-border rounded-lg hover:bg-muted transition-colors bg-blue-50/50 border-blue-200">
             <Camera class="w-5 h-5 text-blue-600" />
@@ -724,15 +747,9 @@ OBSERVATIONS ET RECOMMANDATIONS :
           </button>
         </div>
 
-        <!-- Photo preview -->
-        <div v-else class="relative inline-block">
-          <img :src="rapport.photo" class="max-w-full max-h-80 object-contain rounded-lg border border-border" />
-          <button @click="removePhoto" class="absolute -top-2 -right-2 w-8 h-8 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90 transition-colors shadow-md">
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-
-        <p class="text-xs text-muted-foreground mt-2">Ajoutez une photo de l'intervention ou du matériel installé</p>
+        <p class="text-xs text-muted-foreground mt-4">
+          Vous pouvez ajouter plusieurs photos de l'intervention. Elles apparaîtront à la fin du document PDF.
+        </p>
       </section>
     </div>
 

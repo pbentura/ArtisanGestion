@@ -15,6 +15,8 @@ interface Rapport {
   date_intervention: string
   client?: Client
   statut: string
+  photo_url?: string
+  photos?: string[]
   created_at: string
 }
 
@@ -129,10 +131,19 @@ async function generateFullPDF(rapport: Rapport) {
   const adresseSociete = [societe.adresse, societe.code_postal, societe.ville]
     .filter(Boolean)
     .join(' ')
-    
-  const photoHtml = r.photo_url
-    ? `<div class="section"><h2>Photo</h2><img src="${r.photo_url}" class="photo" /></div>`
-    : ''
+  const photos = r.photos && r.photos.length > 0 ? r.photos : (r.photo_url ? [r.photo_url] : [])
+  const photosHtml = photos.length > 0 ? `
+    <div style="margin-top: 20px;">
+      <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 15px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photos (${photos.length})</h2>
+      <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+        ${photos.map((p: string) => `
+          <div style="margin-bottom: 10px; page-break-inside: avoid;">
+            <img src="${p}" style="max-width: 100%; max-height: 500px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb;" />
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : ''
 
   const footerText = societe.texte_pied_page || ''
 
@@ -195,12 +206,7 @@ async function generateFullPDF(rapport: Rapport) {
       <div style="font-size: 12px; line-height: 1.8;">${r.contenu || '<p>Aucun contenu</p>'}</div>
     </div>
 
-    ${photoHtml ? `
-    <div style="margin-bottom: 20px;">
-      <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photo</h2>
-      <img src="${r.photo_url}" style="max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb;" />
-    </div>
-    ` : ''}
+    ${photosHtml}
   </div>`
 
   document.body.appendChild(container)
