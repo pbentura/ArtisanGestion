@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { 
-  TrendingUp,
   Mail,
   MapPin,
   Twitter,
@@ -66,9 +65,7 @@ const socialLinks = [
         <!-- Brand Column -->
         <div class="col-span-2">
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <TrendingUp class="h-5 w-5 text-white" />
-            </div>
+            <img src="/logo.svg" alt="Logo" class="w-10 h-10" />
             <span class="text-xl font-bold">Ventura</span>
           </div>
           <p class="text-secondary-foreground/70 text-sm mb-6 max-w-xs leading-relaxed">

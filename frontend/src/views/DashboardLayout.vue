@@ -53,7 +53,7 @@ function handleLogout() {
     <aside class="sidebar" :class="{ 'is-open': isMobileMenuOpen }">
       <div class="sidebar-header">
         <div class="logo-box">
-          <div class="logo-icon"><Building2 class="w-5 h-5" /></div>
+          <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
           <span class="logo-name">Ventura</span>
         </div>
         <button class="close-btn lg:hidden" @click="isMobileMenuOpen = false">

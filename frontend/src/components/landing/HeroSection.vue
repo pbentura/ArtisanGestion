@@ -8,7 +8,6 @@ import {
   BarChart3, 
   FileText, 
   Users, 
-  TrendingUp,
   Clock,
   CheckCircle2
 } from 'lucide-vue-next'
@@ -103,9 +102,7 @@ function navigateToAuth() {
               <!-- Mock Header -->
               <div class="bg-gradient-to-r from-secondary to-secondary/90 px-6 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                    <TrendingUp class="h-5 w-5 text-white" />
-                  </div>
+                  <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
                   <span class="text-white font-semibold">Ventura Dashboard</span>
                 </div>
                 <div class="flex gap-2">

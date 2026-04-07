@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 import { API_BASE_URL } from '@/lib/api'
 import { 
-  TrendingUp, 
   ArrowLeft,
   Loader2,
   Eye,
@@ -129,9 +128,7 @@ function handleGoogleAuth() {
 
       <!-- Header -->
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
-          <TrendingUp class="h-6 w-6 text-white" />
-        </div>
+        <img src="/logo.svg" alt="Logo" class="w-12 h-12" />
         <span class="text-2xl font-bold text-foreground">Ventura</span>
       </div>
 
@@ -170,9 +167,7 @@ function handleGoogleAuth() {
       <!-- Mobile header -->
       <div class="lg:hidden flex items-center justify-between w-full mb-8">
         <div class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <TrendingUp class="h-5 w-5 text-white" />
-          </div>
+          <img src="/logo.svg" alt="Logo" class="w-9 h-9" />
           <span class="text-xl font-bold">Ventura</span>
         </div>
         <Button variant="ghost" size="sm" @click="goBack">
