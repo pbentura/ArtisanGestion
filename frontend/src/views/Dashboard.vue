@@ -7,15 +7,6 @@ const companyName = ref('')
 const loading = ref(true)
 
 onMounted(async () => {
-  // Capture du token depuis l'URL (Google OAuth)
-  const urlParams = new URLSearchParams(window.location.search)
-  const tokenFromUrl = urlParams.get('token')
-  if (tokenFromUrl) {
-    localStorage.setItem('token', tokenFromUrl)
-    // Nettoyer l'URL sans recharger la page
-    window.history.replaceState({}, document.title, window.location.pathname)
-  }
-
   try {
     const token = localStorage.getItem('token')
     const res = await fetch(`${API_BASE_URL}/api/users/me`, {

@@ -42,10 +42,10 @@ const footerLinks = {
     title: 'Légal',
     links: [
       { label: 'Mentions légales', href: '#' },
-      { label: 'CGU', href: '#' },
-      { label: 'Confidentialité', href: '#' },
-      { label: 'Cookies', href: '#' },
-      { label: 'RGPD', href: '#' }
+      { label: 'CGU', href: '/legal/terms' },
+      { label: 'Confidentialité', href: '/legal/privacy' },
+      { label: 'Cookies', href: '/legal/privacy#8' },
+      { label: 'RGPD', href: '/legal/privacy#7' }
     ]
   }
 }
@@ -74,9 +74,9 @@ const socialLinks = [
           
           <!-- Contact -->
           <div class="space-y-2 text-sm">
-            <a href="mailto:contact@ventura.app" class="flex items-center gap-2 text-secondary-foreground/70 hover:text-primary transition-colors">
+            <a href="mailto:pinhasbent@gmail.com" class="flex items-center gap-2 text-secondary-foreground/70 hover:text-primary transition-colors">
               <Mail class="h-4 w-4" />
-              contact@ventura.app
+              pinhasbent@gmail.com
             </a>
             <div class="flex items-center gap-2 text-secondary-foreground/70">
               <MapPin class="h-4 w-4" />

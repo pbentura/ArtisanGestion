@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '@/views/LandingPage.vue'
 import AuthPage from '@/views/AuthPage.vue'
 import NotFound from '@/views/NotFound.vue'
+import PrivacyPolicy from '@/views/PrivacyPolicy.vue'
+import TermsOfService from '@/views/TermsOfService.vue'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -81,6 +83,17 @@ const routes = [
       }
     ]
   },
+  // Legal pages
+  {
+    path: '/legal/privacy',
+    name: 'privacy',
+    component: PrivacyPolicy
+  },
+  {
+    path: '/legal/terms',
+    name: 'terms',
+    component: TermsOfService
+  },
   // 404 catch-all
   {
     path: '/:pathMatch(.*)*',
@@ -95,6 +108,20 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, _from, next) => {
+  // 1. Capture du token depuis l'URL (Google OAuth)
+  const tokenFromUrl = to.query.token as string
+  if (tokenFromUrl) {
+    localStorage.setItem('token', tokenFromUrl)
+    
+    // Nettoyer l'URL en restant sur la même route mais sans le token dans l'URL
+    const { token: _, ...remainingQuery } = to.query
+    return next({ 
+      path: to.path, 
+      query: remainingQuery, 
+      replace: true 
+    })
+  }
+
   const token = localStorage.getItem('token')
   
   if (to.meta.requiresAuth && !token) {

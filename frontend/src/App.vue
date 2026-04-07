@@ -20,11 +20,7 @@ function navigateToAuth() {
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
+            <img src="/logo.svg" alt="Logo" class="w-9 h-9" />
             <span class="text-xl font-bold text-foreground">Ventura</span>
           </div>
 

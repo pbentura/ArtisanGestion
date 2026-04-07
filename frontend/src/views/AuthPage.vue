@@ -372,9 +372,9 @@ function handleGoogleAuth() {
 
               <p class="text-xs text-center text-muted-foreground">
                 En vous inscrivant, vous acceptez nos 
-                <a href="#" class="text-primary hover:underline">Conditions d'utilisation</a> 
+                <router-link to="/legal/terms" class="text-primary hover:underline">Conditions d'utilisation</router-link> 
                 et notre 
-                <a href="#" class="text-primary hover:underline">Politique de confidentialité</a>
+                <router-link to="/legal/privacy" class="text-primary hover:underline">Politique de confidentialité</router-link>
               </p>
             </TabsContent>
           </Tabs>
