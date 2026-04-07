@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '@/views/LandingPage.vue'
 import AuthPage from '@/views/AuthPage.vue'
+import NotFound from '@/views/NotFound.vue'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -79,6 +80,12 @@ const routes = [
         meta: { requiresAdmin: true }
       }
     ]
+  },
+  // 404 catch-all
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: NotFound
   }
 ]
 
@@ -116,9 +123,9 @@ router.beforeEach(async (to, _from, next) => {
         return next('/dashboard')
       }
 
-      // Block /admin for non-ADMIN users
+      // Block /admin for non-ADMIN users → page forbidden
       if (to.matched.some(r => r.meta.requiresAdmin) && user.role !== 'ADMIN') {
-        return next('/dashboard')
+        return next({ name: 'not-found', params: { pathMatch: to.path.split('/').slice(1) }, query: { forbidden: '1' } })
       }
     } catch (error) {
       console.error('Router guard error:', error)
