@@ -9,7 +9,7 @@ class User(Base):
     nom = Column(String, index=True)
     prenom = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    mdp = Column(String, nullable=False)
+    mdp = Column(String, nullable=True)
     role = Column(String, default="USER", nullable=True)
 
     societes = relationship("Societe", back_populates="user")

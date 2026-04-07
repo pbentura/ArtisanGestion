@@ -113,8 +113,7 @@ function goBack() {
 }
 
 function handleGoogleAuth() {
-  // TODO: Implement Google OAuth
-  console.log('Google OAuth clicked')
+  window.location.href = `${API_BASE_URL}/api/auth/google/login`
 }
 </script>
 

@@ -15,7 +15,9 @@ def _pre_hash(password: str) -> str:
     # This avoids bcrypt's 72-character limit and handles any character length.
     return base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()).decode("ascii")
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: str, hashed_password: Optional[str]) -> bool:
+    if hashed_password is None:
+        return False
     return pwd_context.verify(_pre_hash(plain_password), hashed_password)
 
 def get_password_hash(password: str) -> str:

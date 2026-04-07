@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -26,6 +26,7 @@ const loading = ref(true)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
 const isDeleting = ref(false)
+const isUpdatingStatus = ref<number | null>(null)
 
 const searchQuery = ref('')
 
@@ -98,6 +99,39 @@ async function confirmDelete() {
     console.error(e)
   } finally {
     isDeleting.value = false
+  }
+}
+
+async function toggleStatus(rapport: Rapport) {
+  if (isUpdatingStatus.value !== null) return
+  
+  const newStatut = rapport.statut === 'terminée' ? 'en cours' : 'terminée'
+  isUpdatingStatus.value = rapport.id
+  
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/rapports/${rapport.id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ statut: newStatut })
+    })
+    
+    if (res.ok) {
+      const updatedRapport = await res.json()
+      const index = rapports.value.findIndex(r => r.id === rapport.id)
+      if (index !== -1) {
+        rapports.value[index] = updatedRapport
+      }
+    } else {
+      console.error('Erreur lors du changement de statut')
+    }
+  } catch (e) {
+    console.error('Erreur réseau lors du changement de statut', e)
+  } finally {
+    isUpdatingStatus.value = null
   }
 }
 
@@ -338,6 +372,25 @@ onMounted(fetchRapports)
             </div>
           </div>
           <div class="flex items-center gap-2 sm:ml-4">
+            <button
+              @click.stop="toggleStatus(rapport)"
+              class="p-2 transition-colors rounded-lg group"
+              :class="[
+                rapport.statut === 'terminée' 
+                  ? 'text-green-600 hover:bg-green-50' 
+                  : 'text-blue-600 hover:bg-blue-50'
+              ]"
+              :title="rapport.statut === 'terminée' ? 'Marquer comme en cours' : 'Marquer comme terminée'"
+              :disabled="isUpdatingStatus === rapport.id"
+            >
+              <template v-if="isUpdatingStatus === rapport.id">
+                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              </template>
+              <template v-else>
+                <CheckCircle2 v-if="rapport.statut === 'en cours'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <Clock v-else class="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </template>
+            </button>
             <button
               @click.stop="generateFullPDF(rapport)"
               class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
