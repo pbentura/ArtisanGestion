@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2 } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -24,6 +24,17 @@ const loading = ref(true)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
 const isDeleting = ref(false)
+
+const searchQuery = ref('')
+
+const filteredRapports = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) return rapports.value
+  return rapports.value.filter(r => 
+    (r.titre_document_pdf?.toLowerCase() || '').includes(query) ||
+    (r.client?.nom?.toLowerCase() || '').includes(query)
+  )
+})
 
 function openDeleteModal(id: number) {
   idToDelete.value = id
@@ -281,9 +292,18 @@ onMounted(fetchRapports)
     </div>
 
     <!-- Rapports List -->
-    <div v-else class="grid gap-4">
+    <div v-else-if="rapports.length > 0" class="grid gap-4">
+      <div class="relative">
+        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Rechercher un rapport par titre ou client..."
+          class="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+        />
+      </div>
       <div
-        v-for="rapport in rapports"
+        v-for="rapport in filteredRapports"
         :key="rapport.id"
         class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer"
         @click="router.push(`/dashboard/rapports/${rapport.id}`)"
@@ -329,6 +349,21 @@ onMounted(fetchRapports)
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Search Empty State -->
+    <div v-else-if="searchQuery" class="bg-card border border-border rounded-xl p-12 text-center">
+      <div class="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+        <Search class="w-8 h-8 text-muted-foreground" />
+      </div>
+      <h3 class="text-lg font-semibold text-foreground mb-2">Aucun résultat</h3>
+      <p class="text-muted-foreground mb-6">Aucun rapport ne correspond à votre recherche.</p>
+      <button
+        @click="searchQuery = ''"
+        class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+      >
+        Effacer la recherche
+      </button>
     </div>
 
     <!-- Delete Confirmation Modal -->
