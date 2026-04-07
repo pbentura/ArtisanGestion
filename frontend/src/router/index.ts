@@ -68,7 +68,7 @@ const routes = [
       {
         path: 'entreprise',
         name: 'entreprise',
-        component: { template: '<div>Page Mon entreprise (Bientôt disponible)</div>' }
+        component: () => import('@/views/SocieteInfo.vue')
       },
       {
         path: 'clients',
