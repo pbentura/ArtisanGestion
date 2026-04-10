@@ -627,9 +627,20 @@ async function generateWithAI() {
         try {
           const delta: string = JSON.parse(raw)
           accumulatedHTML += delta
-          // Mettre à jour l'éditeur avec le HTML accumulé
+          // Nettoyer les balises markdown ```html ... ``` avant d'afficher
+          let displayHTML = accumulatedHTML
+          if (displayHTML.startsWith('```html')) {
+            displayHTML = displayHTML.slice(7)
+          } else if (displayHTML.startsWith('```')) {
+            displayHTML = displayHTML.slice(3)
+          }
+          if (displayHTML.endsWith('```')) {
+            displayHTML = displayHTML.slice(0, -3)
+          }
+          displayHTML = displayHTML.trimStart()
+          // Mettre à jour l'éditeur avec le HTML nettoyé
           if (editorRef.value) {
-            editorRef.value.innerHTML = accumulatedHTML
+            editorRef.value.innerHTML = displayHTML
             // Auto-scroll vers le bas
             editorRef.value.scrollTop = editorRef.value.scrollHeight
           }
