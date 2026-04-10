@@ -3,8 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Building2, Home, FileText, Settings, LogOut, 
-  Receipt, Menu, X, Bell, BarChart3, Users, ShieldCheck,
-  User, CreditCard, LifeBuoy
+  Receipt, Menu, X, Bell, BarChart3, Users, ShieldCheck
 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { API_BASE_URL } from '@/lib/api'
@@ -92,21 +91,9 @@ function handleLogout() {
           </router-link>
         </template>
 
-        <p class="nav-section-title mt-8">Paramètres</p>
-        <router-link to="/dashboard/settings/compte" class="nav-link" @click="isMobileMenuOpen = false">
-          <User class="w-5 h-5" /> Mon compte
-        </router-link>
-        <router-link to="/dashboard/settings/preferences" class="nav-link" @click="isMobileMenuOpen = false">
-          <Settings class="w-5 h-5" /> Préférences
-        </router-link>
-        <router-link to="/dashboard/settings/abonnement" class="nav-link" @click="isMobileMenuOpen = false">
-          <CreditCard class="w-5 h-5" /> Abonnement
-        </router-link>
-        <router-link to="/dashboard/settings/facturation" class="nav-link" @click="isMobileMenuOpen = false">
-          <Receipt class="w-5 h-5" /> Facturation
-        </router-link>
-        <router-link to="/dashboard/settings/support" class="nav-link" @click="isMobileMenuOpen = false">
-          <LifeBuoy class="w-5 h-5" /> Support
+        <p class="nav-section-title mt-8">Configuration</p>
+        <router-link to="/dashboard/settings" class="nav-link" @click="isMobileMenuOpen = false">
+          <Settings class="w-5 h-5" /> Paramètres
         </router-link>
       </nav>
 
