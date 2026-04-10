@@ -63,36 +63,36 @@ function handleLogout() {
 
       <nav class="sidebar-nav">
         <p class="nav-section-title">Menu Principal</p>
-        <router-link to="/dashboard" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app" class="nav-link" @click="isMobileMenuOpen = false">
           <Home class="w-5 h-5" /> Tableau de bord
         </router-link>
-        <router-link to="/dashboard/rapports" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/rapports" class="nav-link" @click="isMobileMenuOpen = false">
           <BarChart3 class="w-5 h-5" /> Rapports
         </router-link>
-        <router-link to="/dashboard/devis" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/devis" class="nav-link" @click="isMobileMenuOpen = false">
           <FileText class="w-5 h-5" /> Devis
         </router-link>
-        <router-link to="/dashboard/factures" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/factures" class="nav-link" @click="isMobileMenuOpen = false">
           <Receipt class="w-5 h-5" /> Factures
         </router-link>
 
         <p class="nav-section-title mt-8">Administration</p>
-        <router-link to="/dashboard/entreprise" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/entreprise" class="nav-link" @click="isMobileMenuOpen = false">
           <Building2 class="w-5 h-5" /> Mon entreprise
         </router-link>
-        <router-link to="/dashboard/clients" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/clients" class="nav-link" @click="isMobileMenuOpen = false">
           <Users class="w-5 h-5" /> Mes clients
         </router-link>
 
         <template v-if="user.role === 'ADMIN'">
           <p class="nav-section-title mt-8">Système</p>
-          <router-link to="/dashboard/admin" class="nav-link admin-link" @click="isMobileMenuOpen = false">
+          <router-link to="/app/admin" class="nav-link admin-link" @click="isMobileMenuOpen = false">
             <ShieldCheck class="w-5 h-5" /> Admin
           </router-link>
         </template>
 
         <p class="nav-section-title mt-8">Configuration</p>
-        <router-link to="/dashboard/settings" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/settings" class="nav-link" @click="isMobileMenuOpen = false">
           <Settings class="w-5 h-5" /> Paramètres
         </router-link>
       </nav>
@@ -251,7 +251,7 @@ function handleLogout() {
   color: var(--primary-foreground);
 }
 
-.nav-link.router-link-active:not([href="/dashboard"]) {
+.nav-link.router-link-active:not([href="/app"]) {
   background: var(--primary);
   color: var(--primary-foreground);
 }

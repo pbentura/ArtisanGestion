@@ -119,7 +119,7 @@ async function submitForm() {
     }
 
     localStorage.removeItem(STORAGE_KEY)
-    router.push('/dashboard')
+    router.push('/app')
   } catch (error: any) {
     alert(error.message)
     console.error(error)

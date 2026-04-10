@@ -26,8 +26,12 @@ const routes = [
   },
   {
     path: '/dashboard',
+    redirect: '/app'
+  },
+  {
+    path: '/app',
     component: () => import('@/views/DashboardLayout.vue'),
-    meta: { requiresAuth: true, requiresSociete: true },
+    meta: { requiresAuth: true, requiresSociete: true, title: 'Ventura | App' },
     children: [
       {
         path: '',
@@ -147,7 +151,7 @@ router.beforeEach(async (to, _from, next) => {
       }
       
       if (to.meta.requiresNoSociete && hasSociete) {
-        return next('/dashboard')
+        return next('/app')
       }
 
       // Block /admin for non-ADMIN users → page forbidden
@@ -159,6 +163,10 @@ router.beforeEach(async (to, _from, next) => {
       return next('/auth')
     }
   }
+
+  // Mise à jour du titre de l'onglet
+  const title = to.matched.slice().reverse().find(r => r.meta?.title)
+  document.title = (title?.meta?.title as string) || 'Ventura'
 
   next()
 })

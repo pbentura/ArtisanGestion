@@ -150,7 +150,7 @@ async function generateFullPDF(rapport: Rapport) {
     const societeRes = await fetch(`${API_BASE_URL}/api/societes/me`, {
        headers: { 'Authorization': `Bearer ${token}` }
     })
-    let societe: Record<string, string> = { nom: '', adresse: '', code_postal: '', ville: '', telephone: '', email: '', siret: '', texte_pied_page: '' }
+    let societe: Record<string, string> = { nom: '', logo: '', adresse: '', code_postal: '', ville: '', telephone: '', email: '', siret: '', texte_pied_page: '' }
     if (societeRes.ok) {
        societe = await societeRes.json()
     }
@@ -181,30 +181,38 @@ async function generateFullPDF(rapport: Rapport) {
 
   const footerText = societe.texte_pied_page || ''
 
-  // Create a temporary container for html2pdf
   const container = document.createElement('div')
   container.innerHTML = `
   <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
-    <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 15px;">
-      <h1 style="color: #1f2937; margin: 0; font-size: 22px; font-weight: 700;">${r.titre_document_pdf}</h1>
+
+    <!-- EN-TÊTE : Logo + Infos société -->
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 15px; border-bottom: 3px solid #2563eb; margin-bottom: 15px;">
+      <!-- Logo -->
+      <div style="flex-shrink: 0; width: 120px; height: 70px; display: flex; align-items: center; justify-content: flex-start;">
+        ${societe.logo
+          ? `<img src="${societe.logo}" style="max-width: 120px; max-height: 70px; object-fit: contain;" />`
+          : `<div style="width: 70px; height: 70px; background: #2563eb; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <span style="color: white; font-size: 24px; font-weight: 700;">${(societe.nom || 'E').charAt(0).toUpperCase()}</span>
+             </div>`
+        }
+      </div>
+      <!-- Infos société -->
+      <div style="text-align: right; flex: 1; padding-left: 15px;">
+        <div style="font-size: 16px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">${societe.nom || ''}</div>
+        ${adresseSociete ? `<div style="font-size: 10px; color: #6b7280;">${adresseSociete}</div>` : ''}
+        ${societe.telephone ? `<div style="font-size: 10px; color: #6b7280;">Tél : ${societe.telephone}</div>` : ''}
+        ${societe.email ? `<div style="font-size: 10px; color: #6b7280;">${societe.email}</div>` : ''}
+        ${societe.siret ? `<div style="font-size: 9px; color: #9ca3af; margin-top: 3px;">SIRET : ${societe.siret}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- TITRE DU RAPPORT -->
+    <div style="text-align: center; margin-bottom: 20px; padding: 10px; background: #f1f5f9; border-radius: 6px;">
+      <h1 style="color: #1e3a5f; margin: 0; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">${r.titre_document_pdf}</h1>
     </div>
 
     <div style="margin-bottom: 15px;">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div>
-          <div style="margin-bottom: 10px;">
-            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Entreprise</div>
-            <div style="font-size: 12px; color: #1f2937;">${societe.nom || '-'}${societe.siret ? ` (SIRET: ${societe.siret})` : ''}</div>
-          </div>
-          <div style="margin-bottom: 10px;">
-            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Coordonnées</div>
-            <div style="font-size: 12px; color: #1f2937;">
-              ${adresseSociete || '-'}<br/>
-              ${societe.telephone ? `Tél: ${societe.telephone}<br/>` : ''}
-              ${societe.email ? `Email: ${societe.email}` : ''}
-            </div>
-          </div>
-        </div>
         <div>
           <div style="margin-bottom: 10px;">
             <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Client</div>
@@ -220,18 +228,17 @@ async function generateFullPDF(rapport: Rapport) {
           </div>
           ${r.client?.siret ? `
           <div style="margin-bottom: 10px;">
-            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">SIRET / SIREN</div>
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">SIRET / SIREN client</div>
             <div style="font-size: 12px; color: #1f2937;">${r.client.siret}</div>
           </div>
           ` : ''}
         </div>
-      </div>
-    </div>
-
-    <div style="margin-bottom: 20px;">
-      <div style="margin-bottom: 10px;">
-        <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Date d'intervention</div>
-        <div style="font-size: 12px; color: #1f2937;">${pdfFormatDate(r.date_intervention)}</div>
+        <div>
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Date d'intervention</div>
+            <div style="font-size: 13px; font-weight: 600; color: #1f2937;">${pdfFormatDate(r.date_intervention)}</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -298,7 +305,7 @@ onMounted(fetchRapports)
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos rapports d'intervention et créez-en de nouveaux</p>
       </div>
       <button
-        @click="router.push('/dashboard/rapports/new')"
+        @click="router.push('/app/rapports/new')"
         class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0 w-full sm:w-auto"
       >
         <Plus class="w-5 h-5" />
@@ -323,7 +330,7 @@ onMounted(fetchRapports)
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucun rapport</h3>
       <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de rapport d'intervention.</p>
       <button
-        @click="router.push('/dashboard/rapports/new')"
+        @click="router.push('/app/rapports/new')"
         class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
       >
         <Plus class="w-4 h-4" />
@@ -346,7 +353,7 @@ onMounted(fetchRapports)
         v-for="rapport in filteredRapports"
         :key="rapport.id"
         class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer"
-        @click="router.push(`/dashboard/rapports/${rapport.id}`)"
+        @click="router.push(`/app/rapports/${rapport.id}`)"
       >
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div class="flex-1 min-w-0">

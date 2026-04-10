@@ -57,7 +57,7 @@ onMounted(() => {
 
       <!-- Actions -->
       <div class="actions">
-        <button class="btn-primary" @click="router.push('/dashboard')">
+        <button class="btn-primary" @click="router.push('/app')">
           <Home class="w-4 h-4" />
           Tableau de bord
         </button>

@@ -78,6 +78,7 @@ const rapport = ref<Rapport>({
 const societe = ref({
   nom: '',
   siret: '',
+  logo: '',
   adresse: '',
   code_postal: '',
   ville: '',
@@ -187,7 +188,7 @@ async function loadExistingRapport(id: number) {
     })
     if (!res.ok) {
       alert('Rapport introuvable')
-      router.push('/dashboard/rapports')
+      router.push('/app/rapports')
       return
     }
     const data = await res.json()
@@ -388,7 +389,7 @@ async function saveRapport() {
     console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
     
     await generatePDF()
-    router.push('/dashboard/rapports')
+    router.push('/app/rapports')
   } catch (e: any) {
     console.error(e)
     alert('Erreur lors de la sauvegarde du rapport : ' + e.message)
@@ -416,26 +417,35 @@ async function generatePDF(download = true) {
     const container = document.createElement('div')
     container.innerHTML = `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
-      <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 15px;">
-        <h1 style="color: #1f2937; margin: 0; font-size: 22px; font-weight: 700;">${rapport.value.titre}</h1>
+
+      <!-- EN-TÊTE : Logo + Infos société -->
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 15px; border-bottom: 3px solid #2563eb; margin-bottom: 15px;">
+        <!-- Logo -->
+        <div style="flex-shrink: 0; width: 120px; height: 70px; display: flex; align-items: center; justify-content: flex-start;">
+          ${societe.value.logo
+            ? `<img src="${societe.value.logo}" style="max-width: 120px; max-height: 70px; object-fit: contain;" />`
+            : `<div style="width: 70px; height: 70px; background: #2563eb; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <span style="color: white; font-size: 24px; font-weight: 700;">${(societe.value.nom || 'E').charAt(0).toUpperCase()}</span>
+               </div>`
+          }
+        </div>
+        <!-- Infos société -->
+        <div style="text-align: right; flex: 1; padding-left: 15px;">
+          <div style="font-size: 16px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">${societe.value.nom || ''}</div>
+          ${adresseSociete ? `<div style="font-size: 10px; color: #6b7280;">${adresseSociete}</div>` : ''}
+          ${societe.value.telephone ? `<div style="font-size: 10px; color: #6b7280;">Tél : ${societe.value.telephone}</div>` : ''}
+          ${societe.value.email ? `<div style="font-size: 10px; color: #6b7280;">${societe.value.email}</div>` : ''}
+          ${societe.value.siret ? `<div style="font-size: 9px; color: #9ca3af; margin-top: 3px;">SIRET : ${societe.value.siret}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- TITRE DU RAPPORT -->
+      <div style="text-align: center; margin-bottom: 20px; padding: 10px; background: #f1f5f9; border-radius: 6px;">
+        <h1 style="color: #1e3a5f; margin: 0; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">${rapport.value.titre}</h1>
       </div>
 
       <div style="margin-bottom: 15px;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-          <div>
-            <div style="margin-bottom: 10px;">
-              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Entreprise</div>
-              <div style="font-size: 12px; color: #1f2937;">${societe.value.nom || '-'}${societe.value.siret ? ` (SIRET: ${societe.value.siret})` : ''}</div>
-            </div>
-            <div style="margin-bottom: 10px;">
-              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Coordonnées</div>
-              <div style="font-size: 12px; color: #1f2937;">
-                ${adresseSociete || '-'}<br/>
-                ${societe.value.telephone ? `Tél: ${societe.value.telephone}<br/>` : ''}
-                ${societe.value.email ? `Email: ${societe.value.email}` : ''}
-              </div>
-            </div>
-          </div>
           <div>
             <div style="margin-bottom: 10px;">
               <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Client</div>
@@ -451,18 +461,17 @@ async function generatePDF(download = true) {
             </div>
             ${rapport.value.clientSiret ? `
             <div style="margin-bottom: 10px;">
-              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">SIRET / SIREN</div>
+              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">SIRET / SIREN client</div>
               <div style="font-size: 12px; color: #1f2937;">${rapport.value.clientSiret}</div>
             </div>
             ` : ''}
           </div>
-        </div>
-      </div>
-
-      <div style="margin-bottom: 20px;">
-        <div style="margin-bottom: 10px;">
-          <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Date d'intervention</div>
-          <div style="font-size: 12px; color: #1f2937;">${pdfFormatDate(rapport.value.dateIntervention)}</div>
+          <div>
+            <div style="margin-bottom: 10px;">
+              <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Date d'intervention</div>
+              <div style="font-size: 13px; font-weight: 600; color: #1f2937;">${pdfFormatDate(rapport.value.dateIntervention)}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -559,7 +568,7 @@ async function saveAndGeneratePDF() {
     console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
     
     await generatePDF()
-    router.push('/dashboard/rapports')
+    router.push('/app/rapports')
   } catch (e: any) {
     console.error(e)
     alert('Erreur lors de la sauvegarde du rapport : ' + e.message)
@@ -871,7 +880,7 @@ async function generateWithAI() {
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
-      <button @click="router.push('/dashboard/rapports')" class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+      <button @click="router.push('/app/rapports')" class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft class="w-5 h-5" /> Retour
       </button>
       <div class="flex items-center gap-3">
@@ -1130,7 +1139,7 @@ OBSERVATIONS ET RECOMMANDATIONS :
 
     <!-- Footer actions -->
     <div v-if="!isLoading" class="flex items-center justify-between mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
-      <button @click="router.push('/dashboard/rapports')" class="px-4 py-2.5 rounded-lg font-medium text-muted-foreground hover:text-foreground transition-colors">Annuler</button>
+      <button @click="router.push('/app/rapports')" class="px-4 py-2.5 rounded-lg font-medium text-muted-foreground hover:text-foreground transition-colors">Annuler</button>
       <button @click="saveRapport" :disabled="!isValid || isSaving || isStreamingAI" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
         <Loader2 v-if="isStreamingAI" class="w-5 h-5 animate-spin" />
         <Save v-else class="w-5 h-5" />
