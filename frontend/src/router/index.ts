@@ -63,7 +63,34 @@ const routes = [
       {
         path: 'settings',
         name: 'settings',
-        component: { template: '<div>Page Paramètres (Bientôt disponible)</div>' }
+        redirect: '/dashboard/settings/compte',
+        children: [
+          {
+            path: 'compte',
+            name: 'settings-compte',
+            component: { template: '<div class="p-6"><h2>Mon Compte</h2><p>Gérez vos informations personnelles ici.</p></div>' }
+          },
+          {
+            path: 'preferences',
+            name: 'settings-preferences',
+            component: { template: '<div class="p-6"><h2>Préférences</h2><p>Personnalisez votre expérience.</p></div>' }
+          },
+          {
+            path: 'abonnement',
+            name: 'settings-abonnement',
+            component: { template: '<div class="p-6"><h2>Abonnement</h2><p>Gérez votre forfait Ventura.</p></div>' }
+          },
+          {
+            path: 'facturation',
+            name: 'settings-facturation',
+            component: { template: '<div class="p-6"><h2>Facturation</h2><p>Historique et méthodes de paiement.</p></div>' }
+          },
+          {
+            path: 'support',
+            name: 'settings-support',
+            component: { template: '<div class="p-6"><h2>Support</h2><p>Besoin d\'aide ? Contactez-nous.</p></div>' }
+          }
+        ]
       },
       {
         path: 'entreprise',
