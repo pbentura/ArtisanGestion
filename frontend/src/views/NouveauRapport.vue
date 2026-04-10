@@ -740,31 +740,6 @@ async function generateWithAI() {
 
     <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? 'Modifier le Rapport' : 'Nouveau Rapport d\'Intervention' }}</h1>
 
-    <!-- AI Generation Banner (creation only) -->
-    <div v-if="!isEditMode" class="mb-6">
-      <div class="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl p-4">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div class="flex items-center gap-3 flex-1">
-            <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-              <Sparkles class="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p class="font-semibold text-foreground text-sm">Générer le rapport avec l'IA</p>
-              <p class="text-xs text-muted-foreground">Mistral AI rédige un rapport professionnel et structuré en quelques secondes</p>
-            </div>
-          </div>
-          <button
-            @click="showAIModal = true"
-            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 flex-shrink-0"
-          >
-            <Sparkles class="w-4 h-4" />
-            Générer avec l'IA
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Loading state for edit mode -->
     <div v-if="isLoading" class="flex items-center justify-center py-20">
       <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -860,6 +835,31 @@ async function generateWithAI() {
           <input v-model="rapport.contactClient" type="tel" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="06 XX XX XX XX" />
         </div>
       </section>
+
+      <!-- AI Generation Banner (creation only) -->
+    <div v-if="!isEditMode" class="mb-6">
+      <div class="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl p-4">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div class="flex items-center gap-3 flex-1">
+            <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <Sparkles class="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p class="font-semibold text-foreground text-sm">Générer le rapport avec l'IA</p>
+              <p class="text-xs text-muted-foreground">Mistral AI rédige un rapport professionnel et structuré en quelques secondes</p>
+            </div>
+          </div>
+          <button
+            @click="showAIModal = true"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 flex-shrink-0"
+          >
+            <Sparkles class="w-4 h-4" />
+            Générer avec l'IA
+          </button>
+        </div>
+      </div>
+    </div>
 
       <!-- Rich Editor complet -->
       <section class="bg-card border border-border rounded-xl p-6">

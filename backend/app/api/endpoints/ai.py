@@ -53,6 +53,8 @@ Informations sur l'intervention :
 Génère un rapport d'intervention professionnel, structuré et complet en HTML (sans balises <html>, <head>, <body>).
 Utilise uniquement des balises HTML inline simples : <p>, <strong>, <em>, <ul>, <ol>, <li>, <br>.
 
+IMPORTANT : Ne génère PAS d'en-tête ou de titre de rapport. Ne répète PAS les informations suivantes car elles sont déjà affichées dans le document : nom du client, adresse, date d'intervention, nom du technicien, nom de la société. Commence directement par les sections de contenu.
+
 Le rapport doit obligatoirement contenir ces sections avec des titres en <strong> et majuscules :
 
 <strong>MOTIF DE L'INTERVENTION :</strong>
@@ -75,7 +77,7 @@ Le rapport doit obligatoirement contenir ces sections avec des titres en <strong
 <p>[Conseils de maintenance préventive, recommandations pour le client, points de vigilance]</p>
 
 Rends le rapport réaliste, détaillé et très professionnel. Adapte le vocabulaire technique au type d'intervention.
-Ne génère QUE le contenu HTML du rapport, sans aucun texte avant ou après, sans blocs de code markdown."""
+Ne génère QUE le contenu HTML des sections ci-dessus, sans aucun texte avant ou après, sans blocs de code markdown, sans en-tête."""
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
