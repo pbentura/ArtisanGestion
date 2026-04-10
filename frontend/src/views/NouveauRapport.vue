@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2 } from 'lucide-vue-next'
@@ -13,6 +13,7 @@ const isLoading = ref(false)
 // AI Generation
 const showAIModal = ref(false)
 const isGeneratingAI = ref(false)
+const isStreamingAI = ref(false)
 const aiForm = ref({
   type_intervention: '',
   description: ''
@@ -565,7 +566,7 @@ async function generateWithAI() {
 
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/ai/generate-rapport`, {
+    const res = await fetch(`${API_BASE_URL}/api/ai/generate-rapport-stream`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -580,25 +581,74 @@ async function generateWithAI() {
       })
     })
 
-    if (!res.ok) {
+    if (!res.ok || !res.body) {
       const errData = await res.json().catch(() => ({}))
       throw new Error(errData.detail || 'Erreur lors de la génération')
     }
 
-    const data = await res.json()
-    rapport.value.contenu = data.contenu
-
-    // Update editor
+    // Le stream est ouvert — on ferme la modale et on démarre l'écriture en direct
+    showAIModal.value = false
+    isGeneratingAI.value = false
+    isStreamingAI.value = true
+    rapport.value.contenu = ''
+    await nextTick()
     if (editorRef.value) {
-      editorRef.value.innerHTML = data.contenu
+      editorRef.value.innerHTML = ''
     }
 
-    showAIModal.value = false
     aiForm.value = { type_intervention: '', description: '' }
+
+    // Lecture du stream SSE
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let accumulatedHTML = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const raw = line.slice(6).trim()
+        if (raw === '[DONE]') {
+          isStreamingAI.value = false
+          // Synchroniser le state final avec le DOM
+          if (editorRef.value) {
+            rapport.value.contenu = editorRef.value.innerHTML
+          }
+          return
+        }
+        if (raw === '') continue
+        try {
+          const delta: string = JSON.parse(raw)
+          accumulatedHTML += delta
+          // Mettre à jour l'éditeur avec le HTML accumulé
+          if (editorRef.value) {
+            editorRef.value.innerHTML = accumulatedHTML
+            // Auto-scroll vers le bas
+            editorRef.value.scrollTop = editorRef.value.scrollHeight
+          }
+        } catch {
+          // Ignore les chunks mal formés
+        }
+      }
+    }
+
+    // Fin de stream sans [DONE]
+    isStreamingAI.value = false
+    if (editorRef.value) {
+      rapport.value.contenu = editorRef.value.innerHTML
+    }
+
   } catch (e: any) {
-    aiError.value = e.message || 'Une erreur est survenue'
-  } finally {
     isGeneratingAI.value = false
+    isStreamingAI.value = false
+    aiError.value = e.message || 'Une erreur est survenue'
   }
 }
 </script>
@@ -863,8 +913,21 @@ async function generateWithAI() {
 
       <!-- Rich Editor complet -->
       <section class="bg-card border border-border rounded-xl p-6">
-        <label class="block text-sm font-medium text-foreground mb-4">Contenu du rapport *</label>
-        <div class="border border-border rounded-lg overflow-hidden bg-background">
+        <div class="flex items-center justify-between mb-4">
+          <label class="block text-sm font-medium text-foreground">Contenu du rapport *</label>
+          <!-- Badge streaming IA -->
+          <Transition name="fade">
+            <div v-if="isStreamingAI" class="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/25 rounded-full">
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              </span>
+              <Sparkles class="w-3.5 h-3.5 text-primary" />
+              <span class="text-xs font-medium text-primary">L'IA rédige...</span>
+            </div>
+          </Transition>
+        </div>
+        <div class="border border-border rounded-lg overflow-hidden bg-background" :class="{ 'ring-2 ring-primary/30 border-primary/40': isStreamingAI }">
           <!-- Toolbar -->
           <div class="flex flex-wrap items-center gap-1 p-3 border-b border-border bg-muted/50">
             <button @mousedown.prevent="execCommand('bold')" :class="{ 'bg-primary/20 text-primary': activeFormats.bold }" class="p-2 rounded hover:bg-muted transition-colors" title="Gras">
@@ -891,7 +954,8 @@ async function generateWithAI() {
             @input="onEditorInput"
             @mouseup="updateActiveFormats"
             @keyup="updateActiveFormats"
-            class="min-h-[400px] max-h-[600px] overflow-y-auto p-4 outline-none prose prose-sm max-w-none"
+            class="min-h-[400px] max-h-[600px] overflow-y-auto p-4 outline-none prose prose-sm max-w-none transition-all"
+            :class="{ 'cursor-not-allowed pointer-events-none': isStreamingAI }"
             placeholder="Rédigez ici votre rapport d'intervention complet...
 
 Exemple de structure :
@@ -971,8 +1035,10 @@ OBSERVATIONS ET RECOMMANDATIONS :
     <!-- Footer actions -->
     <div v-if="!isLoading" class="flex items-center justify-between mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
       <button @click="router.push('/dashboard/rapports')" class="px-4 py-2.5 rounded-lg font-medium text-muted-foreground hover:text-foreground transition-colors">Annuler</button>
-      <button @click="saveRapport" :disabled="!isValid || isSaving" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-        <Save class="w-5 h-5" /> {{ isSaving ? 'Sauvegarde...' : (isEditMode ? 'Mettre à jour' : 'Sauvegarder le rapport') }}
+      <button @click="saveRapport" :disabled="!isValid || isSaving || isStreamingAI" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
+        <Loader2 v-if="isStreamingAI" class="w-5 h-5 animate-spin" />
+        <Save v-else class="w-5 h-5" />
+        {{ isStreamingAI ? 'Génération en cours...' : isSaving ? 'Sauvegarde...' : (isEditMode ? 'Mettre à jour' : 'Sauvegarder le rapport') }}
       </button>
     </div>
   </div>
