@@ -37,6 +37,30 @@ const form = ref({
   texte_pied_page: ''
 })
 
+function generateDefaultFooter() {
+  const parts = []
+  if (form.value.nom) parts.push(form.value.nom)
+  
+  const adresseLines = []
+  if (form.value.adresse) adresseLines.push(form.value.adresse)
+  const cpVille = [form.value.code_postal, form.value.ville].filter(Boolean).join(' ')
+  if (cpVille) adresseLines.push(cpVille)
+  if (adresseLines.length > 0) parts.push(adresseLines.join(', '))
+
+  const contact = []
+  if (form.value.telephone) contact.push(`Tél : ${form.value.telephone}`)
+  if (form.value.email) contact.push(`Email : ${form.value.email}`)
+  if (contact.length > 0) parts.push(contact.join(' - '))
+
+  if (form.value.siret) parts.push(`SIRET : ${form.value.siret}`)
+
+  return parts.join('\n')
+}
+
+function resetFooterToDefault() {
+  form.value.texte_pied_page = generateDefaultFooter()
+}
+
 const formeJuridiques = ['Auto-entrepreneur', 'SASU', 'SAS', 'SARL', 'EURL', 'EI']
 const isAutoEntrepreneur = computed(() => form.value.forme_juridique === 'Auto-entrepreneur')
 
@@ -341,13 +365,19 @@ onMounted(fetchSociete)
                   <Input id="ca" type="number" v-model="form.objectif_mensuel_ca" placeholder="5000" class="h-11" />
                 </div>
                 <div class="space-y-2">
-                  <Label for="footer">Texte pied de page (Devis / Factures)</Label>
+                  <div class="flex items-center justify-between">
+                    <Label for="footer">Texte pied de page (Devis / Factures)</Label>
+                    <Button variant="ghost" size="sm" @click="resetFooterToDefault" class="h-8 text-xs text-primary hover:text-primary hover:bg-primary/10 px-2 rounded-lg">
+                      Réinitialiser par défaut
+                    </Button>
+                  </div>
                   <textarea 
                     id="footer" 
                     v-model="form.texte_pied_page" 
-                    rows="3"
-                    class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    rows="4"
+                    class="flex min-h-[100px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all focus:border-primary/50"
                     placeholder="Ex: Auto-entrepreneur, TVA non applicable, art. 293 B du CGI."></textarea>
+                  <p class="text-[10px] text-muted-foreground">Ce texte apparaîtra en bas de vos rapports PDF (Devis, Factures, Interventions).</p>
                 </div>
               </div>
             </CardContent>

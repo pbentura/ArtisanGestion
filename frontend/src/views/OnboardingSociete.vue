@@ -47,6 +47,45 @@ const form = ref({
   texte_pied_page: ''
 })
 
+const isFooterManuallyEdited = ref(false)
+
+function generateDefaultFooter() {
+  const parts = []
+  if (form.value.nom) parts.push(form.value.nom)
+  
+  const adresseLines = []
+  if (form.value.adresse) adresseLines.push(form.value.adresse)
+  const cpVille = [form.value.code_postal, form.value.ville].filter(Boolean).join(' ')
+  if (cpVille) adresseLines.push(cpVille)
+  if (adresseLines.length > 0) parts.push(adresseLines.join(', '))
+
+  const contact = []
+  if (form.value.telephone) contact.push(`Tél : ${form.value.telephone}`)
+  if (form.value.email) contact.push(`Email : ${form.value.email}`)
+  if (contact.length > 0) parts.push(contact.join(' - '))
+
+  if (form.value.siret) parts.push(`SIRET : ${form.value.siret}`)
+
+  return parts.join('\n')
+}
+
+watch(
+  () => [
+    form.value.nom, 
+    form.value.adresse, 
+    form.value.code_postal, 
+    form.value.ville, 
+    form.value.telephone, 
+    form.value.email, 
+    form.value.siret
+  ],
+  () => {
+    if (!isFooterManuallyEdited.value) {
+      form.value.texte_pied_page = generateDefaultFooter()
+    }
+  }
+)
+
 // Local Storage for saving drafts logically
 const STORAGE_KEY = 'ventura_draft_societe'
 
@@ -351,7 +390,13 @@ function removeLogo() {
                 </div>
                 <div class="space-y-2">
                   <Label for="pied">Texte pied de page par défaut (devis/factures)</Label>
-                  <Input id="pied" v-model="form.texte_pied_page" placeholder="Ex: Paiement à 30 jours, pas d'escompte." class="h-12 text-base" />
+                  <textarea 
+                    id="pied" 
+                    v-model="form.texte_pied_page" 
+                    @input="isFooterManuallyEdited = true"
+                    rows="3"
+                    class="flex min-h-[80px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all focus:border-primary/50"
+                    placeholder="Ex: Paiement à 30 jours, pas d'escompte."></textarea>
                 </div>
               </div>
             </div>

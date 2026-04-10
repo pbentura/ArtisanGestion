@@ -21,6 +21,7 @@ const aiForm = ref({
 const aiError = ref('')
 const showPDFModal = ref(false)
 const pdfUrl = ref('')
+const previewHTML = ref('')
 
 
 const aiInterventionTypes = [
@@ -434,24 +435,18 @@ async function saveRapport() {
   }
 }
 
-async function generatePDF(download = true) {
-  isGeneratingPDF.value = true
+function getReportHTML() {
+  const pdfFormatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    })
+  }
 
-  try {
-    const pdfFormatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString('fr-FR', {
-        day: '2-digit', month: '2-digit', year: 'numeric'
-      })
-    }
+  const adresseSociete = [societe.value.adresse, societe.value.code_postal, societe.value.ville]
+    .filter(Boolean)
+    .join(' ')
 
-    const adresseSociete = [societe.value.adresse, societe.value.code_postal, societe.value.ville]
-      .filter(Boolean)
-      .join(' ')
-
-    const footerText = societe.value.texte_pied_page || ''
-
-    const container = document.createElement('div')
-    container.innerHTML = `
+  return `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
 
       <!-- EN-TÊTE : Logo + Infos société -->
@@ -529,6 +524,20 @@ async function generatePDF(download = true) {
       </div>
       ` : ''}
     </div>`
+}
+
+async function openPreview() {
+  previewHTML.value = getReportHTML()
+  showPDFModal.value = true
+}
+
+async function generatePDF() {
+  isGeneratingPDF.value = true
+
+  try {
+    const footerText = societe.value.texte_pied_page || ''
+    const container = document.createElement('div')
+    container.innerHTML = getReportHTML()
 
     document.body.appendChild(container)
 
@@ -557,22 +566,14 @@ async function generatePDF(download = true) {
         pdf.setFontSize(8)
         pdf.setTextColor(107, 114, 128)
         const lines = pdf.splitTextToSize(footerText, pageWidth - 30)
-        const startY = pdf.internal.pageSize.getHeight() - 10
+        const startY = pdf.internal.pageSize.getHeight() - 15 // Start slightly higher (15mm from bottom)
         lines.forEach((line: string, idx: number) => {
-          pdf.text(line, pageWidth / 2, startY + (idx * 3.5), { align: 'center' })
+          pdf.text(line, pageWidth / 2, startY + (idx * 4), { align: 'center' }) // 4mm line spacing
         })
       }
     }
 
-    if (download) {
-      await worker.save()
-    } else {
-      const blob = await worker.output('blob')
-      if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value)
-      pdfUrl.value = URL.createObjectURL(blob)
-      showPDFModal.value = true
-    }
-
+    await worker.save()
     document.body.removeChild(container)
   } catch (e) {
     console.error('Erreur lors de la génération du PDF', e)
@@ -583,10 +584,7 @@ async function generatePDF(download = true) {
 
 function closePDFModal() {
   showPDFModal.value = false
-  if (pdfUrl.value) {
-    URL.revokeObjectURL(pdfUrl.value)
-    pdfUrl.value = ''
-  }
+  previewHTML.value = ''
 }
 
 async function saveAndGeneratePDF() {
@@ -881,32 +879,32 @@ async function generateWithAI() {
             </div>
 
             <!-- Content (Viewer) -->
-            <div class="flex-1 bg-muted/20 relative">
-              <iframe 
-                v-if="pdfUrl" 
-                :src="pdfUrl" 
-                class="w-full h-full border-none shadow-inner"
-                title="Aperçu PDF"
-              ></iframe>
+            <div class="flex-1 bg-muted/20 relative overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex justify-center">
+              <div 
+                v-if="previewHTML" 
+                class="w-full max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] origin-top"
+                v-html="previewHTML"
+              ></div>
               <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-4">
                 <Loader2 class="w-10 h-10 text-primary animate-spin" />
                 <p class="text-sm text-muted-foreground">Chargement du document...</p>
               </div>
             </div>
 
-            <!-- Mobile Footer (visible only if browser might block iframe) -->
-            <div class="p-4 border-t border-border bg-card sm:hidden">
-              <p class="text-[10px] text-muted-foreground text-center mb-3">
-                Si l'aperçu ne s'affiche pas, utilisez le bouton de téléchargement.
-              </p>
-              <a 
-                :href="pdfUrl" 
-                :download="`${rapport.titre.replace(/\s+/g, '_')}.pdf`"
-                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                <FileDown class="w-5 h-5" />
-                Télécharger le PDF
-              </a>
+            <!-- Mobile Footer (always show download on HTML preview) -->
+            <div class="p-4 border-t border-border bg-card">
+              <div class="max-w-xs mx-auto space-y-2">
+                <p class="text-[10px] text-muted-foreground text-center">
+                  Ceci est un aperçu interactif. Pour obtenir le fichier final :
+                </p>
+                <button 
+                  @click="generatePDF"
+                  class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <FileDown class="w-5 h-5" />
+                  Générer le PDF final
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -920,8 +918,8 @@ async function generateWithAI() {
         <ArrowLeft class="w-5 h-5" /> Retour
       </button>
       <div class="flex items-center gap-3">
-        <button @click="generatePDF(false)" :disabled="!isValid || isGeneratingPDF" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50">
-          <FileDown class="w-5 h-5" /> {{ isGeneratingPDF ? 'Génération...' : 'Aperçu PDF' }}
+        <button @click="openPreview" :disabled="!isValid" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50">
+          <FileDown class="w-5 h-5" /> Aperçu Rapport
         </button>
         <button @click="saveAndGeneratePDF" :disabled="!isValid || isSaving" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
           <Save class="w-5 h-5" /> {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder & PDF' }}
