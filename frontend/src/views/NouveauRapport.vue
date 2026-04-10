@@ -19,6 +19,9 @@ const aiForm = ref({
   description: ''
 })
 const aiError = ref('')
+const showPDFModal = ref(false)
+const pdfUrl = ref('')
+
 
 const aiInterventionTypes = [
   'Plomberie',
@@ -520,8 +523,9 @@ async function generatePDF(download = true) {
       await worker.save()
     } else {
       const blob = await worker.output('blob')
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value)
+      pdfUrl.value = URL.createObjectURL(blob)
+      showPDFModal.value = true
     }
 
     document.body.removeChild(container)
@@ -529,6 +533,14 @@ async function generatePDF(download = true) {
     console.error('Erreur lors de la génération du PDF', e)
   } finally {
     isGeneratingPDF.value = false
+  }
+}
+
+function closePDFModal() {
+  showPDFModal.value = false
+  if (pdfUrl.value) {
+    URL.revokeObjectURL(pdfUrl.value)
+    pdfUrl.value = ''
   }
 }
 
@@ -783,6 +795,79 @@ async function generateWithAI() {
         </div>
       </Transition>
     </Teleport>
+
+    <!-- PDF Preview Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showPDFModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" @click.self="closePDFModal">
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+
+          <!-- Modal card -->
+          <div class="relative w-full max-w-5xl h-[90vh] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+            
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/30">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileDown class="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h2 class="text-sm font-bold text-foreground">Aperçu du Rapport</h2>
+                  <p class="text-[10px] text-muted-foreground">{{ rapport.titre }}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <a 
+                  :href="pdfUrl" 
+                  :download="`${rapport.titre.replace(/\s+/g, '_')}.pdf`"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <FileDown class="w-4 h-4" />
+                  <span class="hidden sm:inline">Télécharger</span>
+                </a>
+                <button
+                  @click="closePDFModal"
+                  class="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <X class="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Content (Viewer) -->
+            <div class="flex-1 bg-muted/20 relative">
+              <iframe 
+                v-if="pdfUrl" 
+                :src="pdfUrl" 
+                class="w-full h-full border-none shadow-inner"
+                title="Aperçu PDF"
+              ></iframe>
+              <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                <Loader2 class="w-10 h-10 text-primary animate-spin" />
+                <p class="text-sm text-muted-foreground">Chargement du document...</p>
+              </div>
+            </div>
+
+            <!-- Mobile Footer (visible only if browser might block iframe) -->
+            <div class="p-4 border-t border-border bg-card sm:hidden">
+              <p class="text-[10px] text-muted-foreground text-center mb-3">
+                Si l'aperçu ne s'affiche pas, utilisez le bouton de téléchargement.
+              </p>
+              <a 
+                :href="pdfUrl" 
+                :download="`${rapport.titre.replace(/\s+/g, '_')}.pdf`"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                <FileDown class="w-5 h-5" />
+                Télécharger le PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
