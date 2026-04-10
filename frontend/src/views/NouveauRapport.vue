@@ -93,6 +93,56 @@ const isCameraActive = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
 let stream: MediaStream | null = null
 
+// Autocomplete logic
+const showSuggestions = ref(false)
+const focusedIndex = ref(-1)
+const filteredClients = computed(() => {
+  const query = rapport.value.nomClient.toLowerCase().trim()
+  if (!query || query.length < 1) return []
+  return clients.value.filter(c => 
+    c.nom.toLowerCase().includes(query) || 
+    (c.ville && c.ville.toLowerCase().includes(query))
+  ).slice(0, 8)
+})
+
+function selectClient(c: any) {
+  rapport.value.nomClient = c.nom
+  rapport.value.clientSiret = c.siret || ''
+  rapport.value.adresseIntervention = c.adresse || ''
+  rapport.value.clientCodePostal = c.code_postal || ''
+  rapport.value.clientVille = c.ville || ''
+  rapport.value.contactClient = c.telephone || ''
+  selectedClientId.value = c.id
+  showSuggestions.value = false
+  focusedIndex.value = -1
+}
+
+function handleKeyDown(e: KeyboardEvent) {
+  if (!showSuggestions.value || filteredClients.value.length === 0) return
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    focusedIndex.value = (focusedIndex.value + 1) % filteredClients.value.length
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    focusedIndex.value = (focusedIndex.value - 1 + filteredClients.value.length) % filteredClients.value.length
+  } else if (e.key === 'Enter') {
+    if (focusedIndex.value >= 0) {
+      e.preventDefault()
+      selectClient(filteredClients.value[focusedIndex.value])
+    }
+  } else if (e.key === 'Escape') {
+    showSuggestions.value = false
+  }
+}
+
+function handleBlur() {
+  // Delay closing to allow mousedown on suggestions to trigger first
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
 async function loadClients() {
   try {
     const token = localStorage.getItem('token')
@@ -232,22 +282,8 @@ function onEditorInput() {
 }
 
 
-function onClientSelect() {
-  if (selectedClientId.value) {
-    const c = clients.value.find(cl => cl.id === selectedClientId.value)
-    if (c) {
-      rapport.value.nomClient = c.nom
-      rapport.value.clientSiret = c.siret || ''
-      rapport.value.adresseIntervention = c.adresse || ''
-      rapport.value.clientCodePostal = c.code_postal || ''
-      rapport.value.clientVille = c.ville || ''
-      rapport.value.contactClient = c.telephone || ''
-    }
-  } else {
-    // Si on désélectionne, on peut soit laisser, soit vider. 
-    // Ici on laisse l'utilisateur vider lui-même ou on peut vider.
-  }
-}
+// onClientSelect is no longer used by the old dropdown but we might keep it or remove it.
+// Removing it as selectClient handles it now.
 
 const fileInput = ref<HTMLInputElement | null>(null)
 
@@ -946,31 +982,61 @@ async function generateWithAI() {
       <section class="bg-card border border-border rounded-xl p-6 space-y-4">
         <h3 class="text-lg font-semibold text-foreground mb-4">Informations du Client</h3>
         
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">Choisir un client existant (Optionnel)</label>
-          <select 
-            v-model="selectedClientId" 
-            @change="onClientSelect"
-            class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none text-foreground"
-          >
-            <option :value="null">-- Nouveau client --</option>
-            <option v-for="c in clients" :key="c.id" :value="c.id">
-              {{ c.nom }} {{ c.ville ? `(${c.ville})` : '' }}
-            </option>
-          </select>
-          <p class="text-[10px] text-muted-foreground mt-1">Sélectionnez un client pour remplir automatiquement ses informations</p>
-        </div>
-
-        <div class="h-px bg-border my-4"></div>
-
-        <div>
+        <div class="relative">
           <label class="block text-sm font-medium text-foreground mb-2">Nom complet du client *</label>
-          <input v-model="rapport.nomClient" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nom du client" />
+          <div class="relative">
+            <input 
+              v-model="rapport.nomClient" 
+              type="text" 
+              @input="showSuggestions = true; focusedIndex = -1"
+              @focus="showSuggestions = true"
+              @blur="handleBlur"
+              @keydown="handleKeyDown"
+              class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" 
+              placeholder="Saisissez le nom du client..." 
+              autocomplete="off"
+            />
+            
+            <!-- Suggestions Dropdown -->
+            <Transition name="fade">
+              <div v-if="showSuggestions && filteredClients.length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto backdrop-blur-sm bg-card/95">
+                <div 
+                  v-for="(c, index) in filteredClients" 
+                  :key="c.id"
+                  @mousedown.prevent="selectClient(c)"
+                  @mouseenter="focusedIndex = index"
+                  :class="[
+                    'px-4 py-3 cursor-pointer transition-colors border-b border-border/50 last:border-0',
+                    focusedIndex === index ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
+                  ]"
+                >
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="font-medium text-sm">{{ c.nom }}</div>
+                      <div class="text-[10px] text-muted-foreground">{{ c.adresse || '' }} {{ c.ville ? ` - ${c.ville}` : '' }}</div>
+                    </div>
+                    <div v-if="c.siret" class="text-[10px] bg-muted px-1.5 py-0.5 rounded opacity-70">
+                      SIRET: {{ c.siret }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </div>
+          <p class="text-[10px] text-muted-foreground mt-1">Saisissez les premières lettres pour rechercher un client existant</p>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">SIRET / SIREN</label>
-          <input v-model="rapport.clientSiret" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Numéro SIRET ou SIREN" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2">SIRET / SIREN</label>
+            <input v-model="rapport.clientSiret" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Numéro SIRET ou SIREN" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2">Numéro de téléphone</label>
+            <input v-model="rapport.contactClient" type="tel" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="06 XX XX XX XX" />
+          </div>
         </div>
+
         <div>
           <label class="block text-sm font-medium text-foreground mb-2">Adresse d'intervention *</label>
           <input v-model="rapport.adresseIntervention" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Adresse (N° et rue)" />
@@ -984,10 +1050,6 @@ async function generateWithAI() {
             <label class="block text-sm font-medium text-foreground mb-2">Ville</label>
             <input v-model="rapport.clientVille" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ville" />
           </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">Numéro de téléphone</label>
-          <input v-model="rapport.contactClient" type="tel" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="06 XX XX XX XX" />
         </div>
       </section>
 

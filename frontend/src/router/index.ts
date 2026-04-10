@@ -11,12 +11,20 @@ const routes = [
   {
     path: '/',
     name: 'landing',
-    component: LandingPage
+    component: LandingPage,
+    meta: { 
+      title: 'Ventura | Gérez vos devis, factures et interventions sereinement',
+      description: 'Ventura est la plateforme tout-en-un pour les artisans et PME. Gérez vos devis, factures et rapports d\'intervention avec l\'aide de l\'IA.'
+    }
   },
   {
     path: '/auth',
     name: 'auth',
-    component: AuthPage
+    component: AuthPage,
+    meta: { 
+      title: 'Connexion | Ventura',
+      description: 'Connectez-vous à votre espace Ventura pour gérer votre activité.'
+    }
   },
   {
     path: '/onboarding',
@@ -91,12 +99,14 @@ const routes = [
   {
     path: '/legal/privacy',
     name: 'privacy',
-    component: PrivacyPolicy
+    component: PrivacyPolicy,
+    meta: { title: 'Politique de Confidentialité | Ventura' }
   },
   {
     path: '/legal/terms',
     name: 'terms',
-    component: TermsOfService
+    component: TermsOfService,
+    meta: { title: 'Conditions Générales d\'Utilisation | Ventura' }
   },
   // 404 catch-all
   {
@@ -164,9 +174,14 @@ router.beforeEach(async (to, _from, next) => {
     }
   }
 
-  // Mise à jour du titre de l'onglet
-  const title = to.matched.slice().reverse().find(r => r.meta?.title)
-  document.title = (title?.meta?.title as string) || 'Ventura'
+  // Mise à jour du titre et de la meta description
+  const meta = to.matched.slice().reverse().find(r => r.meta?.title || r.meta?.description)?.meta
+  document.title = (meta?.title as string) || 'Ventura | Gestion simplifiée pour artisans & PME'
+  
+  const descriptionTag = document.querySelector('meta[name="description"]')
+  if (descriptionTag) {
+    descriptionTag.setAttribute('content', (meta?.description as string) || 'Ventura — La solution tout-en-un pour les artisans et PME.')
+  }
 
   next()
 })
