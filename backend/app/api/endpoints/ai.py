@@ -153,39 +153,39 @@ async def generate_rapport_stream(
 
     prompt = f"""Tu es un technicien expert rédigeant un rapport d'intervention professionnel en français.
 
-Informations sur l'intervention :
-- Type d'intervention : {request.type_intervention}
-- Description : {request.description}
-{context}
+    Informations sur l'intervention :
+    - Type d'intervention : {request.type_intervention}
+    - Description : {request.description}
+    {context}
 
-Génère un rapport d'intervention professionnel, structuré et complet en HTML (sans balises <html>, <head>, <body>).
-Utilise uniquement des balises HTML inline simples : <p>, <strong>, <em>, <ul>, <ol>, <li>, <br>.
+    Génère un rapport d'intervention professionnel, structuré et complet en HTML (sans balises <html>, <head>, <body>).
+    Utilise uniquement des balises HTML inline simples : <p>, <strong>, <em>, <ul>, <ol>, <li>, <br>.
 
-IMPORTANT : Ne génère PAS d'en-tête ou de titre de rapport. Ne répète PAS les informations suivantes car elles sont déjà affichées dans le document : nom du client, adresse, date d'intervention, nom du technicien, nom de la société. Commence directement par les sections de contenu.
+    IMPORTANT : Ne génère PAS d'en-tête ou de titre de rapport. Ne répète PAS les informations suivantes car elles sont déjà affichées dans le document : nom du client, adresse, date d'intervention, nom du technicien, nom de la société. Commence directement par les sections de contenu.
 
-Le rapport doit obligatoirement contenir ces sections avec des titres en <strong> et majuscules :
+    Le rapport doit obligatoirement contenir ces sections avec des titres en <strong> et majuscules :
 
-<strong>MOTIF DE L'INTERVENTION :</strong>
-<p>[Explication claire du problème signalé ou de la demande du client, basée sur la description fournie]</p>
+    <strong>MOTIF DE L'INTERVENTION :</strong>
+    <p>[Explication claire du problème signalé ou de la demande du client, basée sur la description fournie]</p>
 
-<strong>DIAGNOSTIC :</strong>
-<p>[Analyse technique, cause identifiée du problème, état des équipements constatés]</p>
+    <strong>DIAGNOSTIC :</strong>
+    <p>[Analyse technique, cause identifiée du problème, état des équipements constatés]</p>
 
-<strong>TRAVAUX RÉALISÉS :</strong>
-<ul>
-<li>[Action 1 effectuée avec détails techniques]</li>
-<li>[Action 2]</li>
-<li>[...]</li>
-</ul>
+    <strong>TRAVAUX RÉALISÉS :</strong>
+    <ul>
+    <li>[Action 1 effectuée avec détails techniques]</li>
+    <li>[Action 2]</li>
+    <li>[...]</li>
+    </ul>
 
-<strong>RÉSULTAT ET ÉTAT FINAL :</strong>
-<p>[Description de l'état après intervention, tests effectués, validation du résultat]</p>
+    <strong>RÉSULTAT ET ÉTAT FINAL :</strong>
+    <p>[Description de l'état après intervention, tests effectués, validation du résultat]</p>
 
-<strong>OBSERVATIONS ET RECOMMANDATIONS :</strong>
-<p>[Conseils de maintenance préventive, recommandations pour le client, points de vigilance]</p>
+    <strong>OBSERVATIONS ET RECOMMANDATIONS :</strong>
+    <p>[Conseils de maintenance préventive, recommandations pour le client, points de vigilance]</p>
 
-Rends le rapport réaliste, détaillé et très professionnel. Adapte le vocabulaire technique au type d'intervention.
-Ne génère QUE le contenu HTML des sections ci-dessus, sans aucun texte avant ou après, sans blocs de code markdown, sans en-tête."""
+    Rends le rapport réaliste, détaillé et très professionnel. Adapte le vocabulaire technique au type d'intervention.
+    Ne génère QUE le contenu HTML des sections ci-dessus, sans aucun texte avant ou après, sans blocs de code markdown, sans en-tête."""
 
     async def event_stream():
         try:
