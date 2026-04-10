@@ -68,12 +68,6 @@ Le rapport doit obligatoirement contenir ces sections avec des titres en <strong
 <li>[...]</li>
 </ul>
 
-<strong>MATÉRIAUX ET FOURNITURES UTILISÉS :</strong>
-<ul>
-<li>[Matériau/pièce 1 utilisé(e)]</li>
-<li>[...]</li>
-</ul>
-
 <strong>RÉSULTAT ET ÉTAT FINAL :</strong>
 <p>[Description de l'état après intervention, tests effectués, validation du résultat]</p>
 
