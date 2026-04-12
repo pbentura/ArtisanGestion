@@ -176,12 +176,17 @@ const isValid = computed(() => {
 
 const pastDescriptions = ref<any[]>([])
 const activeLineIndex = ref<number | null>(null)
+const focusedLineIndex = ref(-1)
 
-function getFilteredDescriptions(query: string) {
-  if (!query || query.trim().length < 1) return []
-  const lowerQuery = query.toLowerCase().trim()
-  return pastDescriptions.value.filter(d => d.description.toLowerCase().includes(lowerQuery)).slice(0, 8)
-}
+const lineSuggestions = computed(() => {
+  if (activeLineIndex.value === null) return []
+  const ligne = devis.value.lignes[activeLineIndex.value]
+  if (!ligne || !ligne.description) return []
+  const query = ligne.description.trim()
+  if (query.length < 1) return []
+  const lowerQuery = query.toLowerCase()
+  return pastDescriptions.value.filter(d => (d.description || '').toLowerCase().includes(lowerQuery)).slice(0, 8)
+})
 
 function selectDescription(idx: number, suggestion: any) {
   devis.value.lignes[idx].description = suggestion.description
@@ -191,11 +196,35 @@ function selectDescription(idx: number, suggestion: any) {
   
   updateLigneTotal(devis.value.lignes[idx])
   activeLineIndex.value = null
+  focusedLineIndex.value = -1
+}
+
+function handleLineKeyDown(e: KeyboardEvent, idx: number) {
+  if (activeLineIndex.value !== idx) return
+  const suggestions = lineSuggestions.value
+  if (suggestions.length === 0) return
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    focusedLineIndex.value = (focusedLineIndex.value + 1) % suggestions.length
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    focusedLineIndex.value = (focusedLineIndex.value - 1 + suggestions.length) % suggestions.length
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    if (focusedLineIndex.value >= 0 && suggestions[focusedLineIndex.value]) {
+      selectDescription(idx, suggestions[focusedLineIndex.value])
+    }
+  } else if (e.key === 'Escape') {
+    activeLineIndex.value = null
+    focusedLineIndex.value = -1
+  }
 }
 
 function handleLineBlur() {
   setTimeout(() => {
     activeLineIndex.value = null
+    focusedLineIndex.value = -1
   }, 200)
 }
 
@@ -773,12 +802,20 @@ async function saveAndGeneratePDF() {
               <div class="flex flex-col sm:flex-row gap-4 items-end">
                 <div class="flex-1 w-full relative">
                   <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">Description</label>
-                  <input type="text" v-model="ligne.description" @focus="activeLineIndex = idx" @blur="handleLineBlur" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" placeholder="Ex: Main d'œuvre" required autocomplete="off" />
-                  <div v-if="activeLineIndex === idx && getFilteredDescriptions(ligne.description).length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <input type="text" v-model="ligne.description" 
+                    @focus="activeLineIndex = idx; focusedLineIndex = -1" 
+                    @blur="handleLineBlur" 
+                    @keydown="handleLineKeyDown($event, idx)"
+                    class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" 
+                    placeholder="Ex: Main d'œuvre" required autocomplete="off" />
+                  <div v-if="activeLineIndex === idx && lineSuggestions.length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     <ul class="py-1">
-                      <li v-for="d in getFilteredDescriptions(ligne.description)" :key="d.id" @mousedown.prevent="selectDescription(idx, d)" class="px-4 py-2 cursor-pointer text-sm text-foreground hover:bg-muted transition-colors flex justify-between items-center group">
+                      <li v-for="(d, dIdx) in lineSuggestions" :key="d.id" @mousedown.prevent="selectDescription(idx, d)" 
+                        class="px-4 py-2 cursor-pointer text-sm transition-colors flex justify-between items-center group"
+                        :class="dIdx === focusedLineIndex ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'"
+                      >
                         <span class="font-medium">{{ d.description }}</span>
-                        <span class="text-xs text-muted-foreground group-hover:text-primary transition-colors">{{ Number(d.prix_unite_ht).toFixed(2) }}€ (TVA {{ Number(d.taux_tva) }}%)</span>
+                        <span class="text-xs text-muted-foreground group-hover:text-primary transition-colors opacity-0 sm:opacity-100">{{ Number(d.prix_unite_ht).toFixed(2) }}€ (TVA {{ Number(d.taux_tva) }}%)</span>
                       </li>
                     </ul>
                   </div>
