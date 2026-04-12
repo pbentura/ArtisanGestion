@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -427,10 +427,7 @@ async function saveRapport() {
     const clientId = await saveClientToDatabase()
     if (!clientId) throw new Error("Impossible de créer le client")
     
-    const savedRapport = await saveRapportToDatabase(clientId)
-    console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
-    
-    await generatePDF()
+    await saveRapportToDatabase(clientId)
     router.push('/app/rapports')
   } catch (e: any) {
     console.error(e)
@@ -887,7 +884,7 @@ async function generateWithAI() {
             <div class="flex-1 bg-muted/20 relative overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex justify-center pdf-preview-container">
               <div 
                 v-if="previewHTML" 
-                class="w-full max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] origin-top pdf-preview-content"
+                class="max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] pdf-preview-content"
                 v-html="previewHTML"
               ></div>
               <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-4">
@@ -919,15 +916,42 @@ async function generateWithAI() {
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
-      <button @click="router.push('/app/rapports')" class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft class="w-5 h-5" /> Retour
+      <button
+        @click="router.push('/app/rapports')"
+        class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors"
+      >
+        <ArrowLeft class="w-5 h-5" />
+        Retour
       </button>
-      <div class="flex items-center gap-3">
-        <button @click="openPreview" :disabled="!isValid" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50">
-          <FileDown class="w-5 h-5" /> Aperçu Rapport
+      <div class="flex items-center gap-2">
+        <button
+          @click="openPreview"
+          :disabled="isSaving || isGeneratingPDF"
+          class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
+          title="Aperçu PDF"
+        >
+          <Eye class="w-5 h-5" />
+          <span class="hidden md:inline">Aperçu PDF</span>
         </button>
-        <button @click="saveAndGeneratePDF" :disabled="!isValid || isSaving" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-          <Save class="w-5 h-5" /> {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder & PDF' }}
+        <button
+          @click="saveRapport"
+          :disabled="isSaving || isGeneratingPDF"
+          class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
+          title="Sauvegarder Brouillon"
+        >
+          <Loader2 v-if="isSaving" class="w-5 h-5 animate-spin" />
+          <Save v-else class="w-5 h-5" />
+          <span class="hidden md:inline">Brouillon</span>
+        </button>
+        <button
+          @click="saveAndGeneratePDF"
+          :disabled="isSaving || isGeneratingPDF"
+          class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+        >
+          <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
+          <FileDown v-else class="w-5 h-5" />
+          <span class="hidden sm:inline">{{ isSaving ? 'Sauvegarde...' : 'Sauvegarder & PDF' }}</span>
+          <span class="sm:hidden">PDF</span>
         </button>
       </div>
     </div>
@@ -1207,15 +1231,7 @@ OBSERVATIONS ET RECOMMANDATIONS :
       </section>
     </div>
 
-    <!-- Footer actions -->
-    <div v-if="!isLoading" class="flex items-center justify-between mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
-      <button @click="router.push('/app/rapports')" class="px-4 py-2.5 rounded-lg font-medium text-muted-foreground hover:text-foreground transition-colors">Annuler</button>
-      <button @click="saveRapport" :disabled="!isValid || isSaving || isStreamingAI" class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-        <Loader2 v-if="isStreamingAI" class="w-5 h-5 animate-spin" />
-        <Save v-else class="w-5 h-5" />
-        {{ isStreamingAI ? 'Génération en cours...' : isSaving ? 'Sauvegarde...' : (isEditMode ? 'Mettre à jour' : 'Sauvegarder le rapport') }}
-      </button>
-    </div>
+
   </div>
 </template>
 
@@ -1262,17 +1278,18 @@ OBSERVATIONS ET RECOMMANDATIONS :
 @media (max-width: 768px) {
   .pdf-preview-container {
     padding: 1rem 0.5rem !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: flex-start !important;
+    display: block !important;
+    overflow-x: hidden;
   }
   
   .pdf-preview-content {
     transform: scale(0.42);
     transform-origin: top center;
-    flex-shrink: 0;
     width: 210mm !important;
     min-width: 210mm !important;
+    position: relative;
+    left: 50%;
+    margin-left: -105mm;
     margin-bottom: -160mm !important;
   }
 }

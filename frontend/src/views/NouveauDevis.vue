@@ -962,7 +962,7 @@ async function saveAndGeneratePDF() {
           <div class="flex-1 bg-muted/20 relative overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex justify-center pdf-preview-container">
             <div 
               v-if="previewHTML" 
-              class="w-full max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] origin-top pdf-preview-content"
+              class="max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] pdf-preview-content"
               v-html="previewHTML"
             ></div>
             <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-4">
@@ -1017,17 +1017,18 @@ async function saveAndGeneratePDF() {
 @media (max-width: 768px) {
   .pdf-preview-container {
     padding: 1rem 0.5rem !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: flex-start !important;
+    display: block !important;
+    overflow-x: hidden;
   }
   
   .pdf-preview-content {
     transform: scale(0.42);
     transform-origin: top center;
-    flex-shrink: 0;
     width: 210mm !important;
     min-width: 210mm !important;
+    position: relative;
+    left: 50%;
+    margin-left: -105mm;
     margin-bottom: -160mm !important;
   }
 }
