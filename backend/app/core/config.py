@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv, find_dotenv
+
+# Load .env file from the root directory
+load_dotenv(find_dotenv())
 
 class Settings:
     PROJECT_NAME: str = "Ventura API"
