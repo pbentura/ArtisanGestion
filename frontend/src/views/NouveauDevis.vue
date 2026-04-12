@@ -562,13 +562,7 @@ function getReportHTML() {
           <strong style="color: #0f172a; font-size: 11px;">Conditions particulières et informations :</strong>
           <div style="font-size: 10px; color: #475569; line-height: 1.4; white-space: pre-wrap;">${devis.value.conditions_particulieres}</div>
         </div>
-        <div style="font-size: 10px; color: #475569; font-weight: 600; margin-bottom: 20px;">Valable jusqu'au : ${pdfFormatDate(new Date(new Date(devis.value.date_devis).getTime() + devis.value.nb_jours_validite * 24 * 60 * 60 * 1000).toISOString())} (${devis.value.nb_jours_validite} jours)</div>
-        
-        ${societe.value.texte_pied_page ? `
-        <div style="border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 9px; color: #64748b; line-height: 1.5; white-space: pre-wrap;">
-          ${societe.value.texte_pied_page}
-        </div>
-        ` : ''}
+        <div style="font-size: 10px; color: #475569; font-weight: 600;">Valable jusqu'au : ${pdfFormatDate(new Date(new Date(devis.value.date_devis).getTime() + devis.value.nb_jours_validite * 24 * 60 * 60 * 1000).toISOString())} (${devis.value.nb_jours_validite} jours)</div>
       </div>
     </div>`
 }

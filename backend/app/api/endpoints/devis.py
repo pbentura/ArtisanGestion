@@ -98,6 +98,7 @@ async def get_lignes_descriptions(
             
     return unique_lignes
 
+@router.get("/{devis_id}", response_model=DevisSchema)
 async def read_un_devis(
     devis_id: int,
     db: AsyncSession = Depends(deps.get_db),
