@@ -54,6 +54,7 @@ interface Rapport {
   clientCodePostal: string
   clientVille: string
   contactClient: string
+  clientEmail: string
   contenu: string
   photos: string[]
   statut: string
@@ -69,6 +70,7 @@ const rapport = ref<Rapport>({
   clientCodePostal: '',
   clientVille: '',
   contactClient: '',
+  clientEmail: '',
   contenu: '',
   photos: [],
   statut: 'en cours',
@@ -113,6 +115,7 @@ function selectClient(c: any) {
   rapport.value.clientCodePostal = c.code_postal || ''
   rapport.value.clientVille = c.ville || ''
   rapport.value.contactClient = c.telephone || ''
+  rapport.value.clientEmail = c.email || ''
   selectedClientId.value = c.id
   showSuggestions.value = false
   focusedIndex.value = -1
@@ -254,6 +257,7 @@ async function loadExistingRapport(id: number) {
       clientCodePostal: data.client?.code_postal || '',
       clientVille: data.client?.ville || '',
       contactClient: data.client?.telephone || '',
+      clientEmail: data.client?.email || '',
       contenu: data.contenu || '',
       photos: data.photos && data.photos.length > 0 ? data.photos : (data.photo_url ? [data.photo_url] : []),
       statut: data.statut || 'en cours',
@@ -355,7 +359,8 @@ async function saveClientToDatabase(): Promise<number | null> {
       adresse: rapport.value.adresseIntervention,
       code_postal: rapport.value.clientCodePostal,
       ville: rapport.value.clientVille,
-      telephone: rapport.value.contactClient
+      telephone: rapport.value.contactClient,
+      email: rapport.value.clientEmail
     }
     
     const res = await fetch(`${API_BASE_URL}/api/clients`, {
@@ -1033,6 +1038,11 @@ async function generateWithAI() {
             <label class="block text-sm font-medium text-foreground mb-2">Numéro de téléphone</label>
             <input v-model="rapport.contactClient" type="tel" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="06 XX XX XX XX" />
           </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Email du client</label>
+          <input v-model="rapport.clientEmail" type="email" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="client@exemple.com" />
         </div>
 
         <div>

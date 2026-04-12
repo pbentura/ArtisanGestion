@@ -10,6 +10,8 @@ from app.models.user import User
 from app.models.societe import Societe
 from app.models.client import Client
 from app.models.rapport import Rapport
+from app.models.devis import Devis
+from app.models.ligne_devis import LigneDevis
 
 from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai
 
