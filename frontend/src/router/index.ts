@@ -49,7 +49,18 @@ const routes = [
       {
         path: 'devis',
         name: 'devis',
-        component: { template: '<div>Page Devis (Bientôt disponible)</div>' }
+        component: () => import('@/views/DevisList.vue')
+      },
+      {
+        path: 'devis/new',
+        name: 'nouveau-devis',
+        component: () => import('@/views/NouveauDevis.vue')
+      },
+      {
+        path: 'devis/:id',
+        name: 'edit-devis',
+        component: () => import('@/views/NouveauDevis.vue'),
+        props: true
       },
       {
         path: 'factures',
