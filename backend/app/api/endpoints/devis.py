@@ -59,9 +59,15 @@ async def create_devis(
 
     db.add(db_devis)
     await db.commit()
-    await db.refresh(db_devis)
-    db_devis.client = client_obj
-    return db_devis
+    
+    # Reload fully mapped object with relationships to avoid MissingGreenlet on Pydantic serialization
+    result = await db.execute(
+        select(Devis)
+        .options(joinedload(Devis.client), joinedload(Devis.lignes))
+        .where(Devis.id == db_devis.id)
+    )
+    db_devis_loaded = result.unique().scalars().first()
+    return db_devis_loaded
 
 from app.schemas.ligne_devis import LigneDevis as LigneDevisSchema
 

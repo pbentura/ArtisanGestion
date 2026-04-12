@@ -2,13 +2,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
 const isLoading = ref(false)
+const showPDFModal = ref(false)
+const previewHTML = ref('')
+const pdfUrl = ref('')
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
@@ -49,7 +52,7 @@ interface DevisForm {
 
 const devis = ref<DevisForm>({
   date_devis: new Date().toISOString().split('T')[0],
-  numero_devis: `DEV-${new Date().toISOString().split('T')[0].replace(/-/g, '')}`,
+  numero_devis: `DEV-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${new Date().getHours().toString().padStart(2, '0')}${new Date().getMinutes().toString().padStart(2, '0')}`,
   titre_document_pdf: "DEVIS",
   objet_devis: '',
   nomClient: '',
@@ -564,6 +567,16 @@ function getReportHTML() {
     </div>`
 }
 
+function openPreview() {
+  previewHTML.value = getReportHTML()
+  showPDFModal.value = true
+}
+
+function closePDFModal() {
+  showPDFModal.value = false
+  previewHTML.value = ''
+}
+
 async function saveAndGeneratePDF() {
   if (!isValid.value) {
     alert('Veuillez remplir les champs obligatoires.')
@@ -650,6 +663,14 @@ async function saveAndGeneratePDF() {
           Retour
         </button>
         <div class="flex gap-3">
+          <button
+            @click="openPreview"
+            :disabled="isSaving || isGeneratingPDF"
+            class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            <Eye class="w-5 h-5" />
+            Aperçu PDF
+          </button>
           <button
             @click="saveDevis"
             :disabled="isSaving || isGeneratingPDF"
@@ -894,4 +915,99 @@ async function saveAndGeneratePDF() {
       </div>
     </div>
   </div>
+
+  <!-- PDF Preview Modal -->
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div v-if="showPDFModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" @click.self="closePDFModal">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+
+        <!-- Modal card -->
+        <div class="relative w-full max-w-5xl h-[90vh] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+          
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/30">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FileDown class="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-foreground">Aperçu du Devis</h2>
+                <p class="text-[10px] text-muted-foreground">{{ devis.titre_document_pdf }} • {{ devis.numero_devis }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <a 
+                :href="pdfUrl" 
+                :download="`${devis.titre_document_pdf.replace(/\s+/g, '_')}_${devis.numero_devis}.pdf`"
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                v-if="pdfUrl"
+              >
+                <FileDown class="w-4 h-4" />
+                <span class="hidden sm:inline">Télécharger</span>
+              </a>
+              <button
+                @click="closePDFModal"
+                class="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <X class="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Content (Viewer) -->
+          <div class="flex-1 bg-muted/20 relative overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex justify-center">
+            <div 
+              v-if="previewHTML" 
+              class="w-full max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] origin-top"
+              v-html="previewHTML"
+            ></div>
+            <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <Loader2 class="w-10 h-10 text-primary animate-spin" />
+              <p class="text-sm text-muted-foreground">Chargement du document...</p>
+            </div>
+          </div>
+
+          <!-- Mobile Footer (always show download on HTML preview) -->
+          <div class="p-4 border-t border-border bg-card">
+            <div class="max-w-xs mx-auto space-y-2">
+              <p class="text-[10px] text-muted-foreground text-center">
+                Ceci est un aperçu interactif. Pour obtenir le fichier final :
+              </p>
+              <button 
+                @click="saveAndGeneratePDF"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                :disabled="!isValid || isGeneratingPDF"
+              >
+                <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
+                <FileDown v-else class="w-5 h-5" />
+                Générer et sauvegarder le PDF final
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
+
+<style scoped>
+/* Modal transitions */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-active .relative,
+.modal-fade-leave-active .relative {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.modal-fade-enter-from .relative {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
+}
+</style>
