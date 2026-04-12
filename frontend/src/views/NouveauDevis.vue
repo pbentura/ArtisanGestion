@@ -174,17 +174,22 @@ const isValid = computed(() => {
   return devis.value.date_devis && devis.value.numero_devis && devis.value.nomClient.trim() && devis.value.adresseIntervention.trim()
 })
 
-const pastDescriptions = ref<string[]>([])
+const pastDescriptions = ref<any[]>([])
 const activeLineIndex = ref<number | null>(null)
 
 function getFilteredDescriptions(query: string) {
   if (!query || query.trim().length < 1) return []
   const lowerQuery = query.toLowerCase().trim()
-  return pastDescriptions.value.filter(d => d.toLowerCase().includes(lowerQuery)).slice(0, 8)
+  return pastDescriptions.value.filter(d => d.description.toLowerCase().includes(lowerQuery)).slice(0, 8)
 }
 
-function selectDescription(idx: number, desc: string) {
-  devis.value.lignes[idx].description = desc
+function selectDescription(idx: number, suggestion: any) {
+  devis.value.lignes[idx].description = suggestion.description
+  devis.value.lignes[idx].quantite = Number(suggestion.quantite) || 1
+  devis.value.lignes[idx].prix_unite_ht = Number(suggestion.prix_unite_ht) || 0
+  devis.value.lignes[idx].taux_tva = Number(suggestion.taux_tva) || 20
+  
+  updateLigneTotal(devis.value.lignes[idx])
   activeLineIndex.value = null
 }
 
@@ -771,8 +776,9 @@ async function saveAndGeneratePDF() {
                   <input type="text" v-model="ligne.description" @focus="activeLineIndex = idx" @blur="handleLineBlur" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" placeholder="Ex: Main d'œuvre" required autocomplete="off" />
                   <div v-if="activeLineIndex === idx && getFilteredDescriptions(ligne.description).length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     <ul class="py-1">
-                      <li v-for="d in getFilteredDescriptions(ligne.description)" :key="d" @mousedown.prevent="selectDescription(idx, d)" class="px-4 py-2 cursor-pointer text-sm text-foreground hover:bg-muted transition-colors">
-                        {{ d }}
+                      <li v-for="d in getFilteredDescriptions(ligne.description)" :key="d.id" @mousedown.prevent="selectDescription(idx, d)" class="px-4 py-2 cursor-pointer text-sm text-foreground hover:bg-muted transition-colors flex justify-between items-center group">
+                        <span class="font-medium">{{ d.description }}</span>
+                        <span class="text-xs text-muted-foreground group-hover:text-primary transition-colors">{{ Number(d.prix_unite_ht).toFixed(2) }}€ (TVA {{ Number(d.taux_tva) }}%)</span>
                       </li>
                     </ul>
                   </div>

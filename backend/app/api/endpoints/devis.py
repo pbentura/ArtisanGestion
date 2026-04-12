@@ -63,24 +63,35 @@ async def create_devis(
     db_devis.client = client_obj
     return db_devis
 
-@router.get("/lignes/descriptions", response_model=List[str])
+from app.schemas.ligne_devis import LigneDevisBase
+
+@router.get("/lignes/descriptions", response_model=List[LigneDevisBase])
 async def get_lignes_descriptions(
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user)
 ):
     """
-    Récupère la liste des descriptions uniques de lignes de devis pour l'utilisateur.
+    Récupère la liste des lignes complètes uniques (groupées par description) 
+    pour proposer l'autocomplétion avancée.
     """
     result = await db.execute(
-        select(LigneDevis.description)
+        select(LigneDevis)
         .join(Devis, LigneDevis.id_devis == Devis.id)
         .where(Devis.id_user == current_user.id)
-        .distinct()
-        .order_by(LigneDevis.description)
+        .order_by(LigneDevis.id.desc())
     )
-    return result.scalars().all()
+    lignes = result.scalars().all()
+    
+    seen = set()
+    unique_lignes = []
+    for ligne in lignes:
+        desc_lower = ligne.description.strip().lower()
+        if desc_lower not in seen:
+            seen.add(desc_lower)
+            unique_lignes.append(ligne)
+            
+    return unique_lignes
 
-@router.get("/{devis_id}", response_model=DevisSchema)
 async def read_un_devis(
     devis_id: int,
     db: AsyncSession = Depends(deps.get_db),
