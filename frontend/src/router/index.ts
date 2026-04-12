@@ -44,23 +44,27 @@ const routes = [
       {
         path: '',
         name: 'dashboard',
-        component: () => import('@/views/Dashboard.vue')
+        component: () => import('@/views/Dashboard.vue'),
+        meta: { title: 'Tableau de bord' }
       },
       {
         path: 'devis',
         name: 'devis',
-        component: () => import('@/views/DevisList.vue')
+        component: () => import('@/views/DevisList.vue'),
+        meta: { title: 'Devis' }
       },
       {
         path: 'devis/new',
         name: 'nouveau-devis',
-        component: () => import('@/views/NouveauDevis.vue')
+        component: () => import('@/views/NouveauDevis.vue'),
+        meta: { title: 'Devis' }
       },
       {
         path: 'devis/:id',
         name: 'edit-devis',
         component: () => import('@/views/NouveauDevis.vue'),
-        props: true
+        props: true,
+        meta: { title: 'Devis' }
       },
       {
         path: 'factures',
@@ -70,33 +74,39 @@ const routes = [
       {
         path: 'rapports',
         name: 'rapports',
-        component: () => import('@/views/RapportsList.vue')
+        component: () => import('@/views/RapportsList.vue'),
+        meta: { title: 'Rapports' }
       },
       {
         path: 'rapports/new',
         name: 'nouveau-rapport',
-        component: () => import('@/views/NouveauRapport.vue')
+        component: () => import('@/views/NouveauRapport.vue'),
+        meta: { title: 'Rapports' }
       },
       {
         path: 'rapports/:id',
         name: 'edit-rapport',
         component: () => import('@/views/NouveauRapport.vue'),
-        props: true
+        props: true,
+        meta: { title: 'Rapports' }
       },
       {
         path: 'settings',
         name: 'Paramètres',
-        component: () => import('@/views/Settings.vue')
+        component: () => import('@/views/Settings.vue'),
+        meta: { title: 'Paramètres' }
       },
       {
         path: 'entreprise',
         name: 'entreprise',
-        component: () => import('@/views/SocieteInfo.vue')
+        component: () => import('@/views/SocieteInfo.vue'),
+        meta: { title: 'Mon entreprise' }
       },
       {
         path: 'clients',
         name: 'clients',
-        component: () => import('@/views/ClientsList.vue')
+        component: () => import('@/views/ClientsList.vue'),
+        meta: { title: 'Mes clients' }
       },
       {
         path: 'admin',

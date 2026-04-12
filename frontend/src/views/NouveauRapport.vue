@@ -884,10 +884,10 @@ async function generateWithAI() {
             </div>
 
             <!-- Content (Viewer) -->
-            <div class="flex-1 bg-muted/20 relative overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex justify-center">
+            <div class="flex-1 bg-muted/20 relative overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex justify-center pdf-preview-container">
               <div 
                 v-if="previewHTML" 
-                class="w-full max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] origin-top"
+                class="w-full max-w-[210mm] bg-white shadow-xl min-h-[297mm] h-fit p-[15mm] origin-top pdf-preview-content"
                 v-html="previewHTML"
               ></div>
               <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-4">
@@ -1256,5 +1256,31 @@ OBSERVATIONS ET RECOMMANDATIONS :
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* PDF Preview Scaling for Mobile */
+@media (max-width: 768px) {
+  .pdf-preview-container {
+    padding: 1rem 0.5rem !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+  }
+  
+  .pdf-preview-content {
+    transform: scale(0.42);
+    transform-origin: top center;
+    flex-shrink: 0;
+    width: 210mm !important;
+    min-width: 210mm !important;
+    margin-bottom: -160mm !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdf-preview-content {
+    transform: scale(0.35);
+    margin-bottom: -180mm !important;
+  }
 }
 </style>

@@ -120,7 +120,7 @@ function handleLogout() {
           <button class="menu-trigger lg:hidden" @click="isMobileMenuOpen = true">
             <Menu class="w-6 h-6" />
           </button>
-          <h1 class="current-page-title">{{ route.name }}</h1>
+          <h1 class="current-page-title">{{ route.meta.title || route.name }}</h1>
         </div>
         
         <div class="header-right">
@@ -336,7 +336,6 @@ function handleLogout() {
   font-size: 1.25rem;
   font-weight: 800;
   color: var(--foreground);
-  text-transform: capitalize;
 }
 
 .header-right {
