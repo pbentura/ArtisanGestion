@@ -63,6 +63,23 @@ async def create_devis(
     db_devis.client = client_obj
     return db_devis
 
+@router.get("/lignes/descriptions", response_model=List[str])
+async def get_lignes_descriptions(
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    Récupère la liste des descriptions uniques de lignes de devis pour l'utilisateur.
+    """
+    result = await db.execute(
+        select(LigneDevis.description)
+        .join(Devis, LigneDevis.id_devis == Devis.id)
+        .where(Devis.id_user == current_user.id)
+        .distinct()
+        .order_by(LigneDevis.description)
+    )
+    return result.scalars().all()
+
 @router.get("/{devis_id}", response_model=DevisSchema)
 async def read_un_devis(
     devis_id: int,

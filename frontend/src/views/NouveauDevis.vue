@@ -174,7 +174,41 @@ const isValid = computed(() => {
   return devis.value.date_devis && devis.value.numero_devis && devis.value.nomClient.trim() && devis.value.adresseIntervention.trim()
 })
 
+const pastDescriptions = ref<string[]>([])
+const activeLineIndex = ref<number | null>(null)
+
+function getFilteredDescriptions(query: string) {
+  if (!query || query.trim().length < 1) return []
+  const lowerQuery = query.toLowerCase().trim()
+  return pastDescriptions.value.filter(d => d.toLowerCase().includes(lowerQuery)).slice(0, 8)
+}
+
+function selectDescription(idx: number, desc: string) {
+  devis.value.lignes[idx].description = desc
+  activeLineIndex.value = null
+}
+
+function handleLineBlur() {
+  setTimeout(() => {
+    activeLineIndex.value = null
+  }, 200)
+}
+
 // Chargement des données
+async function loadLineDescriptions() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/devis/lignes/descriptions`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      pastDescriptions.value = await res.json()
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement des descriptions:', e)
+  }
+}
+
 async function loadClients() {
   try {
     const token = localStorage.getItem('token')
@@ -257,6 +291,7 @@ async function loadExistingDevis(id: number) {
 onMounted(async () => {
   loadSociete()
   loadClients()
+  loadLineDescriptions()
   if (isEditMode.value && devisId.value) {
     await loadExistingDevis(devisId.value)
   } else {
@@ -570,200 +605,248 @@ async function saveAndGeneratePDF() {
       <span class="text-muted-foreground font-medium">Chargement du devis...</span>
     </div>
 
-    <div v-else>
+    <div v-else class="space-y-6">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
         <button
           @click="router.push('/app/devis')"
           class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors"
         >
           <ArrowLeft class="w-5 h-5" />
-          Retour aux devis
+          Retour
         </button>
         <div class="flex gap-3">
           <button
             @click="saveDevis"
             :disabled="isSaving || isGeneratingPDF"
-            class="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
           >
-            <Loader2 v-if="isSaving" class="w-4 h-4 animate-spin" />
-            <Save v-else class="w-4 h-4" />
-            Enregistrer brouillon
+            <Loader2 v-if="isSaving" class="w-5 h-5 animate-spin" />
+            <Save v-else class="w-5 h-5" />
+            Sauvegarder Brouillon
           </button>
           <button
             @click="saveAndGeneratePDF"
             :disabled="isSaving || isGeneratingPDF"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
           >
-            <Loader2 v-if="isGeneratingPDF" class="w-4 h-4 animate-spin" />
-            <FileDown v-else class="w-4 h-4" />
-            <span class="hidden sm:inline">Enregistrer & Télécharger PDF</span>
+            <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
+            <FileDown v-else class="w-5 h-5" />
+            <span class="hidden sm:inline">{{ isSaving ? 'Sauvegarde...' : 'Sauvegarder & PDF' }}</span>
             <span class="sm:hidden">Créer PDF</span>
           </button>
         </div>
       </div>
 
-      <div class="bg-card border border-border rounded-xl shadow-sm overflow-visible p-6 sm:p-8">
-        <!-- Informations Générales -->
-        <h2 class="text-lg font-bold text-primary mb-4 pb-2 border-b border-border uppercase tracking-wide">Informations du document</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Date du document <span class="text-destructive">*</span></label>
-            <input type="date" v-model="devis.date_devis" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" required />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Numéro du devis <span class="text-destructive">*</span></label>
-            <input type="text" v-model="devis.numero_devis" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: DEV-2023001" required />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Titre du PDF <span class="text-destructive">*</span></label>
-            <input type="text" v-model="devis.titre_document_pdf" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="DEVIS" required />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Objet du devis</label>
-            <input type="text" v-model="devis.objet_devis" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: Rénovation salle de bain" />
-          </div>
-        </div>
+      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? 'Modifier le Devis' : 'Nouveau Devis' }}</h1>
 
-        <!-- Informations Client -->
-        <h2 class="text-lg font-bold text-primary mb-4 pb-2 border-b border-border uppercase tracking-wide">Informations Client</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-          <!-- Autocomplete Field -->
-          <div class="relative">
-            <label class="block text-sm font-medium text-foreground mb-1.5">Nom du client <span class="text-destructive">*</span></label>
-            <input 
-              type="text" 
-              v-model="devis.nomClient" 
-              @focus="showSuggestions = true"
-              @blur="handleBlur"
-              @keydown="handleKeyDown"
-              class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" 
-              placeholder="Rechercher ou saisir un nom..."
-              required
-            />
-            <div v-if="showSuggestions && filteredClients.length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              <ul class="py-1">
-                <li
-                  v-for="(c, idx) in filteredClients"
-                  :key="c.id"
-                  @mousedown.prevent="selectClient(c)"
-                  class="px-4 py-2 cursor-pointer transition-colors"
-                  :class="idx === focusedIndex ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'"
-                >
-                  <div class="font-medium">{{ c.nom }}</div>
-                  <div v-if="c.ville || c.telephone" class="text-xs text-muted-foreground">{{ [c.ville, c.telephone].filter(Boolean).join(' • ') }}</div>
-                </li>
-              </ul>
+      <div class="space-y-6">
+        <!-- Informations Générales -->
+        <section class="bg-card border border-border rounded-xl p-6">
+          <h3 class="text-lg font-semibold text-foreground mb-4">Informations du document</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">Date du document <span class="text-destructive">*</span></label>
+              <input type="date" v-model="devis.date_devis" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" required />
+            </div>
+            <div>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
+                <label class="block text-sm font-medium text-foreground">Numéro du devis <span class="text-destructive">*</span></label>
+                <div class="flex items-center bg-muted rounded-lg p-1">
+                  <button 
+                    @click="devis.statut = 'brouillon'"
+                    type="button"
+                    :class="[
+                      'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                      devis.statut === 'brouillon' 
+                        ? 'bg-primary text-primary-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    ]"
+                  >
+                    Brouillon
+                  </button>
+                  <button 
+                    @click="devis.statut = 'envoyé'"
+                    type="button"
+                    :class="[
+                      'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                      devis.statut === 'envoyé' 
+                        ? 'bg-green-600 text-white shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    ]"
+                  >
+                    Envoyé
+                  </button>
+                </div>
+              </div>
+              <input type="text" v-model="devis.numero_devis" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: DEV-2023001" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">Titre du PDF <span class="text-destructive">*</span></label>
+              <input type="text" v-model="devis.titre_document_pdf" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="DEVIS" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">Objet du devis</label>
+              <input type="text" v-model="devis.objet_devis" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: Rénovation salle de bain" />
             </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">SIRET client</label>
-            <input type="text" v-model="devis.clientSiret" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+        </section>
+
+        <!-- Informations Client -->
+        <section class="bg-card border border-border rounded-xl p-6">
+          <h3 class="text-lg font-semibold text-foreground mb-4">Informations Client</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- Autocomplete Field -->
+            <div class="relative">
+              <label class="block text-sm font-medium text-foreground mb-1.5">Nom du client <span class="text-destructive">*</span></label>
+              <input 
+                type="text" 
+                v-model="devis.nomClient" 
+                @focus="showSuggestions = true"
+                @blur="handleBlur"
+                @keydown="handleKeyDown"
+                class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" 
+                placeholder="Rechercher ou saisir un nom..."
+                required
+              />
+              <div v-if="showSuggestions && filteredClients.length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <ul class="py-1">
+                  <li
+                    v-for="(c, idx) in filteredClients"
+                    :key="c.id"
+                    @mousedown.prevent="selectClient(c)"
+                    class="px-4 py-2 cursor-pointer transition-colors"
+                    :class="idx === focusedIndex ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'"
+                  >
+                    <div class="font-medium">{{ c.nom }}</div>
+                    <div v-if="c.ville || c.telephone" class="text-xs text-muted-foreground">{{ [c.ville, c.telephone].filter(Boolean).join(' • ') }}</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">SIRET client</label>
+              <input type="text" v-model="devis.clientSiret" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-foreground mb-1.5">Adresse <span class="text-destructive">*</span></label>
+              <input type="text" v-model="devis.adresseIntervention" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">Code Postal</label>
+              <input type="text" v-model="devis.clientCodePostal" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">Ville</label>
+              <input type="text" v-model="devis.clientVille" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">Téléphone</label>
+              <input type="tel" v-model="devis.contactClient" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1.5">Email</label>
+              <input type="email" v-model="devis.clientEmail" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            </div>
           </div>
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-foreground mb-1.5">Adresse <span class="text-destructive">*</span></label>
-            <input type="text" v-model="devis.adresseIntervention" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" required />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Code Postal</label>
-            <input type="text" v-model="devis.clientCodePostal" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Ville</label>
-            <input type="text" v-model="devis.clientVille" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Téléphone</label>
-            <input type="tel" v-model="devis.contactClient" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5">Email</label>
-            <input type="email" v-model="devis.clientEmail" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-          </div>
-        </div>
+        </section>
 
         <!-- Lignes du devis -->
-        <div class="flex items-center justify-between mb-4 border-b border-border pb-2 mt-8">
-          <h2 class="text-lg font-bold text-primary uppercase tracking-wide">Détail du devis <span class="text-destructive">*</span></h2>
-          <button @click="ajouterLigne" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-            <Plus class="w-4 h-4" /> Ajouter une ligne
-          </button>
-        </div>
-        
-        <div class="space-y-4 mb-8">
-          <div v-for="(ligne, idx) in devis.lignes" :key="idx" class="bg-muted/30 border border-border rounded-lg p-4 transition-all">
-            <div class="flex flex-col sm:flex-row gap-4 items-end">
-              <div class="flex-1 w-full">
-                <label class="block text-xs font-semibold text-muted-foreground uppercase mb-1">Description</label>
-                <input type="text" v-model="ligne.description" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm" placeholder="Ex: Main d'œuvre" required />
-              </div>
-              <div class="w-full sm:w-24">
-                <label class="block text-xs font-semibold text-muted-foreground uppercase mb-1">Qté</label>
-                <input type="number" v-model="ligne.quantite" @input="updateLigneTotal(ligne)" min="0" step="0.5" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm" required />
-              </div>
-              <div class="w-full sm:w-32">
-                <label class="block text-xs font-semibold text-muted-foreground uppercase mb-1">Prix U. HT</label>
-                <div class="relative">
-                  <input type="number" v-model="ligne.prix_unite_ht" @input="updateLigneTotal(ligne)" min="0" step="0.01" class="w-full px-3 py-2 pr-8 bg-background border border-input rounded-lg text-sm" required />
-                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">€</span>
+        <section class="bg-card border border-border rounded-xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-semibold text-foreground">Détail du devis <span class="text-destructive">*</span></h3>
+              <p class="text-sm text-muted-foreground">Ajoutez les prestations ou produits à facturer</p>
+            </div>
+            <button @click="ajouterLigne" class="inline-flex items-center gap-1.5 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors">
+              <Plus class="w-4 h-4" /> Ajouter une ligne
+            </button>
+          </div>
+          
+          <div class="space-y-4 mb-8">
+            <div v-for="(ligne, idx) in devis.lignes" :key="idx" class="bg-background border border-border rounded-xl p-4 sm:p-5 transition-all shadow-sm hover:shadow-md hover:border-primary/30">
+              <div class="flex flex-col sm:flex-row gap-4 items-end">
+                <div class="flex-1 w-full relative">
+                  <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">Description</label>
+                  <input type="text" v-model="ligne.description" @focus="activeLineIndex = idx" @blur="handleLineBlur" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" placeholder="Ex: Main d'œuvre" required autocomplete="off" />
+                  <div v-if="activeLineIndex === idx && getFilteredDescriptions(ligne.description).length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <ul class="py-1">
+                      <li v-for="d in getFilteredDescriptions(ligne.description)" :key="d" @mousedown.prevent="selectDescription(idx, d)" class="px-4 py-2 cursor-pointer text-sm text-foreground hover:bg-muted transition-colors">
+                        {{ d }}
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
-              <div class="w-full sm:w-28">
-                <label class="block text-xs font-semibold text-muted-foreground uppercase mb-1">TVA</label>
-                <select v-model="ligne.taux_tva" @change="updateLigneTotal(ligne)" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm">
-                  <option v-for="t in TAUX_TVA" :key="t" :value="t">{{ t }}%</option>
-                </select>
-              </div>
-              <div class="w-full sm:w-32">
-                <label class="block text-xs font-semibold text-muted-foreground uppercase mb-1">Total HT</label>
-                <div class="px-3 py-2 bg-muted border border-border rounded-lg text-sm font-medium text-foreground text-right w-full">
-                  {{ ligne.total_ht.toFixed(2) }} €
+                <div class="w-full sm:w-24">
+                  <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">Qté</label>
+                  <input type="number" v-model="ligne.quantite" @input="updateLigneTotal(ligne)" min="0" step="0.5" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" required />
                 </div>
+                <div class="w-full sm:w-32">
+                  <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">Prix U. HT</label>
+                  <div class="relative">
+                    <input type="number" v-model="ligne.prix_unite_ht" @input="updateLigneTotal(ligne)" min="0" step="0.01" class="w-full px-3 py-2 pr-8 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" required />
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">€</span>
+                  </div>
+                </div>
+                <div class="w-full sm:w-28">
+                  <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">TVA</label>
+                  <select v-model="ligne.taux_tva" @change="updateLigneTotal(ligne)" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground">
+                    <option v-for="t in TAUX_TVA" :key="t" :value="t">{{ t }}%</option>
+                  </select>
+                </div>
+                <div class="w-full sm:w-32">
+                  <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">Total HT</label>
+                  <div class="px-3 py-2 bg-muted border border-border rounded-lg text-sm font-medium text-foreground text-right w-full">
+                    {{ ligne.total_ht.toFixed(2) }} €
+                  </div>
+                </div>
+                <button @click="supprimerLigne(idx)" v-if="devis.lignes.length > 1" class="p-2.5 text-muted-foreground hover:bg-destructive shadow-sm border border-border hover:border-destructive hover:text-white rounded-lg flex-shrink-0 transition-all" title="Supprimer la ligne">
+                  <Trash2 class="w-4 h-4" />
+                </button>
               </div>
-              <button @click="supprimerLigne(idx)" v-if="devis.lignes.length > 1" class="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-lg flex-shrink-0 transition-colors" title="Supprimer la ligne">
-                <Trash2 class="w-4 h-4" />
+            </div>
+            
+            <div v-if="devis.lignes.length === 0" class="text-center py-8 bg-muted/20 border border-border border-dashed rounded-lg">
+              <p class="text-sm text-muted-foreground mb-3">Aucune ligne dans ce devis.</p>
+              <button @click="ajouterLigne" class="inline-flex items-center justify-center bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
+                <Plus class="w-4 h-4 mr-2" /> Ajouter la première ligne
               </button>
             </div>
           </div>
-          
-          <div v-if="devis.lignes.length === 0" class="text-center py-8 bg-muted/20 border border-border border-dashed rounded-lg">
-            <p class="text-sm text-muted-foreground mb-3">Aucune ligne dans ce devis.</p>
-            <button @click="ajouterLigne" class="inline-flex items-center justify-center bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
-              <Plus class="w-4 h-4 mr-2" /> Ajouter la première ligne
-            </button>
-          </div>
-        </div>
 
-        <!-- Totaux -->
-        <div class="flex justify-end mb-8 pt-4 border-t border-border">
-          <div class="w-full max-w-xs bg-muted/30 border border-border rounded-xl p-5">
-            <div class="flex justify-between items-center mb-3 text-sm">
-              <span class="text-muted-foreground font-medium">Total HT</span>
-              <span class="font-semibold text-foreground">{{ formattedSousTotalHt }} €</span>
-            </div>
-            <div class="flex justify-between items-center mb-4 text-sm">
-              <span class="text-muted-foreground font-medium">Total TVA</span>
-              <span class="font-semibold text-foreground">{{ formattedTotalTva }} €</span>
-            </div>
-            <div class="flex justify-between items-center pt-4 border-t border-border">
-              <span class="font-bold text-foreground">Total TTC</span>
-              <span class="text-xl font-bold text-primary">{{ formattedTotalTtc }} €</span>
+          <!-- Totaux -->
+          <div class="flex justify-end pt-6 border-t border-border">
+            <div class="w-full max-w-sm bg-muted/30 border border-border rounded-xl p-5 shadow-sm">
+              <div class="flex justify-between items-center mb-3 text-sm">
+                <span class="text-muted-foreground font-medium">Total HT</span>
+                <span class="font-semibold text-foreground">{{ formattedSousTotalHt }} €</span>
+              </div>
+              <div class="flex justify-between items-center mb-4 text-sm">
+                <span class="text-muted-foreground font-medium">Total TVA</span>
+                <span class="font-semibold text-foreground">{{ formattedTotalTva }} €</span>
+              </div>
+              <div class="flex justify-between items-center pt-4 border-t border-border">
+                <span class="font-bold text-foreground">Total TTC</span>
+                <span class="text-xl font-bold text-primary">{{ formattedTotalTtc }} €</span>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Paramètres annexes -->
-        <h2 class="text-lg font-bold text-primary mb-4 pb-2 border-b border-border uppercase tracking-wide">Modalités et Conditions</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="md:col-span-1">
-            <label class="block text-sm font-medium text-foreground mb-1.5">Validité du devis (jours)</label>
-            <input type="number" v-model="devis.nb_jours_validite" min="1" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+        <section class="bg-card border border-border rounded-xl p-6">
+          <h3 class="text-lg font-semibold text-foreground mb-4">Modalités et Conditions</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-1">
+              <label class="block text-sm font-medium text-foreground mb-1.5">Validité du devis (jours)</label>
+              <input type="number" v-model="devis.nb_jours_validite" min="1" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-foreground mb-1.5">Conditions particulières</label>
+              <textarea v-model="devis.conditions_particulieres" rows="3" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none resize-y text-sm"></textarea>
+            </div>
           </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-foreground mb-1.5">Conditions particulières</label>
-            <textarea v-model="devis.conditions_particulieres" rows="3" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none resize-y"></textarea>
-          </div>
-        </div>
+        </section>
 
       </div>
     </div>
