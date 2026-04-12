@@ -63,9 +63,9 @@ async def create_devis(
     db_devis.client = client_obj
     return db_devis
 
-from app.schemas.ligne_devis import LigneDevisBase
+from app.schemas.ligne_devis import LigneDevis as LigneDevisSchema
 
-@router.get("/lignes/descriptions", response_model=List[LigneDevisBase])
+@router.get("/lignes/descriptions", response_model=List[LigneDevisSchema])
 async def get_lignes_descriptions(
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user)
