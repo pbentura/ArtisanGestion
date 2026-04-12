@@ -20,6 +20,8 @@ const TABLE_LABELS: Record<string, string> = {
   societe: 'Sociétés',
   clients: 'Clients',
   rapports: 'Rapports',
+  devis: 'Devis',
+  lignes_devis: 'Lignes de devis',
 }
 
 // ---------------------------------------------------------------------------
@@ -72,7 +74,7 @@ const filteredRows = computed(() => {
 })
 
 const editableColumns = computed(() =>
-  columns.value.filter(c => !c.primary_key)
+  columns.value.filter(c => !c.primary_key && c.name !== 'created_at')
 )
 
 // ---------------------------------------------------------------------------
