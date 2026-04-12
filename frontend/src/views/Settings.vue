@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -7,13 +8,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { 
-  User, Settings, CreditCard, Receipt, LifeBuoy, Loader2, Save, CheckCircle2
+  User, Settings, CreditCard, Receipt, LifeBuoy, Loader2, Save, CheckCircle2,
+  LogOut, Trash2, AlertTriangle, X
 } from 'lucide-vue-next'
 
+const router = useRouter()
 const activeTab = ref('compte')
 const isLoading = ref(true)
 const isSaving = ref(false)
+const isDeleting = ref(false)
 const showSuccess = ref(false)
+const confirmDelete = ref(false)
 
 const user = ref({
   nom: '',
@@ -92,6 +97,37 @@ async function handleSave() {
   }
 }
 
+function handleLogout() {
+  localStorage.removeItem('token')
+  router.push('/auth')
+}
+
+async function handleDeleteAccount() {
+  isDeleting.value = true
+  const token = localStorage.getItem('token')
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (res.ok) {
+      handleLogout()
+    } else {
+      const errorData = await res.json()
+      alert(errorData.detail || "Erreur lors de la suppression du compte")
+    }
+  } catch (error) {
+    console.error('Error deleting account:', error)
+    alert("Une erreur est survenue")
+  } finally {
+    isDeleting.value = false
+    confirmDelete.value = false
+  }
+}
+
 onMounted(() => {
   fetchUser()
 })
@@ -134,6 +170,7 @@ onMounted(() => {
         </div>
         
         <div v-else class="space-y-6">
+          <!-- Information Personnelle -->
           <Card class="border-border/50 shadow-sm overflow-hidden">
             <CardHeader class="pb-4">
               <CardTitle>Mon Compte</CardTitle>
@@ -216,18 +253,46 @@ onMounted(() => {
             </CardContent>
           </Card>
 
-          <!-- Security Section Placeholder -->
-          <Card class="border-border/50 shadow-sm opacity-60">
-            <CardHeader class="pb-2">
-              <CardTitle class="text-lg">Sécurité</CardTitle>
+          <!-- Actions du compte -->
+          <Card class="border-border/50 shadow-sm">
+            <CardHeader class="pb-4">
+              <CardTitle class="text-lg">Actions du compte</CardTitle>
             </CardHeader>
             <CardContent>
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-medium">Mot de passe</p>
-                  <p class="text-xs text-muted-foreground">Dernière modification il y a 3 mois</p>
+                  <p class="text-sm font-medium">Session</p>
+                  <p class="text-xs text-muted-foreground italic">Déconnectez-vous de cet appareil.</p>
                 </div>
-                <Button variant="outline" size="sm" disabled>Modifier</Button>
+                <Button variant="outline" @click="handleLogout" class="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300">
+                  <LogOut class="w-4 h-4 mr-2" />
+                  Déconnexion
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Zone de Danger -->
+          <Card class="border-destructive/20 bg-destructive/[0.02] shadow-sm">
+            <CardHeader class="pb-4">
+              <CardTitle class="text-lg text-destructive flex items-center gap-2">
+                <AlertTriangle class="w-5 h-5" />
+                Zone de Danger
+              </CardTitle>
+              <CardDescription>Ces actions sont irréversibles.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-semibold">Supprimer mon compte</p>
+                  <p class="text-xs text-muted-foreground max-w-sm mt-1">
+                    Supprime définitivement votre accès et toutes vos données (devis, rapports, clients).
+                  </p>
+                </div>
+                <Button variant="destructive" @click="confirmDelete = true">
+                  <Trash2 class="w-4 h-4 mr-2" />
+                  Supprimer
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -253,6 +318,55 @@ onMounted(() => {
         </Card>
       </TabsContent>
     </Tabs>
+
+    <!-- Modal de confirmation de suppression -->
+    <transition name="modal">
+      <div v-if="confirmDelete" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-background/80 backdrop-blur-sm" @click="confirmDelete = false"></div>
+        
+        <Card class="relative w-full max-w-md border-destructive/20 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+          <CardHeader class="pb-4">
+            <div class="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+              <AlertTriangle class="w-6 h-6" />
+            </div>
+            <CardTitle class="text-xl">Supprimer le compte ?</CardTitle>
+            <CardDescription class="text-base text-foreground/80 mt-2">
+              Cette action est <span class="font-bold text-destructive underline">irréversible</span>. Toutes vos données seront définitivement effacées.
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="pb-6">
+            <div class="p-3 rounded-lg bg-muted/50 mb-6">
+              <p class="text-xs text-muted-foreground leading-relaxed uppercase tracking-wider font-bold mb-2">Sont inclus dans la suppression :</p>
+              <ul class="text-xs space-y-1.5 text-muted-foreground">
+                <li class="flex items-center gap-2"><div class="w-1 h-1 rounded-full bg-muted-foreground"></div> Votre société et son profil</li>
+                <li class="flex items-center gap-2"><div class="w-1 h-1 rounded-full bg-muted-foreground"></div> Tous vos rapports d'intervention</li>
+                <li class="flex items-center gap-2"><div class="w-1 h-1 rounded-full bg-muted-foreground"></div> L'historique de vos devis et factures</li>
+                <li class="flex items-center gap-2"><div class="w-1 h-1 rounded-full bg-muted-foreground"></div> Votre carnet de clients</li>
+              </ul>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+              <Button variant="outline" @click="confirmDelete = false" :disabled="isDeleting" class="flex-1 order-2 sm:order-1 h-12">
+                Annuler
+              </Button>
+              <Button variant="destructive" @click="handleDeleteAccount" :disabled="isDeleting" class="flex-1 order-1 sm:order-2 h-12 shadow-lg shadow-destructive/10">
+                <template v-if="isDeleting">
+                  <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+                  Suppression...
+                </template>
+                <template v-else>
+                  <Trash2 class="w-4 h-4 mr-2" />
+                  Confirmer
+                </template>
+              </Button>
+            </div>
+          </CardContent>
+          <button @click="confirmDelete = false" class="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors p-2 rounded-md hover:bg-muted">
+            <X class="w-4 h-4" />
+          </button>
+        </Card>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -263,6 +377,13 @@ onMounted(() => {
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
   transform: translateY(5px);
+}
+
+.modal-enter-active, .modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-enter-from, .modal-leave-to {
+  opacity: 0;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

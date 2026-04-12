@@ -51,3 +51,16 @@ async def update_user_me(
     )
     user = result.scalars().first()
     return user
+
+@router.delete("/me")
+async def delete_user_me(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Supprimer l'utilisateur actuellement connecté et toutes ses données associées.
+    """
+    await db.delete(current_user)
+    await db.commit()
+    return {"status": "success", "message": "Compte supprimé avec succès"}

@@ -12,7 +12,7 @@ class User(Base):
     mdp = Column(String, nullable=True)
     role = Column(String, default="USER", nullable=True)
 
-    societes = relationship("Societe", back_populates="user")
-    clients = relationship("Client", back_populates="user")
-    rapports = relationship("Rapport", back_populates="user")
-    devis = relationship("Devis", back_populates="user")
+    societes = relationship("Societe", back_populates="user", cascade="all, delete-orphan")
+    clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")
+    rapports = relationship("Rapport", back_populates="user", cascade="all, delete-orphan")
+    devis = relationship("Devis", back_populates="user", cascade="all, delete-orphan")
