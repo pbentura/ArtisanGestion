@@ -4,18 +4,25 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { 
   ArrowRight, 
-  Play, 
   BarChart3, 
   FileText, 
   Users, 
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  TrendingUp
 } from 'lucide-vue-next'
 
 const router = useRouter()
 
 function navigateToAuth() {
   router.push('/auth')
+}
+
+function scrollToFeatures() {
+  const element = document.getElementById('features')
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' })
+  }
 }
 </script>
 
@@ -65,9 +72,14 @@ function navigateToAuth() {
               Commencer gratuitement
               <ArrowRight class="ml-2 h-5 w-5" />
             </Button>
-            <Button variant="outline" size="lg" class="rounded-full px-8 py-6 text-lg font-semibold border-2">
-              <Play class="mr-2 h-5 w-5" />
-              Voir une démo
+            <Button 
+              variant="outline" 
+              size="lg" 
+              class="rounded-full px-8 py-6 text-lg font-semibold border-2"
+              @click="scrollToFeatures"
+            >
+              <ArrowRight class="mr-2 h-5 w-5 rotate-90" />
+              Voir les fonctionnalités
             </Button>
           </div>
 

@@ -17,5 +17,10 @@ class UserRead(UserBase):
     class Config:
         from_attributes = True
 
+class UserUpdate(BaseModel):
+    nom: Optional[str] = None
+    prenom: Optional[str] = None
+    email: Optional[EmailStr] = None
+
 class UserReadWithSocietes(UserRead):
     societes: List[SocieteRead] = []
