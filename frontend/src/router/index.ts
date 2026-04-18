@@ -69,7 +69,21 @@ const routes = [
       {
         path: 'factures',
         name: 'factures',
-        component: { template: '<div>Page Factures (Bientôt disponible)</div>' }
+        component: () => import('@/views/FacturesList.vue'),
+        meta: { title: 'Factures' }
+      },
+      {
+        path: 'factures/new',
+        name: 'nouvelle-facture',
+        component: () => import('@/views/NouvelleFacture.vue'),
+        meta: { title: 'Factures' }
+      },
+      {
+        path: 'factures/:id',
+        name: 'edit-facture',
+        component: () => import('@/views/NouvelleFacture.vue'),
+        props: true,
+        meta: { title: 'Factures' }
       },
       {
         path: 'rapports',

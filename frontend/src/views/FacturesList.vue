@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, CreditCard, Receipt } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -9,33 +9,38 @@ interface Client {
   nom: string
 }
 
-interface Devis {
+interface Facture {
   id: number
   titre_document_pdf: string
-  date_devis: string
-  numero_devis: string
+  date_facture: string
+  numero_facture: string
+  date_echeance: string
   client?: Client
   statut: string
+  est_payee: boolean
+  total_ttc: number
+  id_devis?: number
   created_at: string
 }
 
 const router = useRouter()
-const devisList = ref<Devis[]>([])
+const facturesList = ref<Facture[]>([])
 const loading = ref(true)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
 const isDeleting = ref(false)
 const isUpdatingStatus = ref<number | null>(null)
+const isUpdatingPayment = ref<number | null>(null)
 
 const searchQuery = ref('')
 
-const filteredDevis = computed(() => {
+const filteredFactures = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
-  if (!query) return devisList.value
-  return devisList.value.filter(d => 
-    (d.titre_document_pdf?.toLowerCase() || '').includes(query) ||
-    (d.numero_devis?.toLowerCase() || '').includes(query) ||
-    (d.client?.nom?.toLowerCase() || '').includes(query)
+  if (!query) return facturesList.value
+  return facturesList.value.filter(f => 
+    (f.titre_document_pdf?.toLowerCase() || '').includes(query) ||
+    (f.numero_facture?.toLowerCase() || '').includes(query) ||
+    (f.client?.nom?.toLowerCase() || '').includes(query)
   )
 })
 
@@ -49,22 +54,22 @@ function closeDeleteModal() {
   showDeleteConfirm.value = false
 }
 
-async function fetchDevis() {
+async function fetchFactures() {
   loading.value = true
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/`, {
+    const res = await fetch(`${API_BASE_URL}/api/factures/`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
     if (res.ok) {
-      devisList.value = await res.json()
+      facturesList.value = await res.json()
     } else {
-      console.error('Erreur API devis', await res.text())
+      console.error('Erreur API factures', await res.text())
     }
   } catch (e) {
-    console.error('Erreur lors du chargement des devis', e)
+    console.error('Erreur lors du chargement des factures', e)
   } finally {
     loading.value = false
   }
@@ -79,18 +84,22 @@ function formatDate(dateString: string): string {
   })
 }
 
+function formatMoney(value: number | string): string {
+  return Number(value).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+}
+
 async function confirmDelete() {
   if (idToDelete.value === null) return
   
   isDeleting.value = true
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/${idToDelete.value}`, {
+    const res = await fetch(`${API_BASE_URL}/api/factures/${idToDelete.value}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {
-      devisList.value = devisList.value.filter(d => d.id !== idToDelete.value)
+      facturesList.value = facturesList.value.filter(f => f.id !== idToDelete.value)
       closeDeleteModal()
     } else {
       alert("Erreur lors de la suppression.")
@@ -102,15 +111,15 @@ async function confirmDelete() {
   }
 }
 
-async function toggleStatus(devis: Devis) {
+async function toggleStatus(facture: Facture) {
   if (isUpdatingStatus.value !== null) return
   
-  const newStatut = devis.statut === 'brouillon' ? 'envoyé' : 'brouillon'
-  isUpdatingStatus.value = devis.id
+  const newStatut = facture.statut === 'brouillon' ? 'validée' : 'brouillon'
+  isUpdatingStatus.value = facture.id
   
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/${devis.id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -120,10 +129,10 @@ async function toggleStatus(devis: Devis) {
     })
     
     if (res.ok) {
-      const updatedDevis = await res.json()
-      const index = devisList.value.findIndex(d => d.id === devis.id)
+      const updatedFacture = await res.json()
+      const index = facturesList.value.findIndex(f => f.id === facture.id)
       if (index !== -1) {
-        devisList.value[index] = updatedDevis
+        facturesList.value[index] = updatedFacture
       }
     } else {
       console.error('Erreur lors du changement de statut')
@@ -135,22 +144,59 @@ async function toggleStatus(devis: Devis) {
   }
 }
 
-onMounted(fetchDevis)
+async function togglePayment(facture: Facture) {
+  if (isUpdatingPayment.value !== null) return
+  
+  isUpdatingPayment.value = facture.id
+  
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ est_payee: !facture.est_payee })
+    })
+    
+    if (res.ok) {
+      const updatedFacture = await res.json()
+      const index = facturesList.value.findIndex(f => f.id === facture.id)
+      if (index !== -1) {
+        facturesList.value[index] = updatedFacture
+      }
+    } else {
+      console.error('Erreur lors du changement de paiement')
+    }
+  } catch (e) {
+    console.error('Erreur réseau lors du changement de paiement', e)
+  } finally {
+    isUpdatingPayment.value = null
+  }
+}
+
+function isOverdue(facture: Facture): boolean {
+  if (facture.est_payee || !facture.date_echeance) return false
+  return new Date(facture.date_echeance) < new Date()
+}
+
+onMounted(fetchFactures)
 </script>
 
 <template>
   <div class="max-w-6xl mx-auto">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
       <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Devis</h1>
-        <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos devis et créez-en de nouveaux</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Factures</h1>
+        <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos factures et créez-en de nouvelles</p>
       </div>
       <button
-        @click="router.push('/app/devis/new')"
+        @click="router.push('/app/factures/new')"
         class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0 w-full sm:w-auto"
       >
         <Plus class="w-5 h-5" />
-        Nouveau devis
+        Nouvelle facture
       </button>
     </div>
 
@@ -164,97 +210,124 @@ onMounted(fetchDevis)
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="devisList.length === 0" class="bg-card border border-border rounded-xl p-12 text-center">
+    <div v-else-if="facturesList.length === 0" class="bg-card border border-border rounded-xl p-12 text-center">
       <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-        <FileText class="w-8 h-8 text-primary" />
+        <Receipt class="w-8 h-8 text-primary" />
       </div>
-      <h3 class="text-lg font-semibold text-foreground mb-2">Aucun devis</h3>
-      <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de devis.</p>
+      <h3 class="text-lg font-semibold text-foreground mb-2">Aucune facture</h3>
+      <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de facture.</p>
       <button
-        @click="router.push('/app/devis/new')"
+        @click="router.push('/app/factures/new')"
         class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
       >
         <Plus class="w-4 h-4" />
-        Créer mon premier devis
+        Créer ma première facture
       </button>
     </div>
 
-    <!-- Devis List -->
-    <div v-else-if="devisList.length > 0" class="grid gap-4">
+    <!-- Factures List -->
+    <div v-else-if="facturesList.length > 0" class="grid gap-4">
       <div class="relative">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Rechercher un devis par titre, numéro ou client..."
+          placeholder="Rechercher une facture par titre, numéro ou client..."
           class="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
         />
       </div>
       <div
-        v-for="devis in filteredDevis"
-        :key="devis.id"
+        v-for="facture in filteredFactures"
+        :key="facture.id"
         class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer"
-        @click="router.push(`/app/devis/${devis.id}`)"
+        @click="router.push(`/app/factures/${facture.id}`)"
       >
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-              <h3 class="text-base sm:text-lg font-semibold text-foreground truncate">{{ devis.titre_document_pdf || "Devis" }} - {{ devis.numero_devis }}</h3>
+              <h3 class="text-base sm:text-lg font-semibold text-foreground truncate">{{ facture.titre_document_pdf || "Facture" }} - {{ facture.numero_facture }}</h3>
               <span 
                 :class="[
                   'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap',
-                  devis.statut === 'envoyé' 
+                  facture.statut === 'validée' 
                     ? 'bg-green-100 text-green-700 font-bold border border-green-200' 
                     : 'bg-blue-100 text-blue-700 font-bold border border-blue-200'
                 ]"
               >
-                {{ devis.statut }}
+                {{ facture.statut }}
+              </span>
+              <span 
+                :class="[
+                  'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap',
+                  facture.est_payee 
+                    ? 'bg-emerald-100 text-emerald-700 font-bold border border-emerald-200' 
+                    : isOverdue(facture)
+                      ? 'bg-red-100 text-red-700 font-bold border border-red-200'
+                      : 'bg-amber-100 text-amber-700 font-bold border border-amber-200'
+                ]"
+              >
+                {{ facture.est_payee ? 'Payée' : isOverdue(facture) ? 'En retard' : 'Non payée' }}
               </span>
             </div>
             <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
               <span class="flex items-center gap-1">
                 <Calendar class="w-4 h-4" />
-                {{ formatDate(devis.date_devis) }}
+                {{ formatDate(facture.date_facture) }}
               </span>
-              <span>{{ devis.client?.nom || 'Client inconnu' }}</span>
+              <span>{{ facture.client?.nom || 'Client inconnu' }}</span>
+              <span class="font-semibold text-foreground">{{ formatMoney(facture.total_ttc) }}</span>
+              <span v-if="facture.date_echeance" class="text-xs" :class="isOverdue(facture) && !facture.est_payee ? 'text-red-500 font-medium' : ''">
+                Échéance: {{ formatDate(facture.date_echeance) }}
+              </span>
             </div>
           </div>
           <div class="flex items-center gap-2 sm:ml-4">
             <button
-              @click.stop="toggleStatus(devis)"
+              @click.stop="toggleStatus(facture)"
               class="p-2 transition-colors rounded-lg group"
               :class="[
-                devis.statut === 'envoyé' 
+                facture.statut === 'validée' 
                   ? 'text-green-600 hover:bg-green-50' 
                   : 'text-blue-600 hover:bg-blue-50'
               ]"
-              :title="devis.statut === 'envoyé' ? 'Marquer comme brouillon' : 'Marquer comme envoyé'"
-              :disabled="isUpdatingStatus === devis.id"
+              :title="facture.statut === 'validée' ? 'Marquer comme brouillon' : 'Marquer comme validée'"
+              :disabled="isUpdatingStatus === facture.id"
             >
-              <template v-if="isUpdatingStatus === devis.id">
+              <template v-if="isUpdatingStatus === facture.id">
                 <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </template>
               <template v-else>
-                <CheckCircle2 v-if="devis.statut === 'brouillon'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <CheckCircle2 v-if="facture.statut === 'brouillon'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
                 <Clock v-else class="w-5 h-5 group-hover:scale-110 transition-transform" />
               </template>
             </button>
             <button
-              @click.stop="router.push(`/app/factures/new?fromDevis=${devis.id}`)"
-              class="p-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-              title="Facturer ce devis"
+              @click.stop="togglePayment(facture)"
+              class="p-2 transition-colors rounded-lg group"
+              :class="[
+                facture.est_payee 
+                  ? 'text-emerald-600 hover:bg-emerald-50' 
+                  : 'text-amber-600 hover:bg-amber-50'
+              ]"
+              :title="facture.est_payee ? 'Marquer comme non payée' : 'Marquer comme payée'"
+              :disabled="isUpdatingPayment === facture.id"
             >
-              <Receipt class="w-5 h-5" />
+              <template v-if="isUpdatingPayment === facture.id">
+                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              </template>
+              <template v-else>
+                <CreditCard class="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </template>
             </button>
             <button
-              @click.stop="router.push(`/app/devis/${devis.id}/pdf`)"
+              @click.stop="router.push(`/app/factures/${facture.id}/pdf`)"
               class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
               title="Télécharger PDF"
             >
               <Download class="w-5 h-5" />
             </button>
             <button
-              @click.stop="openDeleteModal(devis.id)"
+              @click.stop="openDeleteModal(facture.id)"
               class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
               title="Supprimer"
             >
@@ -271,7 +344,7 @@ onMounted(fetchDevis)
         <Search class="w-8 h-8 text-muted-foreground" />
       </div>
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucun résultat</h3>
-      <p class="text-muted-foreground mb-6">Aucun devis ne correspond à votre recherche.</p>
+      <p class="text-muted-foreground mb-6">Aucune facture ne correspond à votre recherche.</p>
       <button
         @click="searchQuery = ''"
         class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
@@ -285,7 +358,7 @@ onMounted(fetchDevis)
       <div class="absolute inset-0 bg-background/80 backdrop-blur-sm" @click="closeDeleteModal"></div>
       <div class="relative bg-card border border-border rounded-xl shadow-lg max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
         <h3 class="text-lg font-semibold text-foreground mb-2">Confirmer la suppression</h3>
-        <p class="text-muted-foreground mb-6">Voulez-vous vraiment supprimer ce devis ? Cette action est irréversible.</p>
+        <p class="text-muted-foreground mb-6">Voulez-vous vraiment supprimer cette facture ? Cette action est irréversible.</p>
         <div class="flex justify-end gap-3">
           <button 
             @click="closeDeleteModal" 

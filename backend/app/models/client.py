@@ -18,3 +18,4 @@ class Client(Base):
     user = relationship("User", back_populates="clients")
     rapports = relationship("Rapport", back_populates="client", cascade="all, delete-orphan")
     devis = relationship("Devis", back_populates="client", cascade="all, delete-orphan")
+    factures = relationship("Facture", back_populates="client", cascade="all, delete-orphan")

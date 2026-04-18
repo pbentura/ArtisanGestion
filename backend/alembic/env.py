@@ -30,6 +30,8 @@ from app.models.client import Client
 from app.models.rapport import Rapport
 from app.models.devis import Devis
 from app.models.ligne_devis import LigneDevis
+from app.models.facture import Facture
+from app.models.ligne_facture import LigneFacture
 
 target_metadata = Base.metadata
 

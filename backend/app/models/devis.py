@@ -28,3 +28,4 @@ class Devis(Base):
     user = relationship("User", back_populates="devis")
 
     lignes = relationship("LigneDevis", back_populates="devis", cascade="all, delete-orphan")
+    factures = relationship("Facture", back_populates="devis")
