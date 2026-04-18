@@ -15,7 +15,7 @@ from app.models.ligne_devis import LigneDevis
 from app.models.facture import Facture
 from app.models.ligne_facture import LigneFacture
 
-from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai, devis, factures
+from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai, devis, factures, dashboard
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,6 +42,7 @@ app.include_router(devis.router, prefix="/api/devis", tags=["devis"])
 app.include_router(factures.router, prefix="/api/factures", tags=["factures"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 
 @app.get("/")
 async def hello_world():

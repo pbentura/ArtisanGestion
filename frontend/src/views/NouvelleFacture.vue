@@ -73,8 +73,11 @@ const facture = ref<FactureForm>({
   id_devis: null
 })
 
-// Facture verrouillée si validée
-const isLocked = computed(() => facture.value.statut === 'validée' && isEditMode.value)
+// Statut original chargé depuis le serveur (pour verrouillage)
+const originalStatut = ref<string>('')
+
+// Facture verrouillée si le statut sauvegardé en BDD est 'validée'
+const isLocked = computed(() => originalStatut.value === 'validée')
 
 function requestValidation() {
   showValidateConfirm.value = true
@@ -323,6 +326,9 @@ async function loadExistingFacture(id: number) {
       return
     }
     const data = await res.json()
+    
+    // Mémoriser le statut serveur pour le verrouillage
+    originalStatut.value = data.statut || 'brouillon'
     
     facture.value = {
       id: data.id,
