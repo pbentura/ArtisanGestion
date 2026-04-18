@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -12,6 +12,7 @@ const isLoading = ref(false)
 const showPDFModal = ref(false)
 const previewHTML = ref('')
 const pdfUrl = ref('')
+const showValidateConfirm = ref(false)
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
@@ -71,6 +72,22 @@ const facture = ref<FactureForm>({
   lignes: [],
   id_devis: null
 })
+
+// Facture verrouillée si validée
+const isLocked = computed(() => facture.value.statut === 'validée' && isEditMode.value)
+
+function requestValidation() {
+  showValidateConfirm.value = true
+}
+
+function closeValidateModal() {
+  showValidateConfirm.value = false
+}
+
+function confirmValidation() {
+  facture.value.statut = 'validée'
+  showValidateConfirm.value = false
+}
 
 // Auto-calcul de la date d'échéance
 watch(
@@ -747,6 +764,7 @@ async function saveAndGeneratePDF() {
             <span class="hidden md:inline">Aperçu PDF</span>
           </button>
           <button
+            v-if="!isLocked"
             @click="saveFacture"
             :disabled="isSaving || isGeneratingPDF"
             class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
@@ -757,6 +775,7 @@ async function saveAndGeneratePDF() {
             <span class="hidden md:inline">Brouillon</span>
           </button>
           <button
+            v-if="!isLocked"
             @click="saveAndGeneratePDF"
             :disabled="isSaving || isGeneratingPDF"
             class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
@@ -769,7 +788,16 @@ async function saveAndGeneratePDF() {
         </div>
       </div>
 
-      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? 'Modifier la Facture' : fromDevisId ? 'Facturer le Devis' : 'Nouvelle Facture' }}</h1>
+      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? (isLocked ? 'Facture (lecture seule)' : 'Modifier la Facture') : fromDevisId ? 'Facturer le Devis' : 'Nouvelle Facture' }}</h1>
+
+      <!-- Locked banner -->
+      <div v-if="isLocked" class="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl mb-4">
+        <Lock class="w-5 h-5 flex-shrink-0" />
+        <div>
+          <p class="text-sm font-semibold">Facture validée — modification impossible</p>
+          <p class="text-xs text-amber-600">Cette facture a été validée et ne peut plus être modifiée. Seul le PDF peut être généré.</p>
+        </div>
+      </div>
 
       <!-- Devis source badge -->
       <div v-if="facture.id_devis" class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm font-medium mb-2">
@@ -784,7 +812,7 @@ async function saveAndGeneratePDF() {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Date de la facture <span class="text-destructive">*</span></label>
-              <input type="date" v-model="facture.date_facture" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" required />
+              <input type="date" v-model="facture.date_facture" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" required />
             </div>
             <div>
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
@@ -793,38 +821,41 @@ async function saveAndGeneratePDF() {
                   <button 
                     @click="facture.statut = 'brouillon'"
                     type="button"
+                    :disabled="isLocked"
                     :class="[
                       'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                       facture.statut === 'brouillon' 
                         ? 'bg-primary text-primary-foreground shadow-sm' 
-                        : 'text-muted-foreground hover:text-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                      isLocked ? 'opacity-50 cursor-not-allowed' : ''
                     ]"
                   >
                     Brouillon
                   </button>
                   <button 
-                    @click="facture.statut = 'validée'"
+                    @click="isLocked ? null : (facture.statut === 'validée' ? null : requestValidation())"
                     type="button"
                     :class="[
                       'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                       facture.statut === 'validée' 
                         ? 'bg-green-600 text-white shadow-sm' 
-                        : 'text-muted-foreground hover:text-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                      isLocked ? 'opacity-50 cursor-not-allowed' : ''
                     ]"
                   >
                     Validée
                   </button>
                 </div>
               </div>
-              <input type="text" v-model="facture.numero_facture" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: FAC-2023001" required />
+              <input type="text" v-model="facture.numero_facture" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Ex: FAC-2023001" required />
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Titre du PDF <span class="text-destructive">*</span></label>
-              <input type="text" v-model="facture.titre_document_pdf" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="FACTURE" required />
+              <input type="text" v-model="facture.titre_document_pdf" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" placeholder="FACTURE" required />
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Objet de la facture</label>
-              <input type="text" v-model="facture.objet_facture" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: Rénovation salle de bain" />
+              <input type="text" v-model="facture.objet_facture" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Ex: Rénovation salle de bain" />
             </div>
           </div>
         </section>
@@ -842,7 +873,8 @@ async function saveAndGeneratePDF() {
                 @focus="showSuggestions = true"
                 @blur="handleBlur"
                 @keydown="handleKeyDown"
-                class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" 
+                :disabled="isLocked"
+                class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
                 placeholder="Rechercher ou saisir un nom..."
                 required
               />
@@ -863,27 +895,27 @@ async function saveAndGeneratePDF() {
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">SIRET client</label>
-              <input type="text" v-model="facture.clientSiret" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+              <input type="text" v-model="facture.clientSiret" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
             <div class="sm:col-span-2">
               <label class="block text-sm font-medium text-foreground mb-1.5">Adresse <span class="text-destructive">*</span></label>
-              <input type="text" v-model="facture.adresseIntervention" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" required />
+              <input type="text" v-model="facture.adresseIntervention" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" required />
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Code Postal</label>
-              <input type="text" v-model="facture.clientCodePostal" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+              <input type="text" v-model="facture.clientCodePostal" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Ville</label>
-              <input type="text" v-model="facture.clientVille" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+              <input type="text" v-model="facture.clientVille" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Téléphone</label>
-              <input type="tel" v-model="facture.contactClient" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+              <input type="tel" v-model="facture.contactClient" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Email</label>
-              <input type="email" v-model="facture.clientEmail" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+              <input type="email" v-model="facture.clientEmail" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
           </div>
         </section>
@@ -895,7 +927,7 @@ async function saveAndGeneratePDF() {
               <h3 class="text-lg font-semibold text-foreground">Détail de la facture <span class="text-destructive">*</span></h3>
               <p class="text-sm text-muted-foreground">Ajoutez les prestations ou produits à facturer</p>
             </div>
-            <button @click="ajouterLigne" class="inline-flex items-center gap-1.5 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors">
+            <button v-if="!isLocked" @click="ajouterLigne" class="inline-flex items-center gap-1.5 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors">
               <Plus class="w-4 h-4" /> Ajouter une ligne
             </button>
           </div>
@@ -909,7 +941,8 @@ async function saveAndGeneratePDF() {
                     @focus="activeLineIndex = idx; focusedLineIndex = -1" 
                     @blur="handleLineBlur" 
                     @keydown="handleLineKeyDown($event, idx)"
-                    class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" 
+                    :disabled="isLocked"
+                    class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground disabled:opacity-50 disabled:cursor-not-allowed" 
                     placeholder="Ex: Main d'œuvre" required autocomplete="off" />
                   <div v-if="activeLineIndex === idx && lineSuggestions.length > 0" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     <ul class="py-1">
@@ -925,18 +958,18 @@ async function saveAndGeneratePDF() {
                 </div>
                 <div class="w-full sm:w-24">
                   <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">Qté</label>
-                  <input type="number" v-model="ligne.quantite" @input="updateLigneTotal(ligne)" min="0" step="0.5" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" required />
+                  <input type="number" v-model="ligne.quantite" @input="updateLigneTotal(ligne)" min="0" step="0.5" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground disabled:opacity-50 disabled:cursor-not-allowed" required />
                 </div>
                 <div class="w-full sm:w-32">
                   <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">Prix U. HT</label>
                   <div class="relative">
-                    <input type="number" v-model="ligne.prix_unite_ht" @input="updateLigneTotal(ligne)" min="0" step="0.01" class="w-full px-3 py-2 pr-8 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground" required />
+                    <input type="number" v-model="ligne.prix_unite_ht" @input="updateLigneTotal(ligne)" min="0" step="0.01" :disabled="isLocked" class="w-full px-3 py-2 pr-8 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground disabled:opacity-50 disabled:cursor-not-allowed" required />
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">€</span>
                   </div>
                 </div>
                 <div class="w-full sm:w-28">
                   <label class="block text-xs font-semibold text-muted-foreground uppercase mb-2">TVA</label>
-                  <select v-model="ligne.taux_tva" @change="updateLigneTotal(ligne)" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground">
+                  <select v-model="ligne.taux_tva" @change="updateLigneTotal(ligne)" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none text-foreground disabled:opacity-50 disabled:cursor-not-allowed">
                     <option v-for="t in TAUX_TVA" :key="t" :value="t">{{ t }}%</option>
                   </select>
                 </div>
@@ -946,7 +979,7 @@ async function saveAndGeneratePDF() {
                     {{ ligne.total_ht.toFixed(2) }} €
                   </div>
                 </div>
-                <button @click="supprimerLigne(idx)" v-if="facture.lignes.length > 1" class="p-2.5 text-muted-foreground hover:bg-destructive shadow-sm border border-border hover:border-destructive hover:text-white rounded-lg flex-shrink-0 transition-all" title="Supprimer la ligne">
+                <button @click="supprimerLigne(idx)" v-if="facture.lignes.length > 1 && !isLocked" class="p-2.5 text-muted-foreground hover:bg-destructive shadow-sm border border-border hover:border-destructive hover:text-white rounded-lg flex-shrink-0 transition-all" title="Supprimer la ligne">
                   <Trash2 class="w-4 h-4" />
                 </button>
               </div>
@@ -985,21 +1018,21 @@ async function saveAndGeneratePDF() {
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Échéance (jours)</label>
-              <input type="number" v-model="facture.nb_jours_echeance" min="0" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+              <input type="number" v-model="facture.nb_jours_echeance" min="0" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Date d'échéance</label>
-              <input type="date" v-model="facture.date_echeance" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+              <input type="date" v-model="facture.date_echeance" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
             <div class="flex items-end">
               <label class="inline-flex items-center gap-3 cursor-pointer select-none">
-                <input type="checkbox" v-model="facture.est_payee" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <input type="checkbox" v-model="facture.est_payee" :disabled="isLocked" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
                 <span class="text-sm font-medium text-foreground">Facture payée</span>
               </label>
             </div>
             <div class="md:col-span-3">
               <label class="block text-sm font-medium text-foreground mb-1.5">Conditions particulières</label>
-              <textarea v-model="facture.conditions_particulieres" rows="3" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none resize-y text-sm"></textarea>
+              <textarea v-model="facture.conditions_particulieres" rows="3" :disabled="isLocked" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none resize-y text-sm disabled:opacity-50 disabled:cursor-not-allowed"></textarea>
             </div>
           </div>
         </section>
@@ -1077,6 +1110,37 @@ async function saveAndGeneratePDF() {
                 Générer et sauvegarder le PDF final
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- Validate Confirmation Modal -->
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div v-if="showValidateConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-background/80 backdrop-blur-sm" @click="closeValidateModal"></div>
+        <div class="relative bg-card border border-border rounded-xl shadow-lg max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+          <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 class="w-6 h-6 text-amber-600" />
+          </div>
+          <h3 class="text-lg font-semibold text-foreground mb-2 text-center">Valider cette facture ?</h3>
+          <p class="text-muted-foreground mb-2 text-center text-sm">Une fois validée, cette facture ne pourra plus être modifiée ni supprimée.</p>
+          <p class="text-destructive font-medium mb-6 text-center text-sm">Cette action est irréversible.</p>
+          <div class="flex justify-end gap-3">
+            <button 
+              @click="closeValidateModal" 
+              class="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              Annuler
+            </button>
+            <button 
+              @click="confirmValidation" 
+              class="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              Valider définitivement
+            </button>
           </div>
         </div>
       </div>

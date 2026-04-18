@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, CreditCard, Receipt } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, Clock, CreditCard, Receipt } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -30,6 +30,8 @@ const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
 const isDeleting = ref(false)
 const isUpdatingStatus = ref<number | null>(null)
+const showValidateConfirm = ref(false)
+const factureToValidate = ref<Facture | null>(null)
 const isUpdatingPayment = ref<number | null>(null)
 
 const searchQuery = ref('')
@@ -111,10 +113,21 @@ async function confirmDelete() {
   }
 }
 
-async function toggleStatus(facture: Facture) {
-  if (isUpdatingStatus.value !== null) return
+function requestValidation(facture: Facture) {
+  // Valider → modale de confirmation irréversible
+  factureToValidate.value = facture
+  showValidateConfirm.value = true
+}
+
+function closeValidateModal() {
+  factureToValidate.value = null
+  showValidateConfirm.value = false
+}
+
+async function confirmValidation() {
+  if (!factureToValidate.value) return
   
-  const newStatut = facture.statut === 'brouillon' ? 'validée' : 'brouillon'
+  const facture = factureToValidate.value
   isUpdatingStatus.value = facture.id
   
   try {
@@ -125,7 +138,7 @@ async function toggleStatus(facture: Facture) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ statut: newStatut })
+      body: JSON.stringify({ statut: 'validée' })
     })
     
     if (res.ok) {
@@ -134,11 +147,12 @@ async function toggleStatus(facture: Facture) {
       if (index !== -1) {
         facturesList.value[index] = updatedFacture
       }
+      closeValidateModal()
     } else {
-      console.error('Erreur lors du changement de statut')
+      console.error('Erreur lors de la validation')
     }
   } catch (e) {
-    console.error('Erreur réseau lors du changement de statut', e)
+    console.error('Erreur réseau lors de la validation', e)
   } finally {
     isUpdatingStatus.value = null
   }
@@ -283,22 +297,17 @@ onMounted(fetchFactures)
           </div>
           <div class="flex items-center gap-2 sm:ml-4">
             <button
-              @click.stop="toggleStatus(facture)"
-              class="p-2 transition-colors rounded-lg group"
-              :class="[
-                facture.statut === 'validée' 
-                  ? 'text-green-600 hover:bg-green-50' 
-                  : 'text-blue-600 hover:bg-blue-50'
-              ]"
-              :title="facture.statut === 'validée' ? 'Marquer comme brouillon' : 'Marquer comme validée'"
+              v-if="facture.statut === 'brouillon'"
+              @click.stop="requestValidation(facture)"
+              class="p-2 transition-colors rounded-lg group text-blue-600 hover:bg-blue-50"
+              title="Valider cette facture"
               :disabled="isUpdatingStatus === facture.id"
             >
               <template v-if="isUpdatingStatus === facture.id">
                 <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </template>
               <template v-else>
-                <CheckCircle2 v-if="facture.statut === 'brouillon'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
-                <Clock v-else class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <CheckCircle2 class="w-5 h-5 group-hover:scale-110 transition-transform" />
               </template>
             </button>
             <button
@@ -327,6 +336,7 @@ onMounted(fetchFactures)
               <Download class="w-5 h-5" />
             </button>
             <button
+              v-if="facture.statut !== 'validée'"
               @click.stop="openDeleteModal(facture.id)"
               class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
               title="Supprimer"
@@ -374,6 +384,36 @@ onMounted(fetchFactures)
           >
             <span v-if="isDeleting" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
             Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Validate Confirmation Modal -->
+    <div v-if="showValidateConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-background/80 backdrop-blur-sm" @click="closeValidateModal"></div>
+      <div class="relative bg-card border border-border rounded-xl shadow-lg max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 class="w-6 h-6 text-amber-600" />
+        </div>
+        <h3 class="text-lg font-semibold text-foreground mb-2 text-center">Valider cette facture ?</h3>
+        <p class="text-muted-foreground mb-2 text-center text-sm">Une fois validée, cette facture ne pourra plus être modifiée ni supprimée.</p>
+        <p class="text-destructive font-medium mb-6 text-center text-sm">Cette action est irréversible.</p>
+        <div class="flex justify-end gap-3">
+          <button 
+            @click="closeValidateModal" 
+            class="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors"
+            :disabled="isUpdatingStatus !== null"
+          >
+            Annuler
+          </button>
+          <button 
+            @click="confirmValidation" 
+            class="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            :disabled="isUpdatingStatus !== null"
+          >
+            <span v-if="isUpdatingStatus !== null" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+            Valider définitivement
           </button>
         </div>
       </div>

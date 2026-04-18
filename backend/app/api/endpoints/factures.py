@@ -200,6 +200,17 @@ async def update_facture(
     if not db_facture:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
 
+    # Une facture validée ne peut plus être modifiée (sauf le champ est_payee)
+    update_data = facture_in.model_dump(exclude_unset=True)
+    if db_facture.statut == "validée":
+        allowed_fields = {"est_payee"}
+        forbidden_fields = set(update_data.keys()) - allowed_fields
+        if forbidden_fields:
+            raise HTTPException(
+                status_code=403,
+                detail="Une facture validée ne peut plus être modifiée. Seul le statut de paiement peut être changé."
+            )
+
     if facture_in.id_client is not None and facture_in.id_client != db_facture.id_client:
         client_result = await db.execute(
             select(Client).where(
@@ -211,7 +222,6 @@ async def update_facture(
             raise HTTPException(status_code=400, detail="Client invalide ou non autorisé")
         db_facture.client = new_client
 
-    update_data = facture_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_facture, field, value)
 
