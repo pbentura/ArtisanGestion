@@ -22,7 +22,7 @@ const routes = [
     name: 'auth',
     component: AuthPage,
     meta: { 
-      title: 'Connexion | Ventura',
+      title: 'Connexion',
       description: 'Connectez-vous à votre espace Ventura pour gérer votre activité.'
     }
   },
@@ -30,7 +30,11 @@ const routes = [
     path: '/onboarding',
     name: 'onboarding',
     component: () => import('@/views/OnboardingSociete.vue'),
-    meta: { requiresAuth: true, requiresNoSociete: true }
+    meta: { 
+      requiresAuth: true, 
+      requiresNoSociete: true,
+      title: 'Configuration de votre entreprise'
+    }
   },
   {
     path: '/dashboard',
@@ -39,7 +43,7 @@ const routes = [
   {
     path: '/app',
     component: () => import('@/views/DashboardLayout.vue'),
-    meta: { requiresAuth: true, requiresSociete: true, title: 'Ventura | App' },
+    meta: { requiresAuth: true, requiresSociete: true, title: 'Application' },
     children: [
       {
         path: '',
@@ -126,7 +130,10 @@ const routes = [
         path: 'admin',
         name: 'admin',
         component: () => import('@/views/AdminPanel.vue'),
-        meta: { requiresAdmin: true }
+        meta: { 
+          requiresAdmin: true,
+          title: 'Administration'
+        }
       }
     ]
   },
@@ -135,19 +142,20 @@ const routes = [
     path: '/legal/privacy',
     name: 'privacy',
     component: PrivacyPolicy,
-    meta: { title: 'Politique de Confidentialité | Ventura' }
+    meta: { title: 'Politique de Confidentialité' }
   },
   {
     path: '/legal/terms',
     name: 'terms',
     component: TermsOfService,
-    meta: { title: 'Conditions Générales d\'Utilisation | Ventura' }
+    meta: { title: 'Conditions Générales d\'Utilisation' }
   },
   // 404 catch-all
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
-    component: NotFound
+    component: NotFound,
+    meta: { title: 'Page non trouvée' }
   }
 ]
 
@@ -211,7 +219,17 @@ router.beforeEach(async (to, _from, next) => {
 
   // Mise à jour du titre et de la meta description
   const meta = to.matched.slice().reverse().find(r => r.meta?.title || r.meta?.description)?.meta
-  document.title = (meta?.title as string) || 'Ventura | Gestion simplifiée pour artisans & PME'
+  const title = meta?.title as string
+  
+  if (title) {
+    if (to.name === 'landing') {
+      document.title = title // Conserver le titre complet pour la landing
+    } else {
+      document.title = `Ventura | ${title}`
+    }
+  } else {
+    document.title = 'Ventura | Gestion simplifiée pour artisans & PME'
+  }
   
   const descriptionTag = document.querySelector('meta[name="description"]')
   if (descriptionTag) {
