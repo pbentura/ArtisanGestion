@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2 } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,6 +13,7 @@ const showPDFModal = ref(false)
 const previewHTML = ref('')
 const pdfUrl = ref('')
 const showValidateConfirm = ref(false)
+const isDownloadingFacturX = ref(false)
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
@@ -745,6 +746,41 @@ async function saveAndGeneratePDF() {
     isGeneratingPDF.value = false
   }
 }
+async function downloadFacturX() {
+  if (!factureId.value || isDownloadingFacturX.value) return
+  
+  isDownloadingFacturX.value = true
+  
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/factures/${factureId.value}/facturx`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    })
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ detail: 'Erreur inconnue' }))
+      alert(`Erreur : ${errorData.detail || 'Impossible de générer le Factur-X'}`)
+      return
+    }
+    
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `FacturX_${facture.value.numero_facture}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Erreur lors du téléchargement Factur-X', e)
+    alert('Erreur réseau lors du téléchargement du Factur-X')
+  } finally {
+    isDownloadingFacturX.value = false
+  }
+}
 </script>
 
 <template>
@@ -795,6 +831,17 @@ async function saveAndGeneratePDF() {
             <FileDown v-else class="w-5 h-5" />
             <span class="hidden sm:inline">{{ isSaving ? 'Sauvegarde...' : 'Sauvegarder & PDF' }}</span>
             <span class="sm:hidden">PDF</span>
+          </button>
+          <button
+            v-if="isLocked"
+            @click="downloadFacturX"
+            :disabled="isDownloadingFacturX"
+            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50"
+            title="Télécharger Factur-X (PDF/A-3 + XML)"
+          >
+            <Loader2 v-if="isDownloadingFacturX" class="w-5 h-5 animate-spin" />
+            <FileCheck2 v-else class="w-5 h-5" />
+            <span class="hidden sm:inline">Factur-X</span>
           </button>
         </div>
       </div>

@@ -13,7 +13,7 @@ class Client(Base):
     telephone = Column(String, nullable=True)
     email = Column(String, nullable=True)
     siret = Column(String, nullable=True)
-    
+    tva_intracommunautaire = Column(String, nullable=True)
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="clients")
     rapports = relationship("Rapport", back_populates="client", cascade="all, delete-orphan")

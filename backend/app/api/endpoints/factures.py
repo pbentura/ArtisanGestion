@@ -1,6 +1,8 @@
 from typing import List
 from datetime import date, timedelta
+from io import BytesIO
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
@@ -12,6 +14,9 @@ from app.models.client import Client
 from app.models.user import User
 from app.models.devis import Devis
 from app.models.ligne_devis import LigneDevis
+from app.models.societe import Societe
+from app.services.facturx_generator import generate_cii_xml
+from app.services.pdf_generator import generate_invoice_pdf
 from app.schemas.facture import (
     Facture as FactureSchema,
     FactureCreate,
@@ -228,6 +233,91 @@ async def create_avoir_from_facture(
     )
     db_avoir_loaded = result.unique().scalars().first()
     return db_avoir_loaded
+
+
+@router.get("/{facture_id}/facturx")
+async def download_facturx(
+    facture_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Génère et télécharge un PDF Factur-X (PDF/A-3 + XML CII embarqué)
+    conforme au profil EN 16931 pour une facture validée.
+    """
+    # 1. Charger la facture avec ses relations
+    result = await db.execute(
+        select(Facture)
+        .options(joinedload(Facture.client), joinedload(Facture.lignes))
+        .where(Facture.id == facture_id, Facture.id_user == current_user.id)
+    )
+    db_facture = result.unique().scalars().first()
+
+    if not db_facture:
+        raise HTTPException(status_code=404, detail="Facture non trouvée")
+
+    if db_facture.statut != "validée":
+        raise HTTPException(
+            status_code=400,
+            detail="Seule une facture validée peut être exportée au format Factur-X"
+        )
+
+    # 2. Charger la société de l'utilisateur
+    societe_result = await db.execute(
+        select(Societe).where(Societe.id_user == current_user.id)
+    )
+    db_societe = societe_result.scalars().first()
+
+    if not db_societe:
+        raise HTTPException(
+            status_code=400,
+            detail="Informations société manquantes. Configurez votre entreprise avant de générer un Factur-X."
+        )
+
+    # 3. Générer le PDF classique
+    pdf_bytes = generate_invoice_pdf(
+        facture=db_facture,
+        client=db_facture.client,
+        societe=db_societe,
+        lignes=list(db_facture.lignes),
+    )
+
+    # 4. Générer le XML CII
+    xml_bytes = generate_cii_xml(
+        facture=db_facture,
+        client=db_facture.client,
+        societe=db_societe,
+        lignes=list(db_facture.lignes),
+    )
+
+    # 5. Fusionner le XML dans le PDF pour créer le Factur-X (PDF/A-3)
+    from facturx import generate_from_binary
+
+    facturx_pdf = generate_from_binary(
+        pdf_bytes,
+        xml_bytes,
+        flavor="factur-x",
+        level="en16931",
+        lang="fr-FR",
+        pdf_metadata={
+            "author": db_societe.nom or "Ventura",
+            "keywords": "Factur-X, Facture, EN16931",
+            "title": f"{db_facture.titre_document_pdf} {db_facture.numero_facture}",
+            "subject": f"Factur-X {db_facture.numero_facture} du {db_facture.date_facture} - {db_societe.nom}",
+        },
+    )
+
+    # 6. Retourner le fichier PDF
+    filename = f"FacturX_{db_facture.numero_facture}.pdf".replace(" ", "_")
+
+    return StreamingResponse(
+        BytesIO(facturx_pdf),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Facturx-Profile": "EN16931",
+        },
+    )
 
 
 @router.get("/{facture_id}", response_model=FactureSchema)

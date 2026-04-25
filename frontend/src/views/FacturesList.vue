@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2 } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2 } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -35,6 +35,7 @@ const showValidateConfirm = ref(false)
 const factureToValidate = ref<Facture | null>(null)
 const isUpdatingPayment = ref<number | null>(null)
 const isCreatingAvoir = ref<number | null>(null)
+const isDownloadingFacturX = ref<number | null>(null)
 
 const searchQuery = ref('')
 
@@ -229,6 +230,42 @@ function isOverdue(facture: Facture): boolean {
   return new Date(facture.date_echeance) < new Date()
 }
 
+async function downloadFacturX(facture: Facture) {
+  if (isDownloadingFacturX.value !== null) return
+  
+  isDownloadingFacturX.value = facture.id
+  
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}/facturx`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    })
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ detail: 'Erreur inconnue' }))
+      alert(`Erreur : ${errorData.detail || 'Impossible de générer le Factur-X'}`)
+      return
+    }
+    
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `FacturX_${facture.numero_facture}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Erreur lors du téléchargement Factur-X', e)
+    alert('Erreur réseau lors du téléchargement du Factur-X')
+  } finally {
+    isDownloadingFacturX.value = null
+  }
+}
+
 onMounted(fetchFactures)
 </script>
 
@@ -380,6 +417,20 @@ onMounted(fetchFactures)
               </template>
               <template v-else>
                 <CreditCard class="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </template>
+            </button>
+            <button
+              v-if="facture.statut === 'validée'"
+              @click.stop="downloadFacturX(facture)"
+              class="p-2 transition-colors rounded-lg group text-teal-600 hover:bg-teal-50"
+              title="Télécharger Factur-X (PDF/A-3 + XML)"
+              :disabled="isDownloadingFacturX === facture.id"
+            >
+              <template v-if="isDownloadingFacturX === facture.id">
+                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              </template>
+              <template v-else>
+                <FileCheck2 class="w-5 h-5 group-hover:scale-110 transition-transform" />
               </template>
             </button>
             <button

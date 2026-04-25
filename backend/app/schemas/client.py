@@ -9,6 +9,7 @@ class ClientBase(BaseModel):
     telephone: Optional[str] = None
     email: Optional[str] = None
     siret: Optional[str] = None
+    tva_intracommunautaire: Optional[str] = None
 
 class ClientCreate(ClientBase):
     pass
