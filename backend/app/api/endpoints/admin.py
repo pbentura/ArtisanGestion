@@ -19,6 +19,8 @@ from app.models.client import Client
 from app.models.rapport import Rapport
 from app.models.devis import Devis
 from app.models.ligne_devis import LigneDevis
+from app.models.facture import Facture
+from app.models.ligne_facture import LigneFacture
 from app.core.database import Base
 
 router = APIRouter()
@@ -39,6 +41,8 @@ TABLE_MODELS = {
     "rapports": Rapport,
     "devis": Devis,
     "lignes_devis": LigneDevis,
+    "factures": Facture,
+    "lignes_facture": LigneFacture,
 }
 
 

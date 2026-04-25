@@ -22,6 +22,8 @@ const TABLE_LABELS: Record<string, string> = {
   rapports: 'Rapports',
   devis: 'Devis',
   lignes_devis: 'Lignes de devis',
+  factures: 'Factures',
+  lignes_facture: 'Lignes de facture',
 }
 
 // ---------------------------------------------------------------------------
@@ -142,7 +144,11 @@ function openCreate() {
   modalMode.value = 'create'
   const data: Record<string, any> = {}
   for (const col of editableColumns.value) {
-    data[col.name] = col.default ?? ''
+    if (col.type.toUpperCase().includes('BOOL')) {
+      data[col.name] = col.default === 'true' || col.default === '1'
+    } else {
+      data[col.name] = col.default ?? ''
+    }
   }
   formData.value = data
   showModal.value = true
@@ -234,7 +240,7 @@ async function confirmDelete() {
 function getInputType(colType: string): string {
   const t = colType.toUpperCase()
   if (t.includes('INT')) return 'number'
-  if (t.includes('NUMERIC') || t.includes('DECIMAL') || t.includes('FLOAT')) return 'number'
+  if (t.includes('NUMERIC') || t.includes('DECIMAL') || t.includes('FLOAT') || t.includes('REAL')) return 'number'
   if (t.includes('DATE') && !t.includes('DATETIME') && !t.includes('TIMESTAMP')) return 'date'
   if (t.includes('DATETIME') || t.includes('TIMESTAMP')) return 'datetime-local'
   if (t.includes('BOOL')) return 'checkbox'
@@ -397,7 +403,7 @@ onMounted(async () => {
             </label>
 
             <textarea
-              v-if="col.type.toUpperCase() === 'TEXT'"
+              v-if="col.type.toUpperCase() === 'TEXT' || col.type.toUpperCase().includes('JSON')"
               :id="'field-' + col.name"
               v-model="formData[col.name]"
               class="input"
