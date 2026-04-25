@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+// import { Card, CardContent } from '@/components/ui/card'
 import { 
   ArrowRight, 
-  BarChart3, 
-  FileText, 
-  Users, 
-  Clock,
+  // BarChart3,
+  // FileText,
+  // Users,
+  // Clock,
   CheckCircle2,
-  TrendingUp
+  // TrendingUp
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -28,10 +28,16 @@ function scrollToFeatures() {
 
 <template>
   <section class="relative overflow-hidden pt-20 pb-32 lg:pt-32 lg:pb-40">
-    <!-- Background gradient -->
-    <div class="absolute inset-0 -z-10">
+    <!-- Background decoration -->
+    <div class="absolute inset-0 -z-10 overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/10 rounded-full blur-3xl" />
+      
+      <!-- Animated blobs -->
+      <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse-slow" />
+      <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/10 rounded-full blur-[120px] animate-pulse-slow" style="animation-delay: -2s" />
+      <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px] animate-float" />
+      
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
     </div>
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
@@ -39,7 +45,7 @@ function scrollToFeatures() {
         <!-- Left: Content -->
         <div class="text-center lg:text-left">
           <!-- Badge -->
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in" style="animation-delay: 0.1s">
             <span class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span class="relative inline-flex rounded-full h-2 w-2 bg-primary" />
@@ -48,34 +54,43 @@ function scrollToFeatures() {
           </div>
 
           <!-- Title -->
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6 animate-slide-up" style="animation-delay: 0.2s">
             Gérez vos
-            <span class="text-primary">devis</span>,
-            <span class="text-primary">factures</span>
+            <span class="text-primary relative inline-block">
+              devis
+              <div class="absolute -bottom-1 left-0 w-full h-1 bg-primary/20 rounded-full" />
+            </span>,
+            <span class="text-primary relative inline-block">
+              factures
+              <div class="absolute -bottom-1 left-0 w-full h-1 bg-primary/20 rounded-full" />
+            </span>
             et
-            <span class="text-primary">interventions</span>
+            <span class="text-primary relative inline-block">
+              interventions
+              <div class="absolute -bottom-1 left-0 w-full h-1 bg-primary/20 rounded-full" />
+            </span>
             en toute simplicité
           </h1>
 
           <!-- Subtitle -->
-          <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+          <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed animate-slide-up" style="animation-delay: 0.3s">
             Ventura simplifie la gestion quotidienne des artisans et PME. Gagnez du temps, organisez votre activité et suivez votre chiffre d'affaires en un seul endroit.
           </p>
 
           <!-- CTAs -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
+          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 animate-slide-up" style="animation-delay: 0.4s">
             <Button 
               size="lg" 
-              class="rounded-full px-8 py-6 text-lg font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
+              class="rounded-full px-8 py-6 text-lg font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:scale-105 active:scale-95"
               @click="navigateToAuth"
             >
               Commencer gratuitement
-              <ArrowRight class="ml-2 h-5 w-5" />
+              <ArrowRight class="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
               variant="outline" 
               size="lg" 
-              class="rounded-full px-8 py-6 text-lg font-semibold border-2"
+              class="rounded-full px-8 py-6 text-lg font-semibold border-2 hover:bg-muted transition-all hover:scale-105 active:scale-95"
               @click="scrollToFeatures"
             >
               <ArrowRight class="mr-2 h-5 w-5 rotate-90" />
@@ -84,141 +99,56 @@ function scrollToFeatures() {
           </div>
 
           <!-- Social proof -->
-          <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
+          <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground animate-fade-in" style="animation-delay: 0.5s">
             <div class="flex -space-x-2">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-background" />
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-2 border-background" />
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-background" />
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 border-2 border-background" />
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" />
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" style="transition-delay: 0.05s" />
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" style="transition-delay: 0.1s" />
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" style="transition-delay: 0.15s" />
               <div class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium border-2 border-background">
                 +500
               </div>
             </div>
             <div class="flex items-center gap-4">
-              <div class="flex items-center gap-1">
-                <CheckCircle2 class="h-4 w-4 text-success" />
+              <div class="flex items-center gap-1 group cursor-default">
+                <CheckCircle2 class="h-4 w-4 text-success group-hover:scale-125 transition-transform" />
                 <span>Essai gratuit</span>
               </div>
-              <div class="flex items-center gap-1">
-                <CheckCircle2 class="h-4 w-4 text-success" />
+              <div class="flex items-center gap-1 group cursor-default">
+                <CheckCircle2 class="h-4 w-4 text-success group-hover:scale-125 transition-transform" />
                 <span>Sans carte bancaire</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Right: Dashboard Mockup -->
-        <div class="relative">
-          <Card class="rounded-2xl shadow-2xl border border-border/50 overflow-hidden bg-card">
-            <CardContent class="p-0">
-              <!-- Mock Header -->
-              <div class="bg-gradient-to-r from-secondary to-secondary/90 px-6 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
-                  <span class="text-white font-semibold">Ventura Dashboard</span>
-                </div>
-                <div class="flex gap-2">
-                  <div class="w-3 h-3 rounded-full bg-red-400" />
-                  <div class="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div class="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-              </div>
-
-              <!-- Mock Content -->
-              <div class="p-6 space-y-6">
-                <!-- Stats Row -->
-                <div class="grid grid-cols-3 gap-4">
-                  <div class="bg-muted/50 rounded-xl p-4">
-                    <div class="flex items-center gap-2 mb-2">
-                      <BarChart3 class="h-4 w-4 text-primary" />
-                      <span class="text-xs text-muted-foreground">CA ce mois</span>
-                    </div>
-                    <div class="text-xl font-bold text-foreground">24 580 €</div>
-                    <div class="text-xs text-success">+12% vs mois dernier</div>
-                  </div>
-                  <div class="bg-muted/50 rounded-xl p-4">
-                    <div class="flex items-center gap-2 mb-2">
-                      <FileText class="h-4 w-4 text-primary" />
-                      <span class="text-xs text-muted-foreground">Devis en cours</span>
-                    </div>
-                    <div class="text-xl font-bold text-foreground">8</div>
-                    <div class="text-xs text-muted-foreground">3 en attente</div>
-                  </div>
-                  <div class="bg-muted/50 rounded-xl p-4">
-                    <div class="flex items-center gap-2 mb-2">
-                      <Users class="h-4 w-4 text-primary" />
-                      <span class="text-xs text-muted-foreground">Clients actifs</span>
-                    </div>
-                    <div class="text-xl font-bold text-foreground">42</div>
-                    <div class="text-xs text-success">+5 ce mois</div>
-                  </div>
-                </div>
-
-                <!-- Chart Mock -->
-                <div class="bg-muted/30 rounded-xl p-4">
-                  <div class="flex items-center justify-between mb-4">
-                    <span class="text-sm font-medium text-foreground">Évolution du CA</span>
-                    <div class="flex gap-2">
-                      <div class="px-2 py-1 bg-primary/10 rounded text-xs text-primary font-medium">7 jours</div>
-                      <div class="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">30 jours</div>
-                    </div>
-                  </div>
-                  <div class="flex items-end gap-2 h-24">
-                    <div class="flex-1 bg-primary/20 rounded-t" style="height: 40%" />
-                    <div class="flex-1 bg-primary/30 rounded-t" style="height: 60%" />
-                    <div class="flex-1 bg-primary/40 rounded-t" style="height: 45%" />
-                    <div class="flex-1 bg-primary/50 rounded-t" style="height: 80%" />
-                    <div class="flex-1 bg-primary/60 rounded-t" style="height: 65%" />
-                    <div class="flex-1 bg-primary/70 rounded-t" style="height: 90%" />
-                    <div class="flex-1 bg-primary rounded-t" style="height: 100%" />
-                  </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-foreground">Activité récente</span>
-                    <Clock class="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div class="space-y-2">
-                    <div class="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                      <div class="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center">
-                        <CheckCircle2 class="h-4 w-4 text-success" />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm font-medium text-foreground">Facture #2024-156 payée</div>
-                        <div class="text-xs text-muted-foreground">Client: Dupont SARL - 1 250 €</div>
-                      </div>
-                      <span class="text-xs text-muted-foreground">Il y a 2h</span>
-                    </div>
-                    <div class="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                      <div class="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
-                        <FileText class="h-4 w-4 text-warning" />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm font-medium text-foreground">Nouveau devis créé</div>
-                        <div class="text-xs text-muted-foreground">Client: Martin Electricité - 3 800 €</div>
-                      </div>
-                      <span class="text-xs text-muted-foreground">Il y a 4h</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <!-- Floating elements -->
-          <div class="absolute -top-4 -right-4 bg-card rounded-xl shadow-lg border border-border p-3 animate-pulse">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center">
-                <TrendingUp class="h-4 w-4 text-success" />
-              </div>
-              <div>
-                <div class="text-xs text-muted-foreground">CA +23%</div>
-                <div class="text-sm font-bold">Ce mois</div>
-              </div>
-            </div>
+        <!-- Right: Video Demo -->
+        <div class="relative group animate-reveal" style="animation-delay: 0.3s">
+          <!-- Background Glow -->
+          <div class="absolute -inset-4 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-3xl blur-2xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-500 animate-pulse-slow" />
+          
+          <div class="relative bg-card rounded-2xl shadow-2xl border border-border/50 overflow-hidden shadow-primary/20 hover:shadow-primary/40 transition-all duration-500 hover:scale-[1.02]">
+            <video 
+              src="/video.mov" 
+              autoplay 
+              loop 
+              muted 
+              playsinline
+              class="w-full h-auto aspect-video object-cover"
+            >
+              Votre navigateur ne supporte pas la lecture de vidéos.
+            </video>
+            
+            <!-- Video Overlay for depth -->
+            <div class="absolute inset-0 pointer-events-none ring-1 ring-inset ring-white/20 rounded-2xl" />
+            
+            <!-- Reflection effect -->
+            <div class="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           </div>
+
+          <!-- Bottom decoration -->
+          <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-float -z-10" />
+          <div class="absolute -top-6 -right-6 w-24 h-24 bg-secondary/20 rounded-full blur-2xl animate-float -z-10" style="animation-delay: -3s" />
         </div>
       </div>
     </div>

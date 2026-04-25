@@ -46,6 +46,7 @@ interface FactureForm {
   date_echeance: string
   statut: string
   est_payee: boolean
+  est_avoir: boolean
   lignes: LigneFacture[]
   id_devis?: number | null
 }
@@ -69,6 +70,7 @@ const facture = ref<FactureForm>({
   date_echeance: '',
   statut: 'brouillon',
   est_payee: false,
+  est_avoir: false,
   lignes: [],
   id_devis: null
 })
@@ -348,6 +350,7 @@ async function loadExistingFacture(id: number) {
       date_echeance: data.date_echeance || '',
       statut: data.statut || 'brouillon',
       est_payee: data.est_payee || false,
+      est_avoir: data.est_avoir || false,
       lignes: data.lignes ? data.lignes.map((l: any) => ({
         id: l.id,
         description: l.description,
@@ -399,6 +402,7 @@ async function loadDevisForConversion(devisId: number) {
       date_echeance: '',
       statut: 'brouillon',
       est_payee: false,
+      est_avoir: false,
       lignes: data.lignes ? data.lignes.map((l: any) => ({
         description: l.description,
         quantite: Number(l.quantite),
@@ -488,6 +492,7 @@ async function saveFactureToDatabase(clientId: number) {
     conditions_particulieres: facture.value.conditions_particulieres || null,
     statut: facture.value.statut,
     est_payee: facture.value.est_payee,
+    est_avoir: facture.value.est_avoir,
     id_devis: facture.value.id_devis || null,
     lignes: facture.value.lignes.map(l => ({
       description: l.description,
@@ -794,7 +799,7 @@ async function saveAndGeneratePDF() {
         </div>
       </div>
 
-      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? (isLocked ? 'Facture (lecture seule)' : 'Modifier la Facture') : fromDevisId ? 'Facturer le Devis' : 'Nouvelle Facture' }}</h1>
+      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? (isLocked ? (facture.est_avoir ? 'Avoir (lecture seule)' : 'Facture (lecture seule)') : (facture.est_avoir ? 'Modifier l\\'Avoir' : 'Modifier la Facture')) : fromDevisId ? 'Facturer le Devis' : (facture.est_avoir ? 'Nouvel Avoir' : 'Nouvelle Facture') }}</h1>
 
       <!-- Locked banner -->
       <div v-if="isLocked" class="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl mb-4">

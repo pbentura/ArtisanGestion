@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2 } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '@/lib/api'
 
@@ -18,6 +18,7 @@ interface Facture {
   client?: Client
   statut: string
   est_payee: boolean
+  est_avoir: boolean
   total_ttc: number
   id_devis?: number
   created_at: string
@@ -33,6 +34,7 @@ const isUpdatingStatus = ref<number | null>(null)
 const showValidateConfirm = ref(false)
 const factureToValidate = ref<Facture | null>(null)
 const isUpdatingPayment = ref<number | null>(null)
+const isCreatingAvoir = ref<number | null>(null)
 
 const searchQuery = ref('')
 
@@ -190,6 +192,38 @@ async function togglePayment(facture: Facture) {
   }
 }
 
+async function creerAvoir(facture: Facture) {
+  if (isCreatingAvoir.value !== null) return
+  
+  if (!confirm(`Voulez-vous vraiment créer un avoir pour la facture ${facture.numero_facture} ?`)) return
+  
+  isCreatingAvoir.value = facture.id
+  
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}/avoir`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    })
+    
+    if (res.ok) {
+      const nouvelAvoir = await res.json()
+      // Rediriger vers l'édition de ce nouvel avoir
+      router.push(`/app/factures/${nouvelAvoir.id}`)
+    } else {
+      const errorData = await res.json()
+      alert(`Erreur : ${errorData.detail || 'Impossible de créer un avoir'}`)
+    }
+  } catch (e) {
+    console.error('Erreur réseau lors de la création de l\\'avoir', e)
+    alert('Erreur réseau lors de la création de l\\'avoir')
+  } finally {
+    isCreatingAvoir.value = null
+  }
+}
+
 function isOverdue(facture: Facture): boolean {
   if (facture.est_payee || !facture.date_echeance) return false
   return new Date(facture.date_echeance) < new Date()
@@ -271,6 +305,12 @@ onMounted(fetchFactures)
                 {{ facture.statut }}
               </span>
               <span 
+                v-if="facture.est_avoir"
+                class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-purple-100 text-purple-700 font-bold border border-purple-200"
+              >
+                Avoir
+              </span>
+              <span 
                 :class="[
                   'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap',
                   facture.est_payee 
@@ -296,6 +336,20 @@ onMounted(fetchFactures)
             </div>
           </div>
           <div class="flex items-center gap-2 sm:ml-4">
+            <button
+              v-if="facture.statut === 'validée' && !facture.est_avoir"
+              @click.stop="creerAvoir(facture)"
+              class="p-2 transition-colors rounded-lg group text-purple-600 hover:bg-purple-50"
+              title="Créer un avoir"
+              :disabled="isCreatingAvoir === facture.id"
+            >
+              <template v-if="isCreatingAvoir === facture.id">
+                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              </template>
+              <template v-else>
+                <Undo2 class="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </template>
+            </button>
             <button
               v-if="facture.statut === 'brouillon'"
               @click.stop="requestValidation(facture)"

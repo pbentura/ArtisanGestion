@@ -160,6 +160,76 @@ async def create_facture_from_devis(
     return db_facture_loaded
 
 
+@router.post("/{facture_id}/avoir", response_model=FactureSchema)
+async def create_avoir_from_facture(
+    facture_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Crée un avoir à partir d'une facture existante.
+    Copie la facture et ses lignes, marque comme avoir et met le titre AVOIR.
+    """
+    result = await db.execute(
+        select(Facture)
+        .options(joinedload(Facture.client), joinedload(Facture.lignes))
+        .where(Facture.id == facture_id, Facture.id_user == current_user.id)
+    )
+    db_facture_source = result.unique().scalars().first()
+    
+    if not db_facture_source:
+        raise HTTPException(status_code=404, detail="Facture non trouvée")
+        
+    if db_facture_source.statut != "validée":
+        raise HTTPException(status_code=400, detail="Un avoir ne peut être créé qu'à partir d'une facture validée")
+        
+    if getattr(db_facture_source, 'est_avoir', False):
+        raise HTTPException(status_code=400, detail="Impossible de créer un avoir depuis un avoir")
+
+    now = date.today()
+    numero_avoir = f"AVO-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}"
+
+    db_avoir = Facture(
+        date_facture=now,
+        numero_facture=numero_avoir,
+        titre_document_pdf="AVOIR",
+        objet_facture=db_facture_source.objet_facture,
+        sous_total_ht=db_facture_source.sous_total_ht,
+        total_tva=db_facture_source.total_tva,
+        total_ttc=db_facture_source.total_ttc,
+        nb_jours_echeance=0,
+        date_echeance=now,
+        statut="brouillon",
+        est_payee=False,
+        est_avoir=True,
+        id_facture_source=db_facture_source.id,
+        conditions_particulieres=db_facture_source.conditions_particulieres,
+        id_client=db_facture_source.id_client,
+        id_user=current_user.id,
+    )
+
+    for ligne in db_facture_source.lignes:
+        db_ligne = LigneFacture(
+            description=ligne.description,
+            quantite=ligne.quantite,
+            prix_unite_ht=ligne.prix_unite_ht,
+            taux_tva=ligne.taux_tva,
+            total_ht=ligne.total_ht,
+        )
+        db_avoir.lignes.append(db_ligne)
+
+    db.add(db_avoir)
+    await db.commit()
+
+    result = await db.execute(
+        select(Facture)
+        .options(joinedload(Facture.client), joinedload(Facture.lignes))
+        .where(Facture.id == db_avoir.id)
+    )
+    db_avoir_loaded = result.unique().scalars().first()
+    return db_avoir_loaded
+
+
 @router.get("/{facture_id}", response_model=FactureSchema)
 async def read_une_facture(
     facture_id: int,

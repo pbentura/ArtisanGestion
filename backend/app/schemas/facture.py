@@ -20,6 +20,8 @@ class FactureBase(BaseModel):
     conditions_particulieres: Optional[str] = None
     statut: str = "brouillon"
     est_payee: bool = False
+    est_avoir: bool = False
+    id_facture_source: Optional[int] = None
 
 
 class FactureCreate(FactureBase):
@@ -51,6 +53,8 @@ class FactureUpdate(BaseModel):
     conditions_particulieres: Optional[str] = None
     statut: Optional[str] = None
     est_payee: Optional[bool] = None
+    est_avoir: Optional[bool] = None
+    id_facture_source: Optional[int] = None
 
 
 class Facture(FactureBase):
