@@ -846,14 +846,23 @@ async function downloadFacturX() {
         </div>
       </div>
 
-      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? (isLocked ? (facture.est_avoir ? 'Avoir (lecture seule)' : 'Facture (lecture seule)') : (facture.est_avoir ? `Modifier l'Avoir` : 'Modifier la Facture')) : fromDevisId ? 'Facturer le Devis' : (facture.est_avoir ? 'Nouvel Avoir' : 'Nouvelle Facture') }}</h1>
+      <h1 class="text-2xl font-bold text-foreground mb-4">
+        <template v-if="isEditMode">
+          <template v-if="isLocked">{{ facture.est_avoir ? 'Avoir' : 'Facture' }} <span class="text-muted-foreground font-normal text-lg">(lecture seule)</span></template>
+          <template v-else>{{ facture.est_avoir ? "Modifier l'Avoir" : 'Modifier la Facture' }}</template>
+        </template>
+        <template v-else>
+          <template v-if="fromDevisId">Facturer le Devis</template>
+          <template v-else>{{ facture.est_avoir ? 'Nouvel Avoir' : 'Nouvelle Facture' }}</template>
+        </template>
+      </h1>
 
       <!-- Locked banner -->
       <div v-if="isLocked" class="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl mb-4">
         <Lock class="w-5 h-5 flex-shrink-0" />
         <div>
           <p class="text-sm font-semibold">Facture validée — modification impossible</p>
-          <p class="text-xs text-amber-600">Cette facture a été validée et ne peut plus être modifiée. Seul le PDF peut être généré.</p>
+          <p class="text-xs text-amber-600">Cette facture est verrouillée. Vous pouvez générer le PDF ou télécharger le Factur-X.</p>
         </div>
       </div>
 
@@ -897,7 +906,7 @@ async function downloadFacturX() {
                       'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                       facture.statut === 'validée' 
                         ? 'bg-green-600 text-white shadow-sm' 
-                        : 'text-muted-foreground hover:text-foreground',
+                        : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
                       isLocked ? 'opacity-50 cursor-not-allowed' : ''
                     ]"
                   >

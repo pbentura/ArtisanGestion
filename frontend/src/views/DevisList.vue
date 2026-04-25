@@ -28,15 +28,27 @@ const isDeleting = ref(false)
 const isUpdatingStatus = ref<number | null>(null)
 
 const searchQuery = ref('')
+const statusFilter = ref('tous') // tous, brouillon, envoyé
 
 const filteredDevis = computed(() => {
+  let result = devisList.value
+
+  // Filtrage par texte
   const query = searchQuery.value.toLowerCase().trim()
-  if (!query) return devisList.value
-  return devisList.value.filter(d => 
-    (d.titre_document_pdf?.toLowerCase() || '').includes(query) ||
-    (d.numero_devis?.toLowerCase() || '').includes(query) ||
-    (d.client?.nom?.toLowerCase() || '').includes(query)
-  )
+  if (query) {
+    result = result.filter(d => 
+      (d.titre_document_pdf?.toLowerCase() || '').includes(query) ||
+      (d.numero_devis?.toLowerCase() || '').includes(query) ||
+      (d.client?.nom?.toLowerCase() || '').includes(query)
+    )
+  }
+
+  // Filtrage par statut
+  if (statusFilter.value !== 'tous') {
+    result = result.filter(d => d.statut === statusFilter.value)
+  }
+
+  return result
 })
 
 function openDeleteModal(id: number) {
@@ -181,14 +193,35 @@ onMounted(fetchDevis)
 
     <!-- Devis List -->
     <div v-else-if="devisList.length > 0" class="grid gap-4">
-      <div class="relative">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Rechercher un devis par titre, numéro ou client..."
-          class="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-        />
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="relative flex-1">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Rechercher un devis par titre, numéro ou client..."
+            class="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+          />
+        </div>
+        
+        <div class="flex items-center gap-3">
+          <select 
+            v-model="statusFilter"
+            class="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="tous">Tous les statuts</option>
+            <option value="brouillon">Brouillon</option>
+            <option value="envoyé">Envoyé</option>
+          </select>
+
+          <button 
+            v-if="searchQuery || statusFilter !== 'tous'"
+            @click="searchQuery = ''; statusFilter = 'tous'"
+            class="text-xs font-medium text-primary hover:underline"
+          >
+            Réinitialiser
+          </button>
+        </div>
       </div>
       <div
         v-for="devis in filteredDevis"
@@ -219,46 +252,53 @@ onMounted(fetchDevis)
               <span>{{ devis.client?.nom || 'Client inconnu' }}</span>
             </div>
           </div>
-          <div class="flex items-center gap-2 sm:ml-4">
+          <div class="flex flex-wrap items-center gap-2 sm:ml-4">
             <button
               @click.stop="toggleStatus(devis)"
-              class="p-2 transition-colors rounded-lg group"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group border border-transparent"
               :class="[
                 devis.statut === 'envoyé' 
-                  ? 'text-green-600 hover:bg-green-50' 
-                  : 'text-blue-600 hover:bg-blue-50'
+                  ? 'text-green-600 hover:bg-green-50 hover:border-green-200' 
+                  : 'text-blue-600 hover:bg-blue-50 hover:border-blue-200'
               ]"
               :title="devis.statut === 'envoyé' ? 'Marquer comme brouillon' : 'Marquer comme envoyé'"
               :disabled="isUpdatingStatus === devis.id"
             >
               <template v-if="isUpdatingStatus === devis.id">
-                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <span class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </template>
               <template v-else>
-                <CheckCircle2 v-if="devis.statut === 'brouillon'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
-                <Clock v-else class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <CheckCircle2 v-if="devis.statut === 'brouillon'" class="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <Clock v-else class="w-4 h-4 group-hover:scale-110 transition-transform" />
               </template>
+              <span class="text-xs font-semibold">{{ devis.statut === 'envoyé' ? 'Envoyé' : 'Envoyer' }}</span>
             </button>
+
             <button
               @click.stop="router.push(`/app/factures/new?fromDevis=${devis.id}`)"
-              class="p-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200"
               title="Facturer ce devis"
             >
-              <Receipt class="w-5 h-5" />
+              <Receipt class="w-4 h-4" />
+              <span class="text-xs font-semibold">Facturer</span>
             </button>
+
             <button
               @click.stop="router.push(`/app/devis/${devis.id}/pdf`)"
-              class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20"
               title="Télécharger PDF"
             >
-              <Download class="w-5 h-5" />
+              <Download class="w-4 h-4" />
+              <span class="text-xs font-semibold">PDF</span>
             </button>
+
             <button
               @click.stop="openDeleteModal(devis.id)"
-              class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors border border-transparent hover:border-destructive/20"
               title="Supprimer"
             >
-              <Trash2 class="w-5 h-5" />
+              <Trash2 class="w-4 h-4" />
+              <span class="text-xs font-semibold">Suppr.</span>
             </button>
           </div>
         </div>
@@ -271,9 +311,9 @@ onMounted(fetchDevis)
         <Search class="w-8 h-8 text-muted-foreground" />
       </div>
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucun résultat</h3>
-      <p class="text-muted-foreground mb-6">Aucun devis ne correspond à votre recherche.</p>
+      <p class="text-muted-foreground mb-6">Aucun devis ne correspond à vos filtres actuels.</p>
       <button
-        @click="searchQuery = ''"
+        @click="searchQuery = ''; statusFilter = 'tous'"
         class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
       >
         Effacer la recherche

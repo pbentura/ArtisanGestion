@@ -38,15 +38,47 @@ const isCreatingAvoir = ref<number | null>(null)
 const isDownloadingFacturX = ref<number | null>(null)
 
 const searchQuery = ref('')
+const statusFilter = ref('tous') // tous, brouillon, validée
+const paymentFilter = ref('tous') // tous, payee, impayee, retard
+const typeFilter = ref('tous') // tous, facture, avoir
 
 const filteredFactures = computed(() => {
+  let result = facturesList.value
+
+  // Filtrage par texte
   const query = searchQuery.value.toLowerCase().trim()
-  if (!query) return facturesList.value
-  return facturesList.value.filter(f => 
-    (f.titre_document_pdf?.toLowerCase() || '').includes(query) ||
-    (f.numero_facture?.toLowerCase() || '').includes(query) ||
-    (f.client?.nom?.toLowerCase() || '').includes(query)
-  )
+  if (query) {
+    result = result.filter(f => 
+      (f.titre_document_pdf?.toLowerCase() || '').includes(query) ||
+      (f.numero_facture?.toLowerCase() || '').includes(query) ||
+      (f.client?.nom?.toLowerCase() || '').includes(query)
+    )
+  }
+
+  // Filtrage par statut
+  if (statusFilter.value !== 'tous') {
+    result = result.filter(f => f.statut === statusFilter.value)
+  }
+
+  // Filtrage par type
+  if (typeFilter.value === 'facture') {
+    result = result.filter(f => !f.est_avoir)
+  } else if (typeFilter.value === 'avoir') {
+    result = result.filter(f => f.est_avoir)
+  }
+
+  // Filtrage par paiement
+  if (paymentFilter.value !== 'tous') {
+    if (paymentFilter.value === 'payee') {
+      result = result.filter(f => f.est_payee)
+    } else if (paymentFilter.value === 'impayee') {
+      result = result.filter(f => !f.est_payee)
+    } else if (paymentFilter.value === 'retard') {
+      result = result.filter(f => isOverdue(f) && !f.est_payee)
+    }
+  }
+
+  return result
 })
 
 function openDeleteModal(id: number) {
@@ -273,7 +305,10 @@ onMounted(fetchFactures)
   <div class="max-w-6xl mx-auto">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
       <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Factures</h1>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Factures</h1>
+          <span v-if="!loading && facturesList.length > 0" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">{{ facturesList.length }}</span>
+        </div>
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos factures et créez-en de nouvelles</p>
       </div>
       <button
@@ -312,19 +347,74 @@ onMounted(fetchFactures)
 
     <!-- Factures List -->
     <div v-else-if="facturesList.length > 0" class="grid gap-4">
-      <div class="relative">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Rechercher une facture par titre, numéro ou client..."
-          class="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-        />
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="relative flex-1">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Rechercher une facture par titre, numéro ou client..."
+            class="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+          />
+        </div>
+        
+        <div class="flex flex-wrap items-center gap-3">
+          <select 
+            v-model="statusFilter"
+            class="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="tous">Tous les statuts</option>
+            <option value="brouillon">Brouillon</option>
+            <option value="validée">Validée</option>
+          </select>
+
+          <select 
+            v-model="paymentFilter"
+            class="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="tous">Tous les paiements</option>
+            <option value="payee">Payées</option>
+            <option value="impayee">Non payées</option>
+            <option value="retard">En retard</option>
+          </select>
+
+          <select 
+            v-model="typeFilter"
+            class="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="tous">Tous les types</option>
+            <option value="facture">Factures</option>
+            <option value="avoir">Avoirs</option>
+          </select>
+
+          <button 
+            v-if="searchQuery || statusFilter !== 'tous' || paymentFilter !== 'tous' || typeFilter !== 'tous'"
+            @click="searchQuery = ''; statusFilter = 'tous'; paymentFilter = 'tous'; typeFilter = 'tous'"
+            class="text-xs font-medium text-primary hover:underline"
+          >
+            Réinitialiser
+          </button>
+        </div>
       </div>
+      <!-- No results -->
+      <div v-if="filteredFactures.length === 0 && searchQuery" class="bg-card border border-border rounded-xl p-12 text-center">
+        <div class="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+          <Search class="w-8 h-8 text-muted-foreground" />
+        </div>
+        <h3 class="text-lg font-semibold text-foreground mb-2">Aucun résultat</h3>
+        <p class="text-muted-foreground mb-6">Aucune facture ne correspond à vos filtres actuels.</p>
+        <button
+          @click="searchQuery = ''; statusFilter = 'tous'; paymentFilter = 'tous'; typeFilter = 'tous'"
+          class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+        >
+          Effacer la recherche
+        </button>
+      </div>
+
       <div
         v-for="facture in filteredFactures"
         :key="facture.id"
-        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer"
+        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-all cursor-pointer"
         @click="router.push(`/app/factures/${facture.id}`)"
       >
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -333,28 +423,29 @@ onMounted(fetchFactures)
               <h3 class="text-base sm:text-lg font-semibold text-foreground truncate">{{ facture.titre_document_pdf || "Facture" }} - {{ facture.numero_facture }}</h3>
               <span 
                 :class="[
-                  'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap',
+                  'px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap',
                   facture.statut === 'validée' 
-                    ? 'bg-green-100 text-green-700 font-bold border border-green-200' 
-                    : 'bg-blue-100 text-blue-700 font-bold border border-blue-200'
+                    ? 'bg-green-100 text-green-700 border border-green-200' 
+                    : 'bg-blue-100 text-blue-700 border border-blue-200'
                 ]"
               >
-                {{ facture.statut }}
+                {{ facture.statut === 'validée' ? 'Validée' : 'Brouillon' }}
               </span>
               <span 
                 v-if="facture.est_avoir"
-                class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-purple-100 text-purple-700 font-bold border border-purple-200"
+                class="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-purple-100 text-purple-700 border border-purple-200"
               >
                 Avoir
               </span>
               <span 
+                v-if="facture.statut === 'validée'"
                 :class="[
-                  'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap',
+                  'px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap',
                   facture.est_payee 
-                    ? 'bg-emerald-100 text-emerald-700 font-bold border border-emerald-200' 
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
                     : isOverdue(facture)
-                      ? 'bg-red-100 text-red-700 font-bold border border-red-200'
-                      : 'bg-amber-100 text-amber-700 font-bold border border-amber-200'
+                      ? 'bg-red-100 text-red-700 border border-red-200'
+                      : 'bg-amber-100 text-amber-700 border border-amber-200'
                 ]"
               >
                 {{ facture.est_payee ? 'Payée' : isOverdue(facture) ? 'En retard' : 'Non payée' }}
@@ -372,101 +463,106 @@ onMounted(fetchFactures)
               </span>
             </div>
           </div>
-          <div class="flex items-center gap-2 sm:ml-4">
-            <button
-              v-if="facture.statut === 'validée' && !facture.est_avoir"
-              @click.stop="creerAvoir(facture)"
-              class="p-2 transition-colors rounded-lg group text-purple-600 hover:bg-purple-50"
-              title="Créer un avoir"
-              :disabled="isCreatingAvoir === facture.id"
-            >
-              <template v-if="isCreatingAvoir === facture.id">
-                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-              </template>
-              <template v-else>
-                <Undo2 class="w-5 h-5 group-hover:scale-110 transition-transform" />
-              </template>
-            </button>
+          <div class="flex flex-wrap items-center gap-2 sm:ml-4">
+            <!-- Actions principales -->
             <button
               v-if="facture.statut === 'brouillon'"
               @click.stop="requestValidation(facture)"
-              class="p-2 transition-colors rounded-lg group text-blue-600 hover:bg-blue-50"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200"
               title="Valider cette facture"
               :disabled="isUpdatingStatus === facture.id"
             >
               <template v-if="isUpdatingStatus === facture.id">
-                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <span class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </template>
               <template v-else>
-                <CheckCircle2 class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <CheckCircle2 class="w-4 h-4 group-hover:scale-110 transition-transform" />
               </template>
+              <span class="text-xs font-semibold">Valider</span>
             </button>
+
             <button
+              v-if="facture.statut === 'validée'"
               @click.stop="togglePayment(facture)"
-              class="p-2 transition-colors rounded-lg group"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group border border-transparent"
               :class="[
                 facture.est_payee 
-                  ? 'text-emerald-600 hover:bg-emerald-50' 
-                  : 'text-amber-600 hover:bg-amber-50'
+                  ? 'text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200' 
+                  : 'text-amber-600 hover:bg-amber-50 hover:border-amber-200'
               ]"
               :title="facture.est_payee ? 'Marquer comme non payée' : 'Marquer comme payée'"
               :disabled="isUpdatingPayment === facture.id"
             >
               <template v-if="isUpdatingPayment === facture.id">
-                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <span class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </template>
               <template v-else>
-                <CreditCard class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <CreditCard class="w-4 h-4 group-hover:scale-110 transition-transform" />
               </template>
+              <span class="text-xs font-semibold">{{ facture.est_payee ? 'Payée' : 'Payer' }}</span>
             </button>
+
+            <button
+              v-if="facture.statut === 'validée' && !facture.est_avoir"
+              @click.stop="creerAvoir(facture)"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group text-purple-600 hover:bg-purple-50 border border-transparent hover:border-purple-200"
+              title="Créer un avoir"
+              :disabled="isCreatingAvoir === facture.id"
+            >
+              <template v-if="isCreatingAvoir === facture.id">
+                <span class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              </template>
+              <template v-else>
+                <Undo2 class="w-4 h-4 group-hover:scale-110 transition-transform" />
+              </template>
+              <span class="text-xs font-semibold">Avoir</span>
+            </button>
+
+            <!-- Séparateur -->
+            <div class="w-px h-5 bg-border mx-1 hidden lg:block"></div>
+
+            <!-- Téléchargements -->
             <button
               v-if="facture.statut === 'validée'"
               @click.stop="downloadFacturX(facture)"
-              class="p-2 transition-colors rounded-lg group text-teal-600 hover:bg-teal-50"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group text-teal-600 hover:bg-teal-50 border border-transparent hover:border-teal-200"
               title="Télécharger Factur-X (PDF/A-3 + XML)"
               :disabled="isDownloadingFacturX === facture.id"
             >
               <template v-if="isDownloadingFacturX === facture.id">
-                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <span class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </template>
               <template v-else>
-                <FileCheck2 class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <FileCheck2 class="w-4 h-4 group-hover:scale-110 transition-transform" />
               </template>
+              <span class="text-xs font-semibold">Factur-X</span>
             </button>
+
             <button
               @click.stop="router.push(`/app/factures/${facture.id}/pdf`)"
-              class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-              title="Télécharger PDF"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20"
+              title="Aperçu PDF"
             >
-              <Download class="w-5 h-5" />
+              <Download class="w-4 h-4" />
+              <span class="text-xs font-semibold">PDF</span>
             </button>
+
+            <!-- Suppression (brouillons uniquement) -->
             <button
               v-if="facture.statut !== 'validée'"
               @click.stop="openDeleteModal(facture.id)"
-              class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors border border-transparent hover:border-destructive/20"
               title="Supprimer"
             >
-              <Trash2 class="w-5 h-5" />
+              <Trash2 class="w-4 h-4" />
+              <span class="text-xs font-semibold">Suppr.</span>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Search Empty State -->
-    <div v-else-if="searchQuery" class="bg-card border border-border rounded-xl p-12 text-center">
-      <div class="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-        <Search class="w-8 h-8 text-muted-foreground" />
-      </div>
-      <h3 class="text-lg font-semibold text-foreground mb-2">Aucun résultat</h3>
-      <p class="text-muted-foreground mb-6">Aucune facture ne correspond à votre recherche.</p>
-      <button
-        @click="searchQuery = ''"
-        class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
-      >
-        Effacer la recherche
-      </button>
-    </div>
+    <!-- Search Empty State (inside the list block) -->
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">

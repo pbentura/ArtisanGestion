@@ -378,39 +378,44 @@ onMounted(fetchRapports)
               <span>{{ rapport.client?.nom || 'Client inconnu' }}</span>
             </div>
           </div>
-          <div class="flex items-center gap-2 sm:ml-4">
+          <div class="flex flex-wrap items-center gap-2 sm:ml-4">
             <button
               @click.stop="toggleStatus(rapport)"
-              class="p-2 transition-colors rounded-lg group"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group border border-transparent"
               :class="[
                 rapport.statut === 'terminée' 
-                  ? 'text-green-600 hover:bg-green-50' 
-                  : 'text-blue-600 hover:bg-blue-50'
+                  ? 'text-green-600 hover:bg-green-50 hover:border-green-200' 
+                  : 'text-blue-600 hover:bg-blue-50 hover:border-blue-200'
               ]"
               :title="rapport.statut === 'terminée' ? 'Marquer comme en cours' : 'Marquer comme terminée'"
               :disabled="isUpdatingStatus === rapport.id"
             >
               <template v-if="isUpdatingStatus === rapport.id">
-                <span class="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <span class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </template>
               <template v-else>
-                <CheckCircle2 v-if="rapport.statut === 'en cours'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
-                <Clock v-else class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <CheckCircle2 v-if="rapport.statut === 'en cours'" class="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <Clock v-else class="w-4 h-4 group-hover:scale-110 transition-transform" />
               </template>
+              <span class="text-xs font-semibold">{{ rapport.statut === 'terminée' ? 'Terminé' : 'Terminer' }}</span>
             </button>
+
             <button
               @click.stop="generateFullPDF(rapport)"
-              class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20"
               title="Télécharger PDF"
             >
-              <Download class="w-5 h-5" />
+              <Download class="w-4 h-4" />
+              <span class="text-xs font-semibold">PDF</span>
             </button>
+
             <button
               @click.stop="openDeleteModal(rapport.id)"
-              class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors border border-transparent hover:border-destructive/20"
               title="Supprimer"
             >
-              <Trash2 class="w-5 h-5" />
+              <Trash2 class="w-4 h-4" />
+              <span class="text-xs font-semibold">Suppr.</span>
             </button>
           </div>
         </div>
