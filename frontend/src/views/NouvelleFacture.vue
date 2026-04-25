@@ -799,7 +799,7 @@ async function saveAndGeneratePDF() {
         </div>
       </div>
 
-      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? (isLocked ? (facture.est_avoir ? 'Avoir (lecture seule)' : 'Facture (lecture seule)') : (facture.est_avoir ? 'Modifier l\\'Avoir' : 'Modifier la Facture')) : fromDevisId ? 'Facturer le Devis' : (facture.est_avoir ? 'Nouvel Avoir' : 'Nouvelle Facture') }}</h1>
+      <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? (isLocked ? (facture.est_avoir ? 'Avoir (lecture seule)' : 'Facture (lecture seule)') : (facture.est_avoir ? `Modifier l'Avoir` : 'Modifier la Facture')) : fromDevisId ? 'Facturer le Devis' : (facture.est_avoir ? 'Nouvel Avoir' : 'Nouvelle Facture') }}</h1>
 
       <!-- Locked banner -->
       <div v-if="isLocked" class="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl mb-4">

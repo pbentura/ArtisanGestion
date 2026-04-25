@@ -217,8 +217,8 @@ async function creerAvoir(facture: Facture) {
       alert(`Erreur : ${errorData.detail || 'Impossible de créer un avoir'}`)
     }
   } catch (e) {
-    console.error('Erreur réseau lors de la création de l\\'avoir', e)
-    alert('Erreur réseau lors de la création de l\\'avoir')
+    console.error("Erreur réseau lors de la création de l'avoir", e)
+    alert("Erreur réseau lors de la création de l'avoir")
   } finally {
     isCreatingAvoir.value = null
   }
