@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -111,9 +111,57 @@ function goBack() {
   router.push('/')
 }
 
+let authMessageListener: ((event: MessageEvent) => void) | null = null
+
 function handleGoogleAuth() {
-  window.location.href = `${API_BASE_URL}/api/auth/google/login`
+  const width = 500
+  const height = 600
+  const left = window.screenX + (window.outerWidth - width) / 2
+  const top = window.screenY + (window.outerHeight - height) / 2
+  
+  // Supprimer l'ancien écouteur si présent
+  if (authMessageListener) {
+    window.removeEventListener('message', authMessageListener)
+  }
+
+  const popup = window.open(
+    `${API_BASE_URL}/api/auth/google/login`,
+    'google-login',
+    `width=${width},height=${height},top=${top},left=${left},status=no,menubar=no,toolbar=no`
+  )
+
+  if (!popup) {
+    // Si la popup est bloquée, on se rabat sur la redirection classique
+    window.location.href = `${API_BASE_URL}/api/auth/google/login`
+    return
+  }
+
+  authMessageListener = (event: MessageEvent) => {
+    // Vérifier l'origine du message par sécurité
+    // On accepte les messages provenant de la même origine ou de l'URL API
+    const apiOrigin = new URL(API_BASE_URL).origin
+    if (event.origin !== window.location.origin && event.origin !== apiOrigin) return
+
+    if (event.data?.type === 'google-auth-success') {
+      const token = event.data.token
+      localStorage.setItem('token', token)
+      router.push('/app')
+      
+      if (authMessageListener) {
+        window.removeEventListener('message', authMessageListener)
+        authMessageListener = null
+      }
+    }
+  }
+
+  window.addEventListener('message', authMessageListener)
 }
+
+onUnmounted(() => {
+  if (authMessageListener) {
+    window.removeEventListener('message', authMessageListener)
+  }
+})
 </script>
 
 <template>

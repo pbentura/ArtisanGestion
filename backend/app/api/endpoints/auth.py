@@ -14,7 +14,7 @@ from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserRead
 from authlib.integrations.starlette_client import OAuth
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, HTMLResponse
 
 router = APIRouter()
 
@@ -82,7 +82,69 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     if "localhost" in str(request.base_url):
         frontend_url = "http://localhost:5173"
         
-    return RedirectResponse(url=f"{frontend_url}/dashboard?token={access_token}")
+    # Retourner une page HTML qui communique avec la fenêtre parente (popup)
+    # ou redirige si ouvert directement
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Authentification réussie | Ventura</title>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                background-color: #ffffff;
+                color: #111827;
+            }}
+            .loader {{
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #3b82f6;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                animation: spin 1s linear infinite;
+                margin-bottom: 16px;
+            }}
+            @keyframes spin {{
+                0% {{ transform: rotate(0deg); }}
+                100% {{ transform: rotate(360deg); }}
+            }}
+            .text {{ font-size: 1rem; font-weight: 500; color: #4b5563; }}
+        </style>
+    </head>
+    <body>
+        <div class="loader"></div>
+        <div class="text">Connexion réussie, redirection...</div>
+        <script>
+            const token = "{access_token}";
+            const frontendUrl = "{frontend_url}";
+            
+            try {{
+                // Si ouvert dans une popup, on envoie le token à la fenêtre parente
+                if (window.opener && window.opener !== window) {{
+                    window.opener.postMessage({{ type: 'google-auth-success', token: token }}, frontendUrl);
+                    // On laisse un petit délai pour être sûr que le message est envoyé avant de fermer
+                    setTimeout(() => window.close(), 200);
+                }} else {{
+                    // Sinon (redirection classique), on redirige directement
+                    window.location.href = frontendUrl + "/dashboard?token=" + token;
+                }}
+            }} catch (e) {{
+                console.error("Erreur lors de la finalisation de l'auth:", e);
+                window.location.href = frontendUrl + "/dashboard?token=" + token;
+            }}
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> Any:
