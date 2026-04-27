@@ -30,10 +30,12 @@ oauth.register(
 )
 
 @router.get("/google/login")
-async def google_login(request: Request):
+async def google_login(request: Request, platform: str = "web"):
     """
     Initie le flux de connexion Google.
     """
+    # Stocker la plateforme dans la session pour s'en souvenir lors du callback
+    request.session['auth_platform'] = platform
     return await oauth.google.authorize_redirect(request, settings.GOOGLE_REDIRECT_URI)
 
 @router.get("/google/callback")
@@ -81,6 +83,14 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     frontend_url = "https://ventura-e277f.web.app"
     if "localhost" in str(request.base_url):
         frontend_url = "http://localhost:5173"
+        
+    # Récupérer la plateforme depuis la session
+    platform = request.session.pop('auth_platform', 'web')
+    
+    # Si on est sur mobile, on redirige vers le schéma d'URL personnalisé de l'app
+    if platform == 'mobile':
+        # On utilise le schéma d'URL de l'application Capacitor
+        return RedirectResponse(url=f"com.pinhasbentura.ventura://auth?token={access_token}")
         
     # Retourner une page HTML qui communique avec la fenêtre parente (popup)
     # ou redirige si ouvert directement

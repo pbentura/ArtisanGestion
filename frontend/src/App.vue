@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { App as CapApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
 import { Menu, X } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
@@ -15,6 +17,29 @@ function navigateToAuth() {
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
 }
+
+onMounted(() => {
+  // Écouter les liens personnalisés (ex: com.pinhasbentura.ventura://auth?token=...)
+  CapApp.addListener('appUrlOpen', data => {
+    console.log('App opened with URL:', data.url)
+    try {
+      const url = new URL(data.url)
+      // On accepte à la fois le format ventura://auth et com.pinhasbentura.ventura://auth
+      if (url.host === 'auth') {
+        const token = url.searchParams.get('token')
+        if (token) {
+          localStorage.setItem('token', token)
+          // Fermer le navigateur In-App s'il est ouvert
+          Browser.close()
+          // Rediriger vers l'application
+          router.push('/app')
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du traitement de l\'URL:', e)
+    }
+  })
+})
 </script>
 
 <template>
