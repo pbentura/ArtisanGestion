@@ -283,7 +283,7 @@ onMounted(fetchRapports)
 
 <template>
   <div class="max-w-6xl mx-auto">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Rapports d'intervention</h1>
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos rapports d'intervention et créez-en de nouveaux</p>

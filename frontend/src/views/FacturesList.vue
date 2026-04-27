@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2 } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical } from 'lucide-vue-next'
+import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
+import MobileFAB from '@/components/mobile/MobileFAB.vue'
+import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 
 import { apiFetch } from '@/lib/api'
 
@@ -41,6 +44,28 @@ const searchQuery = ref('')
 const statusFilter = ref('tous') // tous, brouillon, validée
 const paymentFilter = ref('tous') // tous, payee, impayee, retard
 const typeFilter = ref('tous') // tous, facture, avoir
+
+const activeTab = ref('factures')
+const isBottomSheetOpen = ref(false)
+const selectedFacture = ref<Facture | null>(null)
+
+function openBottomSheet(facture: Facture) {
+  selectedFacture.value = facture
+  isBottomSheetOpen.value = true
+}
+
+function closeBottomSheet() {
+  isBottomSheetOpen.value = false
+  setTimeout(() => {
+    selectedFacture.value = null
+  }, 300)
+}
+
+function handleTabChange(val: string) {
+  if (val === 'devis') {
+    router.push('/app/devis')
+  }
+}
 
 const filteredFactures = computed(() => {
   let result = facturesList.value
@@ -282,7 +307,19 @@ onMounted(fetchFactures)
 
 <template>
   <div class="max-w-6xl mx-auto">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <!-- Mobile Segmented Control for Facturation -->
+    <div class="mobile-component lg:hidden mb-6">
+      <MobileSegmentedControl 
+        v-model="activeTab"
+        :options="[
+          { label: 'Devis', value: 'devis' },
+          { label: 'Factures', value: 'factures' }
+        ]"
+        @update:modelValue="handleTabChange"
+      />
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex">
       <div>
         <div class="flex items-center gap-3">
           <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Factures</h1>
@@ -292,7 +329,7 @@ onMounted(fetchFactures)
       </div>
       <button
         @click="router.push('/app/factures/new')"
-        class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0 w-full sm:w-auto"
+        class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0"
       >
         <Plus class="w-5 h-5" />
         Nouvelle facture
@@ -442,7 +479,18 @@ onMounted(fetchFactures)
               </span>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2 sm:ml-4">
+          
+          <!-- Mobile Actions Trigger -->
+          <div class="sm:hidden flex items-center justify-center">
+            <button 
+              class="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+              @click.stop="openBottomSheet(facture)"
+            >
+              <MoreVertical class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="hidden sm:flex flex-wrap items-center gap-2 sm:ml-4">
             <!-- Actions principales -->
             <button
               v-if="facture.statut === 'brouillon'"
@@ -598,5 +646,77 @@ onMounted(fetchFactures)
         </div>
       </div>
     </div>
+
+    <!-- Mobile FAB -->
+    <MobileFAB class="lg:hidden" @click="router.push('/app/factures/new')" />
+
+    <!-- Mobile Bottom Sheet for Actions -->
+    <MobileBottomSheet 
+      :is-open="isBottomSheetOpen" 
+      :title="selectedFacture ? `Facture ${selectedFacture.numero_facture}` : ''"
+      @close="closeBottomSheet"
+    >
+      <div v-if="selectedFacture" class="flex flex-col gap-2 mt-4">
+        
+        <button
+          v-if="selectedFacture.statut === 'brouillon'"
+          @click="requestValidation(selectedFacture); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-green-600 bg-green-50 transition-colors text-left"
+        >
+          <CheckCircle2 class="w-5 h-5" />
+          <span class="font-medium">Valider cette facture</span>
+        </button>
+
+        <button
+          v-if="selectedFacture.statut === 'validée'"
+          @click="togglePayment(selectedFacture); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl transition-colors text-left"
+          :class="[
+            selectedFacture.est_payee 
+              ? 'text-emerald-600 bg-emerald-50' 
+              : 'text-amber-600 bg-amber-50'
+          ]"
+        >
+          <CreditCard class="w-5 h-5" />
+          <span class="font-medium">{{ selectedFacture.est_payee ? 'Marquer comme non payée' : 'Marquer comme payée' }}</span>
+        </button>
+
+        <button
+          v-if="selectedFacture.statut === 'validée' && !selectedFacture.est_avoir"
+          @click="creerAvoir(selectedFacture); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-purple-600 bg-purple-50 transition-colors text-left"
+        >
+          <Undo2 class="w-5 h-5" />
+          <span class="font-medium">Créer un avoir</span>
+        </button>
+
+        <button
+          v-if="selectedFacture.statut === 'validée'"
+          @click="downloadFacturX(selectedFacture); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-teal-600 bg-teal-50 transition-colors text-left"
+        >
+          <FileCheck2 class="w-5 h-5" />
+          <span class="font-medium">Télécharger Factur-X</span>
+        </button>
+
+        <button
+          @click="router.push(`/app/factures/${selectedFacture.id}/pdf`); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-primary bg-primary/10 transition-colors text-left"
+        >
+          <Download class="w-5 h-5" />
+          <span class="font-medium">Aperçu PDF</span>
+        </button>
+
+        <button
+          v-if="selectedFacture.statut !== 'validée'"
+          @click="openDeleteModal(selectedFacture.id); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-destructive bg-destructive/10 transition-colors text-left mt-4"
+        >
+          <Trash2 class="w-5 h-5" />
+          <span class="font-medium">Supprimer la facture</span>
+        </button>
+
+      </div>
+    </MobileBottomSheet>
   </div>
 </template>

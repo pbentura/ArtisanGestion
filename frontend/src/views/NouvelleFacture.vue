@@ -762,10 +762,10 @@ async function downloadFacturX() {
 
     <div v-else class="space-y-6">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
+      <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-20 py-3 border-b pt-safe px-4 -mx-4">
         <button
           @click="router.push('/app/factures')"
-          class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors"
+          class="inline-flex items-center gap-1.5 text-foreground font-semibold transition-colors"
         >
           <ArrowLeft class="w-5 h-5" />
           Retour

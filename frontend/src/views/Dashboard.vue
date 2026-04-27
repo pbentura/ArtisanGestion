@@ -165,7 +165,7 @@ onMounted(fetchDashboard)
     <div v-else-if="data" class="dashboard-content">
 
       <!-- Header + Shortcuts -->
-      <div class="dashboard-header">
+      <div class="dashboard-header hidden sm:flex">
         <div class="header-text">
           <h1 class="header-title">Bienvenue, {{ userName }} 👋</h1>
           <p class="header-subtitle">

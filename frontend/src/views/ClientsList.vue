@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Plus, Pencil, Trash2, X, Building2 } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, X, Building2, MoreVertical } from 'lucide-vue-next'
+import MobileFAB from '@/components/mobile/MobileFAB.vue'
+import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { apiFetch } from '@/lib/api'
 
 interface Client {
@@ -22,6 +24,20 @@ const editingClient = ref<Client | null>(null)
 const showDeleteConfirm = ref(false)
 const clientToDelete = ref<Client | null>(null)
 const isDeleting = ref(false)
+const isBottomSheetOpen = ref(false)
+const selectedClient = ref<Client | null>(null)
+
+function openBottomSheet(client: Client) {
+  selectedClient.value = client
+  isBottomSheetOpen.value = true
+}
+
+function closeBottomSheet() {
+  isBottomSheetOpen.value = false
+  setTimeout(() => {
+    selectedClient.value = null
+  }, 300)
+}
 
 const form = ref({
   nom: '',
@@ -133,7 +149,7 @@ onMounted(fetchClients)
 
 <template>
   <div class="clients-page">
-    <div class="page-header">
+    <div class="page-header hidden lg:flex">
       <h1 class="page-title">Mes clients</h1>
       <button @click="openCreateModal" class="btn-primary">
         <Plus class="w-4 h-4" /> Nouveau client
@@ -154,7 +170,16 @@ onMounted(fetchClients)
       <div v-for="client in clients" :key="client.id" class="client-card">
         <div class="card-header">
           <h3 class="client-name">{{ client.nom }}</h3>
-          <div class="card-actions">
+          
+          <!-- Mobile Actions Trigger -->
+          <div class="sm:hidden">
+            <button @click="openBottomSheet(client)" class="btn-icon">
+              <MoreVertical class="w-5 h-5" />
+            </button>
+          </div>
+          
+          <!-- Desktop Actions -->
+          <div class="card-actions hidden sm:flex">
             <button @click="openEditModal(client)" class="btn-icon" title="Modifier">
               <Pencil class="w-4 h-4" />
             </button>
@@ -268,6 +293,34 @@ onMounted(fetchClients)
         </div>
       </div>
     </div>
+
+    <!-- Mobile FAB -->
+    <MobileFAB class="lg:hidden" @click="openCreateModal" />
+
+    <!-- Mobile Bottom Sheet for Actions -->
+    <MobileBottomSheet 
+      :is-open="isBottomSheetOpen" 
+      :title="selectedClient ? selectedClient.nom : ''"
+      @close="closeBottomSheet"
+    >
+      <div v-if="selectedClient" class="flex flex-col gap-2 mt-4">
+        <button
+          @click="openEditModal(selectedClient); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted transition-colors text-left"
+        >
+          <Pencil class="w-5 h-5" />
+          <span class="font-medium">Modifier le client</span>
+        </button>
+
+        <button
+          @click="openDeleteModal(selectedClient); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-destructive bg-destructive/10 transition-colors text-left mt-4"
+        >
+          <Trash2 class="w-5 h-5" />
+          <span class="font-medium">Supprimer le client</span>
+        </button>
+      </div>
+    </MobileBottomSheet>
   </div>
 </template>
 

@@ -891,10 +891,10 @@ async function generateWithAI() {
 
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
+    <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-20 py-3 border-b pt-safe px-4 -mx-4">
       <button
         @click="router.push('/app/rapports')"
-        class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors"
+        class="inline-flex items-center gap-1.5 text-foreground font-semibold transition-colors"
       >
         <ArrowLeft class="w-5 h-5" />
         Retour
@@ -932,7 +932,7 @@ async function generateWithAI() {
       </div>
     </div>
 
-    <h1 class="text-2xl font-bold text-foreground mb-4">{{ isEditMode ? 'Modifier le Rapport' : 'Nouveau Rapport d\'Intervention' }}</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-4 hidden sm:block">{{ isEditMode ? 'Modifier le Rapport' : 'Nouveau Rapport' }}</h1>
 
     <!-- Loading state for edit mode -->
     <div v-if="isLoading" class="flex items-center justify-center py-20">

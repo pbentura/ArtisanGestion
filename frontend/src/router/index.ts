@@ -61,14 +61,14 @@ const routes = [
         path: 'devis/new',
         name: 'nouveau-devis',
         component: () => import('@/views/NouveauDevis.vue'),
-        meta: { title: 'Devis' }
+        meta: { title: 'Devis', hideMobileHeader: true, hideMobileNav: true }
       },
       {
         path: 'devis/:id',
         name: 'edit-devis',
         component: () => import('@/views/NouveauDevis.vue'),
         props: true,
-        meta: { title: 'Devis' }
+        meta: { title: 'Devis', hideMobileHeader: true, hideMobileNav: true }
       },
       {
         path: 'factures',
@@ -80,14 +80,14 @@ const routes = [
         path: 'factures/new',
         name: 'nouvelle-facture',
         component: () => import('@/views/NouvelleFacture.vue'),
-        meta: { title: 'Factures' }
+        meta: { title: 'Factures', hideMobileHeader: true, hideMobileNav: true }
       },
       {
         path: 'factures/:id',
         name: 'edit-facture',
         component: () => import('@/views/NouvelleFacture.vue'),
         props: true,
-        meta: { title: 'Factures' }
+        meta: { title: 'Factures', hideMobileHeader: true, hideMobileNav: true }
       },
       {
         path: 'rapports',
@@ -99,14 +99,14 @@ const routes = [
         path: 'rapports/new',
         name: 'nouveau-rapport',
         component: () => import('@/views/NouveauRapport.vue'),
-        meta: { title: 'Rapports' }
+        meta: { title: 'Rapports', hideMobileHeader: true, hideMobileNav: true }
       },
       {
         path: 'rapports/:id',
         name: 'edit-rapport',
         component: () => import('@/views/NouveauRapport.vue'),
         props: true,
-        meta: { title: 'Rapports' }
+        meta: { title: 'Rapports', hideMobileHeader: true, hideMobileNav: true }
       },
       {
         path: 'settings',
@@ -134,6 +134,12 @@ const routes = [
           requiresAdmin: true,
           title: 'Administration'
         }
+      },
+      {
+        path: 'menu',
+        name: 'menu',
+        component: () => import('@/views/MobileMenu.vue'),
+        meta: { title: 'Menu' }
       }
     ]
   },

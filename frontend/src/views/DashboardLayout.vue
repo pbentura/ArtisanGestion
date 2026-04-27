@@ -3,14 +3,15 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Building2, Home, FileText, Settings, LogOut, 
-  Receipt, Menu, X, Bell, BarChart3, Users, ShieldCheck
+  Receipt, Bell, BarChart3, Users, ShieldCheck
 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import MobileHeader from '@/components/mobile/MobileHeader.vue'
+import MobileBottomNav from '@/components/mobile/MobileBottomNav.vue'
 import { apiFetch } from '@/lib/api'
 
 const router = useRouter()
 const route = useRoute()
-const isMobileMenuOpen = ref(false)
 const user = ref({ prenom: '', nom: '', email: '', role: '' })
 const societe = ref({ nom: '' })
 
@@ -39,57 +40,47 @@ function handleLogout() {
 
 <template>
   <div class="layout-wrapper">
-    <!-- Overlay Mobile -->
-    <div 
-      v-if="isMobileMenuOpen" 
-      class="mobile-overlay"
-      @click="isMobileMenuOpen = false"
-    ></div>
-
-    <!-- Sidebar -->
-    <aside class="sidebar" :class="{ 'is-open': isMobileMenuOpen }">
+    <!-- Desktop Sidebar (Hidden on mobile) -->
+    <aside class="sidebar hidden lg:flex">
       <div class="sidebar-header">
         <div class="logo-box">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
           <span class="logo-name">Ventura</span>
         </div>
-        <button class="close-btn lg:hidden" @click="isMobileMenuOpen = false">
-          <X class="w-5 h-5" />
-        </button>
       </div>
 
       <nav class="sidebar-nav">
         <p class="nav-section-title">Menu Principal</p>
-        <router-link to="/app" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app" class="nav-link">
           <Home class="w-5 h-5" /> Tableau de bord
         </router-link>
-        <router-link to="/app/rapports" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/rapports" class="nav-link">
           <BarChart3 class="w-5 h-5" /> Rapports
         </router-link>
-        <router-link to="/app/devis" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/devis" class="nav-link">
           <FileText class="w-5 h-5" /> Devis
         </router-link>
-        <router-link to="/app/factures" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/factures" class="nav-link">
           <Receipt class="w-5 h-5" /> Factures
         </router-link>
 
         <p class="nav-section-title mt-8">Administration</p>
-        <router-link to="/app/entreprise" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/entreprise" class="nav-link">
           <Building2 class="w-5 h-5" /> Mon entreprise
         </router-link>
-        <router-link to="/app/clients" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/clients" class="nav-link">
           <Users class="w-5 h-5" /> Mes clients
         </router-link>
 
         <template v-if="user.role === 'ADMIN'">
           <p class="nav-section-title mt-8">Système</p>
-          <router-link to="/app/admin" class="nav-link admin-link" @click="isMobileMenuOpen = false">
+          <router-link to="/app/admin" class="nav-link admin-link">
             <ShieldCheck class="w-5 h-5" /> Admin
           </router-link>
         </template>
 
         <p class="nav-section-title mt-8">Configuration</p>
-        <router-link to="/app/settings" class="nav-link" @click="isMobileMenuOpen = false">
+        <router-link to="/app/settings" class="nav-link">
           <Settings class="w-5 h-5" /> Paramètres
         </router-link>
       </nav>
@@ -112,11 +103,9 @@ function handleLogout() {
 
     <!-- Content Area -->
     <div class="main-container">
-      <header class="main-header">
+      <!-- Desktop Header (Hidden on mobile) -->
+      <header class="main-header hidden lg:flex">
         <div class="header-left">
-          <button class="menu-trigger lg:hidden" @click="isMobileMenuOpen = true">
-            <Menu class="w-6 h-6" />
-          </button>
           <h1 class="current-page-title">{{ route.meta.title || route.name }}</h1>
         </div>
         
@@ -127,9 +116,25 @@ function handleLogout() {
         </div>
       </header>
 
-      <main class="page-content">
+      <!-- Mobile Header (Visible only on mobile, hidden if route meta says so) -->
+      <div class="mobile-component lg:hidden">
+        <MobileHeader v-if="!route.meta.hideMobileHeader" />
+      </div>
+
+      <main 
+        class="page-content" 
+        :class="{ 
+          'no-mobile-header': route.meta.hideMobileHeader,
+          'no-mobile-nav': route.meta.hideMobileNav 
+        }"
+      >
         <router-view />
       </main>
+
+      <!-- Mobile Bottom Nav (Visible only on mobile) -->
+      <div class="mobile-component lg:hidden">
+        <MobileBottomNav v-if="!route.meta.hideMobileNav" />
+      </div>
     </div>
   </div>
 </template>
@@ -164,18 +169,11 @@ function handleLogout() {
   position: sticky;
   top: 0;
   flex-shrink: 0;
-  transition: transform 0.3s ease;
 }
 
 @media (max-width: 1024px) {
   .sidebar {
-    position: fixed;
-    left: 0;
-    z-index: 50;
-    transform: translateX(-100%);
-  }
-  .sidebar.is-open {
-    transform: translateX(0);
+    display: none !important;
   }
 }
 
@@ -372,12 +370,32 @@ function handleLogout() {
   overflow-y: auto;
 }
 
-@media (max-width: 640px) {
-  .main-header {
-    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0 16px;
+@media (min-width: 1025px) {
+  .mobile-component {
+    display: none !important;
   }
+}
+
+@media (max-width: 1024px) {
+  .sidebar, .main-header {
+    display: none !important;
+  }
+  
+  .main-container {
+    padding-left: 0;
+  }
+
   .page-content {
-    padding: 16px;
+    /* Reduced padding to avoid the huge gap */
+    padding: calc(56px + env(safe-area-inset-top, 0px) + 8px) 16px calc(80px + env(safe-area-inset-bottom, 0px) + 8px) 16px;
+  }
+
+  .page-content.no-mobile-header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .page-content.no-mobile-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 .mt-8 {

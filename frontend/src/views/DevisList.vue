@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt, MoreVertical } from 'lucide-vue-next'
+import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
+import MobileFAB from '@/components/mobile/MobileFAB.vue'
+import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 
 import { apiFetch } from '@/lib/api'
 
@@ -29,6 +32,27 @@ const isUpdatingStatus = ref<number | null>(null)
 
 const searchQuery = ref('')
 const statusFilter = ref('tous') // tous, brouillon, envoyé
+const activeTab = ref('devis')
+const isBottomSheetOpen = ref(false)
+const selectedDevis = ref<Devis | null>(null)
+
+function openBottomSheet(devis: Devis) {
+  selectedDevis.value = devis
+  isBottomSheetOpen.value = true
+}
+
+function closeBottomSheet() {
+  isBottomSheetOpen.value = false
+  setTimeout(() => {
+    selectedDevis.value = null
+  }, 300)
+}
+
+function handleTabChange(val: string) {
+  if (val === 'factures') {
+    router.push('/app/factures')
+  }
+}
 
 const filteredDevis = computed(() => {
   let result = devisList.value
@@ -145,14 +169,26 @@ onMounted(fetchDevis)
 
 <template>
   <div class="max-w-6xl mx-auto">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <!-- Mobile Segmented Control for Facturation -->
+    <div class="mobile-component lg:hidden mb-6">
+      <MobileSegmentedControl 
+        v-model="activeTab"
+        :options="[
+          { label: 'Devis', value: 'devis' },
+          { label: 'Factures', value: 'factures' }
+        ]"
+        @update:modelValue="handleTabChange"
+      />
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Devis</h1>
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos devis et créez-en de nouveaux</p>
       </div>
       <button
         @click="router.push('/app/devis/new')"
-        class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0 w-full sm:w-auto"
+        class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0"
       >
         <Plus class="w-5 h-5" />
         Nouveau devis
@@ -245,7 +281,19 @@ onMounted(fetchDevis)
               <span>{{ devis.client?.nom || 'Client inconnu' }}</span>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2 sm:ml-4">
+          
+          <!-- Mobile Actions Trigger -->
+          <div class="sm:hidden flex items-center justify-center">
+            <button 
+              class="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+              @click.stop="openBottomSheet(devis)"
+            >
+              <MoreVertical class="w-5 h-5" />
+            </button>
+          </div>
+
+          <!-- Desktop Inline Actions -->
+          <div class="hidden sm:flex flex-wrap items-center gap-2 sm:ml-4">
             <button
               @click.stop="toggleStatus(devis)"
               class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group border border-transparent"
@@ -338,5 +386,55 @@ onMounted(fetchDevis)
         </div>
       </div>
     </div>
+
+    <!-- Mobile FAB -->
+    <MobileFAB class="lg:hidden" @click="router.push('/app/devis/new')" />
+
+    <!-- Mobile Bottom Sheet for Actions -->
+    <MobileBottomSheet 
+      :is-open="isBottomSheetOpen" 
+      :title="selectedDevis ? `Devis ${selectedDevis.numero_devis}` : ''"
+      @close="closeBottomSheet"
+    >
+      <div v-if="selectedDevis" class="flex flex-col gap-2 mt-4">
+        <button
+          @click="toggleStatus(selectedDevis); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl transition-colors text-left"
+          :class="[
+            selectedDevis.statut === 'envoyé' 
+              ? 'text-green-600 bg-green-50' 
+              : 'text-blue-600 bg-blue-50'
+          ]"
+        >
+          <CheckCircle2 v-if="selectedDevis.statut === 'brouillon'" class="w-5 h-5" />
+          <Clock v-else class="w-5 h-5" />
+          <span class="font-medium">{{ selectedDevis.statut === 'envoyé' ? 'Marquer comme brouillon' : 'Marquer comme envoyé' }}</span>
+        </button>
+
+        <button
+          @click="router.push(`/app/factures/new?fromDevis=${selectedDevis.id}`); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-emerald-600 bg-emerald-50 transition-colors text-left"
+        >
+          <Receipt class="w-5 h-5" />
+          <span class="font-medium">Transformer en facture</span>
+        </button>
+
+        <button
+          @click="router.push(`/app/devis/${selectedDevis.id}/pdf`); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-primary bg-primary/10 transition-colors text-left"
+        >
+          <Download class="w-5 h-5" />
+          <span class="font-medium">Télécharger le PDF</span>
+        </button>
+
+        <button
+          @click="openDeleteModal(selectedDevis.id); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-destructive bg-destructive/10 transition-colors text-left mt-4"
+        >
+          <Trash2 class="w-5 h-5" />
+          <span class="font-medium">Supprimer le devis</span>
+        </button>
+      </div>
+    </MobileBottomSheet>
   </div>
 </template>
