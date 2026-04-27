@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { Database, Table2, Plus, Pencil, Trash2, X, Save, AlertTriangle, Search, RefreshCw } from 'lucide-vue-next'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,19 +48,6 @@ const showDeleteModal = ref(false)
 const deleteTarget = ref<Record<string, any> | null>(null)
 const deleting = ref(false)
 
-// ---------------------------------------------------------------------------
-// Auth helper
-// ---------------------------------------------------------------------------
-function getToken() {
-  return localStorage.getItem('token')
-}
-
-function authHeaders(): Record<string, string> {
-  return {
-    'Authorization': `Bearer ${getToken()}`,
-    'Content-Type': 'application/json',
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Computed
@@ -84,9 +71,7 @@ const editableColumns = computed(() =>
 // ---------------------------------------------------------------------------
 async function fetchTables() {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/admin/tables`, {
-      headers: authHeaders(),
-    })
+    const res = await apiFetch('admin/tables')
     if (!res.ok) throw new Error('Erreur')
     tables.value = await res.json()
     if (tables.value.length > 0 && !selectedTable.value) {
@@ -100,9 +85,7 @@ async function fetchTables() {
 async function fetchSchema() {
   if (!selectedTable.value) return
   try {
-    const res = await fetch(`${API_BASE_URL}/api/admin/tables/${selectedTable.value}/schema`, {
-      headers: authHeaders(),
-    })
+    const res = await apiFetch(`admin/tables/${selectedTable.value}/schema`)
     if (!res.ok) throw new Error('Erreur')
     columns.value = await res.json()
   } catch (e) {
@@ -115,9 +98,7 @@ async function fetchRows() {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch(`${API_BASE_URL}/api/admin/tables/${selectedTable.value}`, {
-      headers: authHeaders(),
-    })
+    const res = await apiFetch(`admin/tables/${selectedTable.value}`)
     if (!res.ok) throw new Error('Erreur')
     rows.value = await res.json()
   } catch (e) {
@@ -175,19 +156,13 @@ async function saveRow() {
       payload[col.name] = val === '' ? null : val
     }
 
-    let url: string
-    let method: string
-    if (modalMode.value === 'create') {
-      url = `${API_BASE_URL}/api/admin/tables/${selectedTable.value}`
-      method = 'POST'
-    } else {
-      url = `${API_BASE_URL}/api/admin/tables/${selectedTable.value}/${formData.value.id}`
-      method = 'PUT'
-    }
+    const endpoint = modalMode.value === 'create' 
+      ? `admin/tables/${selectedTable.value}`
+      : `admin/tables/${selectedTable.value}/${formData.value.id}`
+    const method = modalMode.value === 'create' ? 'POST' : 'PUT'
 
-    const res = await fetch(url, {
+    const res = await apiFetch(endpoint, {
       method,
-      headers: authHeaders(),
       body: JSON.stringify(payload),
     })
 
@@ -220,10 +195,9 @@ async function confirmDelete() {
   deleting.value = true
   error.value = ''
   try {
-    const res = await fetch(
-      `${API_BASE_URL}/api/admin/tables/${selectedTable.value}/${deleteTarget.value.id}`,
-      { method: 'DELETE', headers: authHeaders() }
-    )
+    const res = await apiFetch(`admin/tables/${selectedTable.value}/${deleteTarget.value.id}`, {
+      method: 'DELETE'
+    })
     if (!res.ok) throw new Error('Erreur lors de la suppression')
     await fetchRows()
     closeDeleteModal()
@@ -472,6 +446,10 @@ onMounted(async () => {
    ========================================================================= */
 .admin-page {
   max-width: 1400px;
+  padding: 24px;
+  padding-top: calc(32px + env(safe-area-inset-top, 0px));
+  padding-left: calc(24px + env(safe-area-inset-left, 0px));
+  padding-right: calc(24px + env(safe-area-inset-right, 0px));
 }
 
 /* Header */
@@ -480,6 +458,15 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 28px;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
 }
 
 .admin-title-group {

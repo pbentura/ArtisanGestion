@@ -6,7 +6,7 @@ import {
   Receipt, Menu, X, Bell, BarChart3, Users, ShieldCheck
 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -15,19 +15,16 @@ const user = ref({ prenom: '', nom: '', email: '', role: '' })
 const societe = ref({ nom: '' })
 
 onMounted(async () => {
-  const token = localStorage.getItem('token')
-  if (!token) return
-
   try {
-    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('users/me')
     if (res.ok) {
       const data = await res.json()
       user.value = { prenom: data.prenom, nom: data.nom, email: data.email, role: data.role || 'USER' }
       if (data.societes?.length > 0) {
         societe.value = data.societes[0]
       }
+    } else {
+      console.error('Erreur API me:', await res.text())
     }
   } catch (e) {
     console.error('Failed to fetch user data', e)
@@ -140,10 +137,12 @@ function handleLogout() {
 <style scoped>
 .layout-wrapper {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   width: 100%;
   background-color: var(--background);
   font-family: sans-serif;
+  overflow: hidden;
 }
 
 .mobile-overlay {
@@ -181,12 +180,13 @@ function handleLogout() {
 }
 
 .sidebar-header {
-  height: 80px;
+  height: calc(76px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 24px 0 24px;
   border-bottom: 1px solid var(--border);
+  background: var(--card);
 }
 
 .logo-box {
@@ -258,6 +258,7 @@ function handleLogout() {
 
 .sidebar-footer {
   padding: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--muted);
 }
@@ -317,13 +318,18 @@ function handleLogout() {
 }
 
 .main-header {
-  height: 80px;
-  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: calc(76px + env(safe-area-inset-top, 0px));
+  background: color-mix(in srgb, var(--card), transparent 10%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 24px 0 24px;
 }
 
 .header-left {
@@ -368,7 +374,7 @@ function handleLogout() {
 
 @media (max-width: 640px) {
   .main-header {
-    padding: 0 16px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0 16px;
   }
   .page-content {
     padding: 16px;

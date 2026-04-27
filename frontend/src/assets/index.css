@@ -129,3 +129,9 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+.pt-safe { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+.pb-safe { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+.mt-safe { margin-top: calc(12px + env(safe-area-inset-top, 0px)); }
+.mb-safe { margin-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+

@@ -165,7 +165,7 @@ function handleGoogleAuth() {
     <!-- Right side - Auth forms -->
     <div class="flex-1 flex flex-col justify-center items-center p-6 lg:p-12">
       <!-- Mobile header -->
-      <div class="lg:hidden flex items-center justify-between w-full mb-8">
+      <div class="lg:hidden flex items-center justify-between w-full mb-8 pt-safe mt-4">
         <div class="flex items-center gap-2">
           <img src="/logo.svg" alt="Logo" class="w-9 h-9" />
           <span class="text-xl font-bold">Ventura</span>

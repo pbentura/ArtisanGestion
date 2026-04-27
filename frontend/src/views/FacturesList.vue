@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2 } from 'lucide-vue-next'
 
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 interface Client {
   nom: string
@@ -94,16 +94,16 @@ function closeDeleteModal() {
 async function fetchFactures() {
   loading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    const res = await apiFetch('factures')
     if (res.ok) {
       facturesList.value = await res.json()
     } else {
-      console.error('Erreur API factures', await res.text())
+      const errorText = await res.text()
+      console.error('Erreur API factures:', errorText)
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        router.push('/auth')
+      }
     }
   } catch (e) {
     console.error('Erreur lors du chargement des factures', e)
@@ -130,10 +130,8 @@ async function confirmDelete() {
   
   isDeleting.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/${idToDelete.value}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
+    const res = await apiFetch(`factures/${idToDelete.value}`, {
+      method: 'DELETE'
     })
     if (res.ok) {
       facturesList.value = facturesList.value.filter(f => f.id !== idToDelete.value)
@@ -166,13 +164,8 @@ async function confirmValidation() {
   isUpdatingStatus.value = facture.id
   
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}`, {
+    const res = await apiFetch(`factures/${facture.id}`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ statut: 'validée' })
     })
     
@@ -199,13 +192,8 @@ async function togglePayment(facture: Facture) {
   isUpdatingPayment.value = facture.id
   
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}`, {
+    const res = await apiFetch(`factures/${facture.id}`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ est_payee: !facture.est_payee })
     })
     
@@ -233,12 +221,8 @@ async function creerAvoir(facture: Facture) {
   isCreatingAvoir.value = facture.id
   
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}/avoir`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      }
+    const res = await apiFetch(`factures/${facture.id}/avoir`, {
+      method: 'POST'
     })
     
     if (res.ok) {
@@ -268,12 +252,7 @@ async function downloadFacturX(facture: Facture) {
   isDownloadingFacturX.value = facture.id
   
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/${facture.id}/facturx`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      }
-    })
+    const res = await apiFetch(`factures/${facture.id}/facturx`)
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({ detail: 'Erreur inconnue' }))

@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt } from 'lucide-vue-next'
 
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 interface Client {
   nom: string
@@ -64,16 +64,16 @@ function closeDeleteModal() {
 async function fetchDevis() {
   loading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    const res = await apiFetch('devis')
     if (res.ok) {
       devisList.value = await res.json()
     } else {
-      console.error('Erreur API devis', await res.text())
+      const errorText = await res.text()
+      console.error('Erreur API devis:', errorText)
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        router.push('/auth')
+      }
     }
   } catch (e) {
     console.error('Erreur lors du chargement des devis', e)
@@ -96,10 +96,8 @@ async function confirmDelete() {
   
   isDeleting.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/${idToDelete.value}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
+    const res = await apiFetch(`devis/${idToDelete.value}`, {
+      method: 'DELETE'
     })
     if (res.ok) {
       devisList.value = devisList.value.filter(d => d.id !== idToDelete.value)
@@ -121,13 +119,8 @@ async function toggleStatus(devis: Devis) {
   isUpdatingStatus.value = devis.id
   
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/${devis.id}`, {
+    const res = await apiFetch(`devis/${devis.id}`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ statut: newStatut })
     })
     

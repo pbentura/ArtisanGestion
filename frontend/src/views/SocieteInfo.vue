@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -67,10 +67,7 @@ const isAutoEntrepreneur = computed(() => form.value.forme_juridique === 'Auto-e
 async function fetchSociete() {
   loading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/societes/me`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('societes/me')
     if (res.ok) {
       const data = await res.json()
       // Map data to form
@@ -93,8 +90,6 @@ async function handleSave() {
   message.value = { text: '', type: '' }
   
   try {
-    const token = localStorage.getItem('token')
-    
     // Sanitize numbers and empty strings
     const sanitizedForm = Object.fromEntries(
       Object.entries(form.value).map(([key, value]) => {
@@ -103,12 +98,8 @@ async function handleSave() {
       })
     )
 
-    const res = await fetch(`${API_BASE_URL}/api/societes/me`, {
+    const res = await apiFetch('societes/me', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
       body: JSON.stringify(sanitizedForm)
     })
 

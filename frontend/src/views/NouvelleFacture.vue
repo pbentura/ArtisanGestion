@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -275,10 +275,7 @@ function handleLineBlur() {
 // Chargement des données
 async function loadLineDescriptions() {
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/lignes/descriptions`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('devis/lignes/descriptions')
     if (res.ok) {
       pastDescriptions.value = await res.json()
     }
@@ -289,10 +286,7 @@ async function loadLineDescriptions() {
 
 async function loadClients() {
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/clients`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('clients')
     if (res.ok) {
       clients.value = await res.json()
     }
@@ -303,10 +297,7 @@ async function loadClients() {
 
 async function loadSociete() {
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/societes/me`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('societes/me')
     if (res.ok) {
       const data = await res.json()
       societe.value = data
@@ -319,10 +310,7 @@ async function loadSociete() {
 async function loadExistingFacture(id: number) {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch(`factures/${id}`)
     if (!res.ok) {
       alert('Facture introuvable')
       router.push('/app/factures')
@@ -376,10 +364,7 @@ async function loadExistingFacture(id: number) {
 async function loadDevisForConversion(devisId: number) {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/devis/${devisId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch(`devis/${devisId}`)
     if (!res.ok) {
       alert('Devis introuvable')
       return
@@ -448,7 +433,6 @@ async function saveClientToDatabase(): Promise<number | null> {
   }
 
   try {
-    const token = localStorage.getItem('token')
     const clientData = {
       nom: facture.value.nomClient,
       siret: facture.value.clientSiret,
@@ -459,12 +443,8 @@ async function saveClientToDatabase(): Promise<number | null> {
       email: facture.value.clientEmail
     }
     
-    const res = await fetch(`${API_BASE_URL}/api/clients`, {
+    const res = await apiFetch('clients', {
       method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(clientData)
     })
     
@@ -478,7 +458,6 @@ async function saveClientToDatabase(): Promise<number | null> {
 }
 
 async function saveFactureToDatabase(clientId: number) {
-  const token = localStorage.getItem('token')
   const factureData = {
     date_facture: facture.value.date_facture,
     numero_facture: facture.value.numero_facture,
@@ -504,18 +483,14 @@ async function saveFactureToDatabase(clientId: number) {
     }))
   }
   
-  const url = isEditMode.value && factureId.value
-    ? `${API_BASE_URL}/api/factures/${factureId.value}`
-    : `${API_BASE_URL}/api/factures`
+  const endpoint = isEditMode.value && factureId.value
+    ? `factures/${factureId.value}`
+    : 'factures'
   
   const method = isEditMode.value ? 'PUT' : 'POST'
   
-  const res = await fetch(url, {
+  const res = await apiFetch(endpoint, {
     method,
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
     body: JSON.stringify(factureData)
   })
   
@@ -752,12 +727,7 @@ async function downloadFacturX() {
   isDownloadingFacturX.value = true
   
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/factures/${factureId.value}/facturx`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      }
-    })
+    const res = await apiFetch(`factures/${factureId.value}/facturx`)
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({ detail: 'Erreur inconnue' }))

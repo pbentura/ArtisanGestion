@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -149,10 +149,7 @@ function handleBlur() {
 
 async function loadClients() {
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/clients`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('clients')
     if (res.ok) {
       clients.value = await res.json()
     }
@@ -202,10 +199,7 @@ function capturePhoto() {
 
 async function loadSociete() {
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/societes/me`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('societes/me')
     if (res.ok) {
       const data = await res.json()
       societe.value = data
@@ -236,10 +230,7 @@ onMounted(async () => {
 async function loadExistingRapport(id: number) {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/rapports/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch(`rapports/${id}`)
     if (!res.ok) {
       alert('Rapport introuvable')
       router.push('/app/rapports')
@@ -352,7 +343,6 @@ async function saveClientToDatabase(): Promise<number | null> {
   }
 
   try {
-    const token = localStorage.getItem('token')
     const clientData = {
       nom: rapport.value.nomClient,
       siret: rapport.value.clientSiret,
@@ -363,12 +353,8 @@ async function saveClientToDatabase(): Promise<number | null> {
       email: rapport.value.clientEmail
     }
     
-    const res = await fetch(`${API_BASE_URL}/api/clients`, {
+    const res = await apiFetch('clients', {
       method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(clientData)
     })
     
@@ -384,8 +370,7 @@ async function saveClientToDatabase(): Promise<number | null> {
   }
 }
 
-async function saveRapportToDatabase(clientId: number) {
-  const token = localStorage.getItem('token')
+async function saveRapportToDatabase(clientId: number | null) {
   const rapportData = {
     date_intervention: rapport.value.dateIntervention,
     titre_document_pdf: rapport.value.titre,
@@ -395,18 +380,14 @@ async function saveRapportToDatabase(clientId: number) {
     statut: rapport.value.statut
   }
   
-  const url = isEditMode.value && rapportId.value
-    ? `${API_BASE_URL}/api/rapports/${rapportId.value}`
-    : `${API_BASE_URL}/api/rapports`
+  const endpoint = isEditMode.value && rapportId.value
+    ? `rapports/${rapportId.value}`
+    : 'rapports'
   
   const method = isEditMode.value ? 'PUT' : 'POST'
   
-  const res = await fetch(url, {
+  const res = await apiFetch(endpoint, {
     method,
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
     body: JSON.stringify(rapportData)
   })
   
@@ -622,13 +603,8 @@ async function generateWithAI() {
   isGeneratingAI.value = true
 
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/ai/generate-rapport-stream`, {
+    const res = await apiFetch('ai/generate-rapport-stream', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({
         type_intervention: aiForm.value.type_intervention,
         description: aiForm.value.description,

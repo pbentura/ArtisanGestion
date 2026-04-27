@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock } from 'lucide-vue-next'
 
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 interface Client {
   nom: string
@@ -52,16 +52,12 @@ function closeDeleteModal() {
 async function fetchRapports() {
   loading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/rapports/`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    const res = await apiFetch('rapports')
     if (res.ok) {
       rapports.value = await res.json()
     } else {
-      console.error('Erreur API rapports', await res.text())
+      const errorText = await res.text()
+      console.error('Erreur API rapports:', errorText)
     }
   } catch (e) {
     console.error('Erreur lors du chargement des rapports', e)
@@ -84,10 +80,8 @@ async function confirmDelete() {
   
   isDeleting.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/rapports/${idToDelete.value}`, {
+    const res = await apiFetch(`rapports/${idToDelete.value}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {
       rapports.value = rapports.value.filter(r => r.id !== idToDelete.value)
@@ -109,13 +103,8 @@ async function toggleStatus(rapport: Rapport) {
   isUpdatingStatus.value = rapport.id
   
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/rapports/${rapport.id}`, {
+    const res = await apiFetch(`rapports/${rapport.id}`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ statut: newStatut })
     })
     
@@ -139,17 +128,12 @@ async function toggleStatus(rapport: Rapport) {
 
 async function generateFullPDF(rapport: Rapport) {
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/api/rapports/${rapport.id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch(`rapports/${rapport.id}`)
     if (!res.ok) return
     const r = await res.json()
     
     // Fetch societe information
-    const societeRes = await fetch(`${API_BASE_URL}/api/societes/me`, {
-       headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const societeRes = await apiFetch('societes/me')
     let societe: Record<string, string> = { nom: '', logo: '', adresse: '', code_postal: '', ville: '', telephone: '', email: '', siret: '', texte_pied_page: '' }
     if (societeRes.ok) {
        societe = await societeRes.json()

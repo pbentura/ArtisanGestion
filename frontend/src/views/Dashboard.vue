@@ -8,7 +8,7 @@ import {
   Wallet, BarChart3, Target, ClipboardList,
   Camera, Calendar, RefreshCw
 } from 'lucide-vue-next'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 const router = useRouter()
 const loading = ref(true)
@@ -106,13 +106,10 @@ async function fetchDashboard() {
   loading.value = true
   error.value = false
   try {
-    const token = localStorage.getItem('token')
-    const headers: Record<string, string> = { 'Authorization': `Bearer ${token}` }
-
     // Fetch user info & dashboard data in parallel
     const [userRes, dashRes] = await Promise.all([
-      fetch(`${API_BASE_URL}/api/users/me`, { headers }),
-      fetch(`${API_BASE_URL}/api/dashboard`, { headers }),
+      apiFetch('users/me'),
+      apiFetch('dashboard'),
     ])
 
     if (userRes.ok) {

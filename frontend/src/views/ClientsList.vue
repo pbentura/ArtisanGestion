@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Plus, Pencil, Trash2, X, Building2 } from 'lucide-vue-next'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 interface Client {
   id: number
@@ -33,21 +33,21 @@ const form = ref({
   siret: ''
 })
 
-const API_URL = `${API_BASE_URL}/api/clients`
-
-function getToken() {
-  return localStorage.getItem('token')
-}
 
 async function fetchClients() {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch(API_URL, {
-      headers: { 'Authorization': `Bearer ${getToken()}` }
-    })
-    if (!res.ok) throw new Error('Erreur lors du chargement')
-    clients.value = await res.json()
+    const res = await apiFetch('clients')
+    if (res.ok) {
+      clients.value = await res.json()
+    } else {
+      error.value = 'Erreur lors du chargement'
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        window.location.href = '/auth'
+      }
+    }
   } catch (e) {
     error.value = 'Impossible de charger les clients'
   } finally {
@@ -91,16 +91,12 @@ function closeDeleteModal() {
 }
 
 async function saveClient() {
-  const url = editingClient.value ? `${API_URL}/${editingClient.value.id}` : API_URL
+  const endpoint = editingClient.value ? `clients/${editingClient.value.id}` : 'clients'
   const method = editingClient.value ? 'PUT' : 'POST'
   
   try {
-    const res = await fetch(url, {
+    const res = await apiFetch(endpoint, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
-      },
       body: JSON.stringify(form.value)
     })
     
@@ -118,9 +114,8 @@ async function confirmDelete() {
   
   isDeleting.value = true
   try {
-    const res = await fetch(`${API_URL}/${clientToDelete.value.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${getToken()}` }
+    const res = await apiFetch(`clients/${clientToDelete.value.id}`, {
+      method: 'DELETE'
     })
     
     if (!res.ok) throw new Error('Erreur lors de la suppression')

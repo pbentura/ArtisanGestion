@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { API_BASE_URL } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -41,11 +41,8 @@ const initials = computed(() => {
 
 async function fetchUser() {
   isLoading.value = true
-  const token = localStorage.getItem('token')
   try {
-    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await apiFetch('users/me')
     if (res.ok) {
       const data = await res.json()
       user.value = data
@@ -64,14 +61,9 @@ async function fetchUser() {
 
 async function handleSave() {
   isSaving.value = true
-  const token = localStorage.getItem('token')
   try {
-    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+    const res = await apiFetch('users/me', {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
       body: JSON.stringify({
         nom: form.value.nom,
         prenom: form.value.prenom
@@ -104,13 +96,9 @@ function handleLogout() {
 
 async function handleDeleteAccount() {
   isDeleting.value = true
-  const token = localStorage.getItem('token')
   try {
-    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const res = await apiFetch('users/me', {
+      method: 'DELETE'
     })
 
     if (res.ok) {
