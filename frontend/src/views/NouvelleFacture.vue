@@ -3,9 +3,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2 } from 'lucide-vue-next'
+import { useMobile } from '@/composables/useMobile'
 
 const router = useRouter()
 const route = useRoute()
+const { sharePDF, triggerHaptic, isNative } = useMobile()
+
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
 const isLoading = ref(false)
@@ -710,7 +713,13 @@ async function saveAndGeneratePDF() {
       }
     }
 
-    await worker.save()
+    if (isNative) {
+      const blob = await worker.output('blob')
+      await sharePDF(blob, `${filename}.pdf`)
+      await triggerHaptic()
+    } else {
+      await worker.save()
+    }
     document.body.removeChild(container)
     
     router.push('/app/factures')

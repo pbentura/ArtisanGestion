@@ -3,9 +3,12 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye } from 'lucide-vue-next'
+import { useMobile } from '@/composables/useMobile'
 
 const router = useRouter()
 const route = useRoute()
+const { takePhoto, sharePDF, triggerHaptic, isNative } = useMobile()
+
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
 const isLoading = ref(false)
@@ -158,7 +161,21 @@ async function loadClients() {
   }
 }
 
+async function handleAddPhoto() {
+  const photo = await takePhoto()
+  if (photo) {
+    rapport.value.photos.push(photo)
+    await triggerHaptic()
+  }
+}
+
 async function openCamera() {
+  // On mobile native, we use handleAddPhoto which handles both camera and gallery
+  if (isNative) {
+    await handleAddPhoto()
+    return
+  }
+
   isCameraActive.value = true
   try {
     stream = await navigator.mediaDevices.getUserMedia({ 
@@ -514,7 +531,7 @@ async function openPreview() {
   showPDFModal.value = true
 }
 
-async function generatePDF() {
+async function generatePDF(shouldShare = false) {
   isGeneratingPDF.value = true
 
   try {
@@ -524,14 +541,14 @@ async function generatePDF() {
 
     document.body.appendChild(container)
 
-    const filename = (rapport.value.titre || 'rapport').replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ _-]/g, '').replace(/\s+/g, '_')
+    const filename = (rapport.value.titre || 'rapport').replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ _-]/g, '').replace(/\s+/g, '_') + '.pdf'
 
     const { default: html2pdf } = await import('html2pdf.js')
 
     const worker = html2pdf()
       .set({
         margin: [15, 15, footerText ? 25 : 15, 15],
-        filename: `${filename}.pdf`,
+        filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -556,7 +573,13 @@ async function generatePDF() {
       }
     }
 
-    await worker.save()
+    if (shouldShare) {
+      const blob = await worker.output('blob')
+      await sharePDF(blob, filename)
+    } else {
+      await worker.save()
+    }
+    
     document.body.removeChild(container)
   } catch (e) {
     console.error('Erreur lors de la génération du PDF', e)
@@ -584,7 +607,7 @@ async function saveAndGeneratePDF() {
     const savedRapport = await saveRapportToDatabase(clientId)
     console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
     
-    await generatePDF()
+    await generatePDF(isNative)
     router.push('/app/rapports')
   } catch (e: any) {
     console.error(e)
@@ -876,7 +899,7 @@ async function generateWithAI() {
                   Ceci est un aperçu interactif. Pour obtenir le fichier final :
                 </p>
                 <button 
-                  @click="generatePDF"
+                  @click="() => generatePDF()"
                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
                 >
                   <FileDown class="w-5 h-5" />

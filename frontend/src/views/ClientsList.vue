@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, X, Building2, MoreVertical } from 'lucide-vue-nex
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { apiFetch } from '@/lib/api'
+import { useMobile } from '@/composables/useMobile'
 
 interface Client {
   id: number
@@ -26,6 +27,7 @@ const clientToDelete = ref<Client | null>(null)
 const isDeleting = ref(false)
 const isBottomSheetOpen = ref(false)
 const selectedClient = ref<Client | null>(null)
+const { isNative } = useMobile()
 
 function openBottomSheet(client: Client) {
   selectedClient.value = client
@@ -295,7 +297,7 @@ onMounted(fetchClients)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB class="lg:hidden" @click="openCreateModal" />
+    <MobileFAB v-if="isNative" class="lg:hidden" @click="openCreateModal" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 

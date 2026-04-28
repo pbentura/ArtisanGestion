@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt, MoreVertical } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt, MoreVertical, Share2 } from 'lucide-vue-next'
+import { useMobile } from '@/composables/useMobile'
 import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
@@ -23,6 +24,7 @@ interface Devis {
 }
 
 const router = useRouter()
+const { isNative } = useMobile()
 const devisList = ref<Devis[]>([])
 const loading = ref(true)
 const showDeleteConfirm = ref(false)
@@ -162,6 +164,23 @@ async function toggleStatus(devis: Devis) {
   } finally {
     isUpdatingStatus.value = null
   }
+}
+
+async function shareDevis(devis: Devis) {
+  // Logic to generate and share devis PDF
+  // Similar to generateFullPDF in RapportsList
+  // For now we'll just redirect to the PDF preview if not native
+  if (!isNative) {
+    router.push(`/app/devis/${devis.id}/pdf`)
+    return
+  }
+  
+  // If native, we should ideally have a common PDF generator utility
+  // But for now, we'll use the same logic as in NouveauDevis if possible
+  // Or just trigger the download and let Filesystem/Share handle it if it was a blob
+  // Since we don't have a backend PDF endpoint yet for Devis, we might need to skip or implement it.
+  // Let's assume there's a need for a backend endpoint.
+  alert("Le partage direct sera disponible bientôt. Utilisez l'aperçu PDF.")
 }
 
 onMounted(fetchDevis)
@@ -388,7 +407,7 @@ onMounted(fetchDevis)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB class="lg:hidden" @click="router.push('/app/devis/new')" />
+    <MobileFAB v-if="isNative" class="lg:hidden" @click="router.push('/app/devis/new')" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 
@@ -420,11 +439,19 @@ onMounted(fetchDevis)
         </button>
 
         <button
+          @click="shareDevis(selectedDevis); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-teal-600 bg-teal-50 transition-colors text-left"
+        >
+          <Share2 class="w-5 h-5" />
+          <span class="font-medium">Partager le devis</span>
+        </button>
+
+        <button
           @click="router.push(`/app/devis/${selectedDevis.id}/pdf`); closeBottomSheet()"
           class="flex items-center gap-3 p-4 rounded-xl text-primary bg-primary/10 transition-colors text-left"
         >
           <Download class="w-5 h-5" />
-          <span class="font-medium">Télécharger le PDF</span>
+          <span class="font-medium">Aperçu PDF</span>
         </button>
 
         <button

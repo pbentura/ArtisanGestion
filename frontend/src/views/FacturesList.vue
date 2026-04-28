@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical, Share2 } from 'lucide-vue-next'
+import { useMobile } from '@/composables/useMobile'
 import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
@@ -28,6 +29,7 @@ interface Facture {
 }
 
 const router = useRouter()
+const { sharePDF, triggerHaptic, isNative } = useMobile()
 const facturesList = ref<Facture[]>([])
 const loading = ref(true)
 const showDeleteConfirm = ref(false)
@@ -297,6 +299,44 @@ async function downloadFacturX(facture: Facture) {
   } catch (e) {
     console.error('Erreur lors du téléchargement Factur-X', e)
     alert('Erreur réseau lors du téléchargement du Factur-X')
+  } finally {
+    isDownloadingFacturX.value = null
+  }
+}
+
+async function shareFacture(facture: Facture) {
+  if (isDownloadingFacturX.value !== null) return
+  
+  isDownloadingFacturX.value = facture.id
+  
+  try {
+    const res = await apiFetch(`factures/${facture.id}/facturx`)
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ detail: 'Erreur inconnue' }))
+      alert(`Erreur : ${errorData.detail || 'Impossible de générer le Factur-X'}`)
+      return
+    }
+    
+    const blob = await res.blob()
+    const filename = `Facture_${facture.numero_facture}.pdf`
+    
+    if (isNative) {
+      await sharePDF(blob, filename)
+      await triggerHaptic()
+    } else {
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    }
+  } catch (e) {
+    console.error('Erreur lors du partage Factur-X', e)
+    alert('Erreur réseau lors du partage du Factur-X')
   } finally {
     isDownloadingFacturX.value = null
   }
@@ -648,7 +688,7 @@ onMounted(fetchFactures)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB class="lg:hidden" @click="router.push('/app/factures/new')" />
+    <MobileFAB v-if="isNative" class="lg:hidden" @click="router.push('/app/factures/new')" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 
@@ -692,8 +732,17 @@ onMounted(fetchFactures)
 
         <button
           v-if="selectedFacture.statut === 'validée'"
-          @click="downloadFacturX(selectedFacture); closeBottomSheet()"
+          @click="shareFacture(selectedFacture); closeBottomSheet()"
           class="flex items-center gap-3 p-4 rounded-xl text-teal-600 bg-teal-50 transition-colors text-left"
+        >
+          <Share2 class="w-5 h-5" />
+          <span class="font-medium">Partager la facture (PDF)</span>
+        </button>
+
+        <button
+          v-if="selectedFacture.statut === 'validée'"
+          @click="downloadFacturX(selectedFacture); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-slate-600 bg-slate-50 transition-colors text-left"
         >
           <FileCheck2 class="w-5 h-5" />
           <span class="font-medium">Télécharger Factur-X</span>

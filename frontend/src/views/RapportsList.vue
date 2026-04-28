@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, MoreVertical, Share2 } from 'lucide-vue-next'
+import MobileFAB from '@/components/mobile/MobileFAB.vue'
+import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
+import { useMobile } from '@/composables/useMobile'
 
 import { apiFetch } from '@/lib/api'
 
@@ -21,6 +24,21 @@ interface Rapport {
 }
 
 const router = useRouter()
+const { sharePDF, triggerHaptic, isNative } = useMobile()
+const isBottomSheetOpen = ref(false)
+const selectedRapport = ref<Rapport | null>(null)
+
+function openBottomSheet(rapport: Rapport) {
+  selectedRapport.value = rapport
+  isBottomSheetOpen.value = true
+}
+
+function closeBottomSheet() {
+  isBottomSheetOpen.value = false
+  setTimeout(() => {
+    selectedRapport.value = null
+  }, 300)
+}
 const rapports = ref<Rapport[]>([])
 const loading = ref(true)
 const showDeleteConfirm = ref(false)
@@ -269,7 +287,13 @@ async function generateFullPDF(rapport: Rapport) {
     }
   }
 
-  await worker.save()
+    if (isNative) {
+      const blob = await worker.output('blob')
+      await sharePDF(blob, `${filename}.pdf`)
+      await triggerHaptic()
+    } else {
+      await worker.save()
+    }
 
   document.body.removeChild(container)
 
@@ -362,7 +386,16 @@ onMounted(fetchRapports)
               <span>{{ rapport.client?.nom || 'Client inconnu' }}</span>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2 sm:ml-4">
+            <div class="sm:hidden flex items-center justify-center">
+              <button 
+                class="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+                @click.stop="openBottomSheet(rapport)"
+              >
+                <MoreVertical class="w-5 h-5" />
+              </button>
+            </div>
+
+            <div class="hidden sm:flex flex-wrap items-center gap-2 sm:ml-4">
             <button
               @click.stop="toggleStatus(rapport)"
               class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group border border-transparent"
@@ -446,5 +479,46 @@ onMounted(fetchRapports)
         </div>
       </div>
     </div>
+    <!-- Mobile FAB -->
+    <MobileFAB v-if="isNative" class="lg:hidden" @click="router.push('/app/rapports/new')" />
+
+    <!-- Mobile Bottom Sheet for Actions -->
+    <MobileBottomSheet 
+      :is-open="isBottomSheetOpen" 
+      :title="selectedRapport ? `Rapport d'intervention` : ''"
+      @close="closeBottomSheet"
+    >
+      <div v-if="selectedRapport" class="flex flex-col gap-2 mt-4">
+        <button
+          @click="toggleStatus(selectedRapport); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl transition-colors text-left"
+          :class="[
+            selectedRapport.statut === 'terminée' 
+              ? 'text-green-600 bg-green-50' 
+              : 'text-blue-600 bg-blue-50'
+          ]"
+        >
+          <CheckCircle2 v-if="selectedRapport.statut === 'en cours'" class="w-5 h-5" />
+          <Clock v-else class="w-5 h-5" />
+          <span class="font-medium">{{ selectedRapport.statut === 'terminée' ? 'Marquer comme en cours' : 'Marquer comme terminée' }}</span>
+        </button>
+
+        <button
+          @click="generateFullPDF(selectedRapport); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-teal-600 bg-teal-50 transition-colors text-left"
+        >
+          <Share2 class="w-5 h-5" />
+          <span class="font-medium">Partager le rapport (PDF)</span>
+        </button>
+
+        <button
+          @click="openDeleteModal(selectedRapport.id); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-destructive bg-destructive/10 transition-colors text-left mt-4"
+        >
+          <Trash2 class="w-5 h-5" />
+          <span class="font-medium">Supprimer le rapport</span>
+        </button>
+      </div>
+    </MobileBottomSheet>
   </div>
 </template>
