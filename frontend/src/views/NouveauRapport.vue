@@ -628,8 +628,8 @@ async function saveAndGeneratePDF() {
 }
 
 async function generateWithAI() {
-  if (!aiForm.value.type_intervention || !aiForm.value.description.trim()) {
-    aiError.value = 'Veuillez renseigner le type d\'intervention et une description.'
+  if (!aiForm.value.type_intervention || aiForm.value.description.trim().length < 10) {
+    aiError.value = 'Veuillez renseigner le type d\'intervention et une description d\'au moins 10 caractères.'
     return
   }
   aiError.value = ''
@@ -837,7 +837,7 @@ async function generateWithAI() {
               </button>
               <button
                 @click="generateWithAI"
-                :disabled="isGeneratingAI || !aiForm.type_intervention || !aiForm.description.trim()"
+                :disabled="isGeneratingAI || !aiForm.type_intervention || aiForm.description.trim().length < 10"
                 class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 <Loader2 v-if="isGeneratingAI" class="w-4 h-4 animate-spin" />

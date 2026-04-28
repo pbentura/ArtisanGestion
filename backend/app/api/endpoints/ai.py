@@ -10,6 +10,43 @@ from app.core.config import settings
 
 router = APIRouter()
 
+async def validate_input_with_ai(type_intervention: str, description: str) -> str | None:
+    """
+    Vérifie si la saisie a du sens. Retourne une erreur (str) si invalide, ou None si valide.
+    """
+    if not settings.MISTRAL_API_KEY:
+        return None
+        
+    prompt = f"""Tu es un assistant strict chargé de vérifier la validité d'une saisie utilisateur pour un rapport d'intervention technique.
+Type d'intervention : {type_intervention}
+Description : {description}
+
+Si la description est du charabia (ex: "azeaze"), n'a aucun sens, contient des insultes, ou n'a manifestement aucun rapport avec une intervention technique de type "{type_intervention}", tu dois IMPÉRATIVEMENT répondre par : "INVALIDE: [Raison concise expliquant pourquoi la description est refusée, destinée à l'utilisateur final]".
+Sinon, si la description est pertinente, réponds uniquement "VALIDE".
+Ne génère rien d'autre.
+"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                "https://api.mistral.ai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.MISTRAL_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "mistral-small-latest",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.1,
+                    "max_tokens": 100
+                }
+            )
+            if response.status_code == 200:
+                content = response.json()["choices"][0]["message"]["content"].strip()
+                if content.startswith("INVALIDE"):
+                    return content.replace("INVALIDE:", "").replace("INVALIDE :", "").strip()
+    except Exception:
+        pass
+    return None
 
 class GenerateRapportRequest(BaseModel):
     type_intervention: str
@@ -33,6 +70,11 @@ async def generate_rapport(
     """
     if not settings.MISTRAL_API_KEY:
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
+
+    # --- Validation de la saisie ---
+    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+    if validation_error:
+        raise HTTPException(status_code=400, detail=validation_error)
 
     # Construire le prompt
     context_parts = []
@@ -139,6 +181,11 @@ async def generate_rapport_stream(
     """
     if not settings.MISTRAL_API_KEY:
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
+
+    # --- Validation de la saisie ---
+    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+    if validation_error:
+        raise HTTPException(status_code=400, detail=validation_error)
 
     # Construire le prompt (identique à l'endpoint non-streaming)
     context_parts = []
