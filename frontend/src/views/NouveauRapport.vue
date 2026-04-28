@@ -576,7 +576,7 @@ async function generatePDF(shouldShare = false) {
         pdf.setFontSize(8)
         pdf.setTextColor(107, 114, 128)
         const lines = pdf.splitTextToSize(footerText, pageWidth - 30)
-        const startY = pdf.internal.pageSize.getHeight() - 15 // Start slightly higher (15mm from bottom)
+        const startY = pdf.internal.pageSize.getHeight() - (lines.length * 4) - 8 // Dynamically calculate startY based on lines
         lines.forEach((line: string, idx: number) => {
           pdf.text(line, pageWidth / 2, startY + (idx * 4), { align: 'center' }) // 4mm line spacing
         })
