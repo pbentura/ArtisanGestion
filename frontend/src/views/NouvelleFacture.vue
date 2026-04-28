@@ -4,10 +4,20 @@ import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2 } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
+import { useSwipe } from '@vueuse/core'
 
 const router = useRouter()
 const route = useRoute()
 const { sharePDF, triggerHaptic, isNative } = useMobile()
+
+const mainContainer = ref<HTMLElement | null>(null)
+useSwipe(mainContainer, {
+  onSwipeEnd(_e: TouchEvent, direction) {
+    if (direction === 'right' && isNative) {
+      router.push('/app/factures')
+    }
+  }
+})
 
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
@@ -763,7 +773,7 @@ async function downloadFacturX() {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto pb-20">
+  <div ref="mainContainer" class="max-w-4xl mx-auto pb-20">
     <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 gap-4">
       <Loader2 class="w-8 h-8 text-primary animate-spin" />
       <span class="text-muted-foreground font-medium">Chargement de la facture...</span>

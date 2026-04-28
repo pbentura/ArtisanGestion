@@ -4,10 +4,20 @@ import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
+import { useSwipe } from '@vueuse/core'
 
 const router = useRouter()
 const route = useRoute()
 const { takePhoto, sharePDF, triggerHaptic, isNative } = useMobile()
+
+const mainContainer = ref<HTMLElement | null>(null)
+useSwipe(mainContainer, {
+  onSwipeEnd(_e: TouchEvent, direction) {
+    if (direction === 'right' && isNative) {
+      router.push('/app/rapports')
+    }
+  }
+})
 
 const isSaving = ref(false)
 const isGeneratingPDF = ref(false)
@@ -721,7 +731,7 @@ async function generateWithAI() {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto pb-20">
+  <div ref="mainContainer" class="max-w-4xl mx-auto pb-20">
     <!-- AI Modal Overlay -->
     <Teleport to="body">
       <Transition name="modal-fade">
