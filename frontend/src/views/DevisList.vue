@@ -277,7 +277,7 @@ onMounted(fetchDevis)
         class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer"
         @click="router.push(`/app/devis/${devis.id}`)"
       >
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div class="flex items-start justify-between gap-3">
           <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               <h3 class="text-base sm:text-lg font-semibold text-foreground truncate">{{ devis.titre_document_pdf || "Devis" }} - {{ devis.numero_devis }}</h3>
