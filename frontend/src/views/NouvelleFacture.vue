@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2 } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2, CreditCard, Undo2, Share2 } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
 
@@ -27,6 +27,8 @@ const previewHTML = ref('')
 const pdfUrl = ref('')
 const showValidateConfirm = ref(false)
 const isDownloadingFacturX = ref(false)
+const isUpdatingPayment = ref(false)
+const isCreatingAvoir = ref(false)
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
@@ -106,6 +108,88 @@ function closeValidateModal() {
 function confirmValidation() {
   facture.value.statut = 'validée'
   showValidateConfirm.value = false
+  // Si on est en mode édition, on sauvegarde immédiatement le changement de statut
+  if (isEditMode.value) {
+    saveFacture()
+  }
+}
+
+async function togglePayment() {
+  if (!factureId.value || isUpdatingPayment.value) return
+  
+  isUpdatingPayment.value = true
+  try {
+    const res = await apiFetch(`factures/${factureId.value}`, {
+      method: 'PUT',
+      body: JSON.stringify({ est_payee: !facture.value.est_payee })
+    })
+    
+    if (res.ok) {
+      const updated = await res.json()
+      facture.value.est_payee = updated.est_payee
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isUpdatingPayment.value = false
+  }
+}
+
+async function creerAvoir() {
+  if (!factureId.value || isCreatingAvoir.value) return
+  
+  if (!confirm(`Voulez-vous vraiment créer un avoir pour la facture ${facture.value.numero_facture} ?`)) return
+  
+  isCreatingAvoir.value = true
+  try {
+    const res = await apiFetch(`factures/${factureId.value}/avoir`, {
+      method: 'POST'
+    })
+    
+    if (res.ok) {
+      const nouvelAvoir = await res.json()
+      router.push(`/app/factures/${nouvelAvoir.id}`)
+    } else {
+      const errorData = await res.json()
+      alert(`Erreur : ${errorData.detail || 'Impossible de créer un avoir'}`)
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isCreatingAvoir.value = false
+  }
+}
+
+async function shareFacture() {
+  if (!factureId.value || isDownloadingFacturX.value) return
+  
+  isDownloadingFacturX.value = true
+  try {
+    // On utilise Factur-X pour le partage car c'est le format le plus complet
+    const res = await apiFetch(`factures/${factureId.value}/facturx`)
+    if (!res.ok) throw new Error('Erreur génération PDF')
+    
+    const blob = await res.blob()
+    const filename = `Facture_${facture.value.numero_facture}.pdf`
+    
+    if (isNative) {
+      await sharePDF(blob, filename)
+      await triggerHaptic()
+    } else {
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
+  } catch (e) {
+    console.error(e)
+    alert('Erreur lors du partage')
+  } finally {
+    isDownloadingFacturX.value = false
+  }
 }
 
 // Auto-calcul de la date d'échéance
@@ -781,57 +865,134 @@ async function downloadFacturX() {
 
     <div v-else class="space-y-6">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-20 py-3 border-b pt-safe px-4 -mx-4">
-        <button
-          @click="router.push('/app/factures')"
-          class="inline-flex items-center gap-1.5 text-foreground font-semibold transition-colors"
-        >
-          <ArrowLeft class="w-5 h-5" />
-          Retour
-        </button>
-        <div class="flex items-center gap-2">
+      <div class="sticky top-0 bg-background/95 backdrop-blur z-20 border-b pt-safe px-4 -mx-4 mb-6">
+        <!-- Première ligne : Retour + Actions Primaires -->
+        <div class="flex items-center justify-between py-3">
           <button
-            @click="openPreview"
-            :disabled="isSaving || isGeneratingPDF"
-            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
-            title="Aperçu PDF"
+            @click="router.push('/app/factures')"
+            class="inline-flex items-center gap-1.5 text-foreground font-semibold transition-colors"
           >
-            <Eye class="w-5 h-5" />
-            <span class="hidden md:inline">Aperçu PDF</span>
+            <ArrowLeft class="w-5 h-5" />
+            Retour
           </button>
-          <button
-            v-if="!isLocked"
-            @click="saveFacture"
-            :disabled="isSaving || isGeneratingPDF"
-            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
-            title="Sauvegarder Brouillon"
-          >
-            <Loader2 v-if="isSaving" class="w-5 h-5 animate-spin" />
-            <Save v-else class="w-5 h-5" />
-            <span class="hidden md:inline">Brouillon</span>
-          </button>
-          <button
-            v-if="!isLocked"
-            @click="saveAndGeneratePDF"
-            :disabled="isSaving || isGeneratingPDF"
-            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
-          >
-            <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
-            <FileDown v-else class="w-5 h-5" />
-            <span class="hidden sm:inline">{{ isSaving ? 'Sauvegarde...' : 'Sauvegarder & PDF' }}</span>
-            <span class="sm:hidden">PDF</span>
-          </button>
-          <button
-            v-if="isLocked"
-            @click="downloadFacturX"
-            :disabled="isDownloadingFacturX"
-            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50"
-            title="Télécharger Factur-X (PDF/A-3 + XML)"
-          >
-            <Loader2 v-if="isDownloadingFacturX" class="w-5 h-5 animate-spin" />
-            <FileCheck2 v-else class="w-5 h-5" />
-            <span class="hidden sm:inline">Factur-X</span>
-          </button>
+          
+          <div class="flex items-center gap-2">
+            <!-- Toujours visible : Aperçu -->
+            <button
+              @click="openPreview"
+              :disabled="isSaving || isGeneratingPDF"
+              class="inline-flex items-center gap-2 px-3 py-2 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              title="Aperçu PDF"
+            >
+              <Eye class="w-5 h-5" />
+              <span class="hidden sm:inline">Aperçu</span>
+            </button>
+
+            <!-- Toujours visible : Sauvegarder (si non verrouillé) -->
+            <button
+              v-if="!isLocked"
+              @click="saveFacture"
+              :disabled="isSaving || isGeneratingPDF"
+              class="inline-flex items-center gap-2 px-3 py-2 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              title="Sauvegarder Brouillon"
+            >
+              <Loader2 v-if="isSaving" class="w-5 h-5 animate-spin" />
+              <Save v-else class="w-5 h-5" />
+              <span class="hidden sm:inline">Sauvegarder</span>
+            </button>
+
+            <!-- Toujours visible : Sauvegarder & PDF -->
+            <button
+              @click="saveAndGeneratePDF"
+              :disabled="isSaving || isGeneratingPDF"
+              class="inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+            >
+              <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
+              <FileDown v-else class="w-5 h-5" />
+              <span class="hidden sm:inline">Enreg. & PDF</span>
+              <span class="sm:hidden">PDF</span>
+            </button>
+
+            <!-- Desktop only : Actions spécifiques sur la même ligne -->
+            <div class="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l border-border">
+              <template v-if="isLocked">
+                <button @click="togglePayment" :disabled="isUpdatingPayment" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg font-medium border shadow-sm" :class="facture.est_payee ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'">
+                  <CreditCard class="w-5 h-5" />
+                  <span>{{ facture.est_payee ? 'Payée' : 'Payer' }}</span>
+                </button>
+                <button v-if="!facture.est_avoir" @click="creerAvoir" :disabled="isCreatingAvoir" class="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-medium">
+                  <Undo2 class="w-5 h-5" />
+                  <span>Avoir</span>
+                </button>
+                <button v-if="isNative" @click="shareFacture" :disabled="isDownloadingFacturX" class="inline-flex items-center gap-2 px-3 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg font-medium">
+                  <Share2 class="w-5 h-5" />
+                  <span>Partager</span>
+                </button>
+              </template>
+              <template v-else>
+                <button @click="requestValidation" :disabled="isSaving || isGeneratingPDF" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm">
+                  <CheckCircle2 class="w-5 h-5" />
+                  <span>Valider</span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deuxième ligne (Mobile uniquement) : Actions Spécifiques -->
+        <div class="flex sm:hidden items-center gap-2 pb-3 overflow-x-auto no-scrollbar">
+          <template v-if="isLocked">
+            <button
+              @click="togglePayment"
+              :disabled="isUpdatingPayment"
+              class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium border shadow-sm whitespace-nowrap"
+              :class="facture.est_payee 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                : 'bg-amber-50 text-amber-700 border-amber-200'"
+            >
+              <CreditCard class="w-4 h-4" />
+              <span class="text-xs">{{ facture.est_payee ? 'Payée' : 'Payer' }}</span>
+            </button>
+
+            <button
+              v-if="!facture.est_avoir"
+              @click="creerAvoir"
+              :disabled="isCreatingAvoir"
+              class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-medium whitespace-nowrap"
+            >
+              <Undo2 class="w-4 h-4" />
+              <span class="text-xs">Avoir</span>
+            </button>
+
+            <button
+              v-if="isNative"
+              @click="shareFacture"
+              :disabled="isDownloadingFacturX"
+              class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg font-medium whitespace-nowrap"
+            >
+              <Share2 class="w-4 h-4" />
+              <span class="text-xs">Partager</span>
+            </button>
+
+            <button
+              @click="downloadFacturX"
+              :disabled="isDownloadingFacturX"
+              class="inline-flex items-center justify-center p-2 bg-background text-foreground border border-border rounded-lg"
+            >
+              <FileCheck2 class="w-4 h-4" />
+            </button>
+          </template>
+
+          <template v-else>
+            <button
+              @click="requestValidation"
+              :disabled="isSaving || isGeneratingPDF"
+              class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg font-bold shadow-sm"
+            >
+              <CheckCircle2 class="w-5 h-5" />
+              <span>Valider la facture</span>
+            </button>
+          </template>
         </div>
       </div>
 
