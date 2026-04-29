@@ -6,6 +6,7 @@ import PrivacyPolicy from '@/views/PrivacyPolicy.vue'
 import TermsOfService from '@/views/TermsOfService.vue'
 
 import { API_BASE_URL } from '@/lib/api'
+import { Capacitor } from '@capacitor/core'
 
 const routes = [
   {
@@ -171,6 +172,11 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, _from, next) => {
+  // Redirection automatique de la landing vers l'auth sur mobile natif
+  if (to.path === '/' && Capacitor.isNativePlatform()) {
+    return next('/auth')
+  }
+
   // 1. Capture du token depuis l'URL (Google OAuth)
   const tokenFromUrl = to.query.token as string
   if (tokenFromUrl) {

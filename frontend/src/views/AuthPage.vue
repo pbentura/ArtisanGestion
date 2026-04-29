@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
@@ -24,6 +24,7 @@ const router = useRouter()
 const activeTab = ref('login')
 const isLoading = ref(false)
 const showPassword = ref(false)
+const isNative = Capacitor.isNativePlatform()
 
 // Form data
 const loginForm = ref({
@@ -40,6 +41,12 @@ const signupForm = ref({
 
 const errorMessage = ref('')
 const successMessage = ref('')
+
+onMounted(() => {
+  if (localStorage.getItem('token')) {
+    router.push('/app')
+  }
+})
 
 async function handleLogin() {
   errorMessage.value = ''
@@ -110,6 +117,7 @@ async function handleSignup() {
 }
 
 function goBack() {
+  if (isNative) return
   router.push('/')
 }
 
@@ -224,8 +232,8 @@ onUnmounted(() => {
 
     <!-- Right side - Auth forms -->
     <div class="flex-1 flex flex-col justify-center items-center p-6 lg:p-12">
-      <!-- Mobile header -->
-      <div class="lg:hidden flex items-center justify-between w-full mb-8 pt-safe mt-4">
+      <!-- Mobile header - Hidden on native app -->
+      <div v-if="!isNative" class="lg:hidden flex items-center justify-between w-full mb-8 pt-safe mt-4">
         <div class="flex items-center gap-2">
           <img src="/logo.svg" alt="Logo" class="w-9 h-9" />
           <span class="text-xl font-bold">Ventura</span>
@@ -236,12 +244,19 @@ onUnmounted(() => {
         </Button>
       </div>
 
-      <!-- Desktop back button -->
-      <div class="hidden lg:flex absolute top-8 right-8">
+      <!-- Desktop back button - Hidden on native app -->
+      <div v-if="!isNative" class="hidden lg:flex absolute top-8 right-8">
         <Button variant="ghost" @click="goBack">
           <ArrowLeft class="h-4 w-4 mr-1" />
           Retour à l'accueil
         </Button>
+      </div>
+
+      <!-- Native App Branding (Simple logo when no header) -->
+      <div v-if="isNative" class="flex flex-col items-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <img src="/logo.svg" alt="Logo" class="w-16 h-16 mb-4 drop-shadow-2xl" />
+        <h1 class="text-3xl font-bold tracking-tight">Ventura</h1>
+        <p class="text-muted-foreground text-sm mt-1">Votre assistant de gestion intelligent</p>
       </div>
 
       <!-- Auth Card -->
