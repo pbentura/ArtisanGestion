@@ -781,7 +781,7 @@ async function saveAndGeneratePDF() {
 
     const worker = html2pdf()
       .set({
-        margin: [15, 15, footerText ? 25 : 15, 15],
+        margin: [25, 25, footerText ? 35 : 25, 25],
         filename: `${filename}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
@@ -803,7 +803,7 @@ async function saveAndGeneratePDF() {
         // 1. Ligne de séparation élégante (Bleu Primaire #2563eb)
         pdf.setDrawColor(37, 99, 235)
         pdf.setLineWidth(0.4)
-        pdf.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20)
+        pdf.line(25, pageHeight - 20, pageWidth - 25, pageHeight - 20)
 
         // 2. Informations société (Centrées)
         if (footerText) {
@@ -820,13 +820,13 @@ async function saveAndGeneratePDF() {
         pdf.setFontSize(8)
         pdf.setTextColor(37, 99, 235) // COLOR_PRIMARY
         pdf.setFont('helvetica', 'bold')
-        pdf.text(`Page ${i} / ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' })
+        pdf.text(`Page ${i} / ${totalPages}`, pageWidth - 25, pageHeight - 10, { align: 'right' })
 
         // 4. Petit branding (Bas Gauche)
         pdf.setFontSize(6)
         pdf.setTextColor(156, 163, 175) // COLOR_LIGHT_MUTED
         pdf.setFont('helvetica', 'italic')
-        pdf.text("Généré via Ventura", 15, pageHeight - 10)
+        pdf.text("Généré via Ventura", 25, pageHeight - 10)
       }
     }
 

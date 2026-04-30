@@ -72,10 +72,10 @@ def generate_invoice_pdf(
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        leftMargin=15 * mm,
-        rightMargin=15 * mm,
-        topMargin=15 * mm,
-        bottomMargin=bottom_margin,
+        leftMargin=25 * mm,
+        rightMargin=25 * mm,
+        topMargin=25 * mm,
+        bottomMargin=bottom_margin + 10 * mm,
         title=f"{getattr(facture, 'titre_document_pdf', 'FACTURE')} {facture.numero_facture}",
         author=getattr(societe, "nom", "Ventura"),
     )
