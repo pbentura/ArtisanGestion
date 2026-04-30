@@ -381,25 +381,38 @@ def generate_invoice_pdf(
 
     # ── Pied de page ────────────────────────────────────────────────
     def footer_callback(canvas, doc_ref):
-        if texte_pied:
-            canvas.saveState()
-            canvas.setFont("Helvetica", 6)
-            canvas.setFillColor(COLOR_GRAY)
+        page_width, page_height = A4
+        canvas.saveState()
+        
+        # 1. Ligne de séparation élégante (Bleu Primaire)
+        canvas.setStrokeColor(COLOR_PRIMARY)
+        canvas.setLineWidth(1)
+        canvas.setStrokeAlpha(0.6)
+        canvas.line(15 * mm, 20 * mm, page_width - 15 * mm, 20 * mm)
+        canvas.setStrokeAlpha(1.0)
 
-            page_width = A4[0]
-            # Centre le texte du pied de page
-            text_lines = texte_pied.split("\n")
+        # 2. Informations société (Centrées)
+        if texte_pied:
+            canvas.setFont("Helvetica", 7)
+            canvas.setFillColor(COLOR_GRAY)
+            text_lines = texte_pied.strip().split("\n")
             y = 15 * mm
             for line in reversed(text_lines):
                 canvas.drawCentredString(page_width / 2, y, line.strip())
-                y += 3 * mm
+                y += 3.5 * mm
 
-            # Ligne de séparation
-            canvas.setStrokeColor(colors.HexColor("#e5e7eb"))
-            canvas.setLineWidth(0.5)
-            canvas.line(15 * mm, y, page_width - 15 * mm, y)
+        # 3. Numérotation de page (Bas Droite)
+        page_num = canvas.getPageNumber()
+        canvas.setFont("Helvetica-Bold", 8)
+        canvas.setFillColor(COLOR_PRIMARY)
+        canvas.drawRightString(page_width - 15 * mm, 10 * mm, f"Page {page_num}")
 
-            canvas.restoreState()
+        # 4. Petit branding (Bas Gauche - optionnel mais pro)
+        canvas.setFont("Helvetica-Oblique", 6)
+        canvas.setFillColor(COLOR_LIGHT_MUTED)
+        canvas.drawString(15 * mm, 10 * mm, "Généré via Ventura")
+
+        canvas.restoreState()
 
     doc.build(elements, onFirstPage=footer_callback, onLaterPages=footer_callback)
 

@@ -568,18 +568,41 @@ async function generatePDF(shouldShare = false) {
       .toPdf()
 
     const pdf: any = await worker.get('pdf')
-    if (footerText && pdf) {
+    if (pdf) {
       const totalPages = pdf.internal.getNumberOfPages()
       const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
+        
+        // 1. Ligne de séparation élégante (Bleu Primaire #2563eb)
+        pdf.setDrawColor(37, 99, 235)
+        pdf.setLineWidth(0.4)
+        pdf.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20)
+
+        // 2. Informations société (Centrées)
+        if (footerText) {
+          pdf.setFontSize(7)
+          pdf.setTextColor(107, 114, 128) // COLOR_GRAY
+          const lines = pdf.splitTextToSize(footerText, pageWidth - 60) // Marges plus larges pour les infos
+          const startY = pageHeight - 15
+          lines.forEach((line: string, idx: number) => {
+            pdf.text(line, pageWidth / 2, startY + (idx * 3.5), { align: 'center' })
+          })
+        }
+
+        // 3. Numérotation de page (Bas Droite)
         pdf.setFontSize(8)
-        pdf.setTextColor(107, 114, 128)
-        const lines = pdf.splitTextToSize(footerText, pageWidth - 30)
-        const startY = pdf.internal.pageSize.getHeight() - (lines.length * 4) - 8 // Dynamically calculate startY based on lines
-        lines.forEach((line: string, idx: number) => {
-          pdf.text(line, pageWidth / 2, startY + (idx * 4), { align: 'center' }) // 4mm line spacing
-        })
+        pdf.setTextColor(37, 99, 235) // COLOR_PRIMARY
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(`Page ${i} / ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' })
+
+        // 4. Petit branding (Bas Gauche)
+        pdf.setFontSize(6)
+        pdf.setTextColor(156, 163, 175) // COLOR_LIGHT_MUTED
+        pdf.setFont('helvetica', 'italic')
+        pdf.text("Généré via Ventura", 15, pageHeight - 10)
       }
     }
 
