@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2 } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
 
@@ -26,6 +26,8 @@ const showPDFModal = ref(false)
 const previewHTML = ref('')
 const pdfUrl = ref('')
 const isUpdatingStatus = ref(false)
+const signatureCanvas = ref<HTMLCanvasElement | null>(null)
+const isDrawing = ref(false)
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
@@ -61,6 +63,7 @@ interface DevisForm {
   conditions_particulieres: string
   nb_jours_validite: number
   statut: string
+  signature?: string
   lignes: LigneDevis[]
 }
 
@@ -79,6 +82,7 @@ const devis = ref<DevisForm>({
   conditions_particulieres: "Paiement à réception de la facture. Acompte de 30% à la commande.",
   nb_jours_validite: 30,
   statut: 'brouillon',
+  signature: '',
   lignes: []
 })
 
@@ -314,7 +318,8 @@ async function loadExistingDevis(id: number) {
         prix_unite_ht: Number(l.prix_unite_ht),
         taux_tva: Number(l.taux_tva),
         total_ht: Number(l.total_ht)
-      })) : []
+      })) : [],
+      signature: data.signature || ''
     }
     
     if (data.client?.id) {
@@ -333,6 +338,10 @@ onMounted(async () => {
   loadLineDescriptions()
   if (isEditMode.value && devisId.value) {
     await loadExistingDevis(devisId.value)
+    // S'assurer que le canvas est prêt avant d'init
+    setTimeout(() => {
+      initSignatureCanvas()
+    }, 500)
   } else {
     // Ajouter une ligne vide par défaut pour un nouveau devis
     ajouterLigne()
@@ -386,6 +395,7 @@ async function saveDevisToDatabase(clientId: number) {
     nb_jours_validite: devis.value.nb_jours_validite,
     conditions_particulieres: devis.value.conditions_particulieres || null,
     statut: devis.value.statut,
+    signature: devis.value.signature || null,
     lignes: devis.value.lignes.map(l => ({
       description: l.description,
       quantite: l.quantite,
@@ -530,9 +540,30 @@ function getReportHTML() {
         </tbody>
       </table>
 
-      <!-- ENCART DES TOTAUX -->
-      <div style="display: flex; justify-content: flex-end; margin-bottom: 40px; page-break-inside: avoid;">
-        <div style="width: 250px; background: #f8fafc; border-radius: 6px; padding: 15px;">
+      <!-- Conditions Encadrées (Placées au-dessus des totaux) -->
+      <div style="margin-bottom: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; overflow: hidden; page-break-inside: avoid;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #2563eb;"></div>
+        <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Conditions & Informations</div>
+        <div style="font-size: 10px; color: #1f2937; line-height: 1.5; white-space: pre-wrap;">${devis.value.conditions_particulieres}</div>
+        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 9.5px; color: #475569; font-weight: 600;">
+          Valable jusqu'au : ${pdfFormatDate(new Date(new Date(devis.value.date_devis).getTime() + devis.value.nb_jours_validite * 24 * 60 * 60 * 1000).toISOString())} (${devis.value.nb_jours_validite} jours)
+        </div>
+      </div>
+
+      <!-- ENCART DES TOTAUX & SIGNATURE -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; page-break-inside: avoid;">
+        <!-- Signature (Gauche) -->
+        <div style="width: 250px;">
+          ${devis.value.signature ? `
+            <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">Signature</div>
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fff; height: 80px; display: flex; align-items: center; justify-content: center;">
+              <img src="${devis.value.signature}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Totaux (Droite) -->
+        <div style="width: 250px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <span style="color: #475569; font-weight: 600;">Total HT</span>
             <span style="font-weight: 600;">${formattedSousTotalHt.value} €</span>
@@ -541,20 +572,11 @@ function getReportHTML() {
             <span style="color: #475569; font-weight: 600;">Total TVA</span>
             <span style="font-weight: 600;">${formattedTotalTva.value} €</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #cbd5e1;">
+          <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px solid #e2e8f0;">
             <span style="color: #0f172a; font-weight: 800; font-size: 14px;">Net à Payer (TTC)</span>
             <span style="color: #2563eb; font-weight: 800; font-size: 14px;">${formattedTotalTtc.value} €</span>
           </div>
         </div>
-      </div>
-
-      <!-- PIED DE PAGE : Validité & Conditions -->
-      <div style="margin-top: auto; page-break-inside: avoid;">
-        <div style="margin-bottom: 10px;">
-          <strong style="color: #0f172a; font-size: 11px;">Conditions particulières et informations :</strong>
-          <div style="font-size: 10px; color: #475569; line-height: 1.4; white-space: pre-wrap;">${devis.value.conditions_particulieres}</div>
-        </div>
-        <div style="font-size: 10px; color: #475569; font-weight: 600;">Valable jusqu'au : ${pdfFormatDate(new Date(new Date(devis.value.date_devis).getTime() + devis.value.nb_jours_validite * 24 * 60 * 60 * 1000).toISOString())} (${devis.value.nb_jours_validite} jours)</div>
       </div>
     </div>`
 }
@@ -694,6 +716,105 @@ function shareDevis() {
   }
   alert("Le partage direct sera disponible bientôt. Utilisez l'aperçu PDF.")
 }
+
+// Signature Pad Logic
+function startDrawing(e: MouseEvent | TouchEvent) {
+  isDrawing.value = true
+  draw(e)
+}
+
+function stopDrawing() {
+  isDrawing.value = false
+  if (signatureCanvas.value) {
+    const ctx = signatureCanvas.value.getContext('2d')
+    if (ctx) ctx.beginPath()
+    saveSignature()
+  }
+}
+
+function draw(e: MouseEvent | TouchEvent) {
+  if (!isDrawing.value || !signatureCanvas.value) return
+  
+  const canvas = signatureCanvas.value
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const rect = canvas.getBoundingClientRect()
+  let x, y
+
+  if (e instanceof MouseEvent) {
+    x = e.clientX - rect.left
+    y = e.clientY - rect.top
+  } else {
+    x = e.touches[0].clientX - rect.left
+    y = e.touches[0].clientY - rect.top
+  }
+
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+  ctx.strokeStyle = '#000'
+
+  ctx.lineTo(x, y)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+}
+
+function clearSignature() {
+  if (!signatureCanvas.value) return
+  const canvas = signatureCanvas.value
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    devis.value.signature = ''
+  }
+}
+
+function saveSignature() {
+  if (!signatureCanvas.value) return
+  // Vérifier si le canvas est vide (optionnel mais recommandé)
+  const isEmpty = isCanvasEmpty(signatureCanvas.value)
+  if (isEmpty) {
+    devis.value.signature = ''
+  } else {
+    devis.value.signature = signatureCanvas.value.toDataURL('image/png')
+  }
+}
+
+function isCanvasEmpty(canvas: HTMLCanvasElement) {
+  const blank = document.createElement('canvas')
+  blank.width = canvas.width
+  blank.height = canvas.height
+  return canvas.toDataURL() === blank.toDataURL()
+}
+
+// Initialiser le canvas si on a déjà une signature
+function initSignatureCanvas() {
+  if (devis.value.signature && signatureCanvas.value) {
+    const canvas = signatureCanvas.value
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      const img = new Image()
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(img, 0, 0)
+      }
+      img.src = devis.value.signature
+    }
+  }
+}
+
+// Watch signature changes to init canvas when loading existing devis
+import { watch } from 'vue'
+watch(() => devis.value.signature, (newVal) => {
+  if (newVal && signatureCanvas.value) {
+    // Only init if canvas is empty
+    if (isCanvasEmpty(signatureCanvas.value)) {
+       initSignatureCanvas()
+    }
+  }
+}, { immediate: true })
+
 </script>
 
 <template>
@@ -1017,6 +1138,53 @@ function shareDevis() {
               <label class="block text-sm font-medium text-foreground mb-1.5">Conditions particulières</label>
               <textarea v-model="devis.conditions_particulieres" rows="3" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none resize-y text-sm"></textarea>
             </div>
+          </div>
+          
+          <!-- Signature Section -->
+          <div class="mt-8 pt-8 border-t border-border">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <h4 class="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <PenTool class="w-4 h-4 text-primary" />
+                  Signature du document (optionnelle)
+                </h4>
+                <p class="text-xs text-muted-foreground">Signez directement sur l'écran pour inclure votre signature au PDF</p>
+              </div>
+              <button 
+                @click="clearSignature" 
+                type="button"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors px-2 py-1 rounded-md hover:bg-destructive/10"
+              >
+                <Eraser class="w-3.5 h-3.5" />
+                Effacer
+              </button>
+            </div>
+            
+            <div class="relative bg-white border-2 border-dashed border-muted rounded-xl overflow-hidden touch-none" style="height: 160px;">
+              <canvas 
+                ref="signatureCanvas"
+                width="800"
+                height="160"
+                class="absolute inset-0 w-full h-full cursor-crosshair"
+                @mousedown="startDrawing"
+                @mousemove="draw"
+                @mouseup="stopDrawing"
+                @mouseleave="stopDrawing"
+                @touchstart.prevent="startDrawing"
+                @touchmove.prevent="draw"
+                @touchend.prevent="stopDrawing"
+              ></canvas>
+              
+              <div v-if="!devis.signature" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
+                <PenTool class="w-8 h-8 mb-2" />
+                <span class="text-xs font-medium">Signez ici</span>
+              </div>
+            </div>
+            
+            <p v-if="devis.signature" class="mt-2 text-[10px] text-green-600 font-medium flex items-center gap-1">
+              <CheckCircle2 class="w-3 h-3" />
+              Signature enregistrée
+            </p>
           </div>
         </section>
 

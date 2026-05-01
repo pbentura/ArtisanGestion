@@ -18,6 +18,7 @@ class DevisBase(BaseModel):
     nb_jours_validite: int = 30
     conditions_particulieres: Optional[str] = None
     statut: str = "brouillon"
+    signature: Optional[str] = None
 
 
 class DevisCreate(DevisBase):
@@ -36,6 +37,7 @@ class DevisUpdate(BaseModel):
     nb_jours_validite: Optional[int] = None
     conditions_particulieres: Optional[str] = None
     statut: Optional[str] = None
+    signature: Optional[str] = None
 
 
 class Devis(DevisBase):

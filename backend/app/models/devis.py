@@ -18,6 +18,7 @@ class Devis(Base):
     nb_jours_validite = Column(Integer, nullable=False, server_default="30")
     conditions_particulieres = Column(Text, nullable=True)
     statut = Column(String, nullable=False, server_default="brouillon")
+    signature = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

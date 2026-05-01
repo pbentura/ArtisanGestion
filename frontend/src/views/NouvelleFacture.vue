@@ -715,9 +715,20 @@ function getReportHTML() {
         </tbody>
       </table>
 
+      <!-- Conditions Encadrées (Placées au-dessus des totaux) -->
+      <div style="margin-bottom: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; overflow: hidden; page-break-inside: avoid;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #2563eb;"></div>
+        <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Conditions & Informations</div>
+        <div style="font-size: 10px; color: #1f2937; line-height: 1.5; white-space: pre-wrap;">${facture.value.conditions_particulieres}</div>
+        ${facture.value.date_echeance ? `
+        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 9.5px; color: #475569; font-weight: 600;">
+          Date d'échéance : ${pdfFormatDate(facture.value.date_echeance)} (${facture.value.nb_jours_echeance} jours)
+        </div>` : ''}
+      </div>
+
       <!-- ENCART DES TOTAUX -->
       <div style="display: flex; justify-content: flex-end; margin-bottom: 40px; page-break-inside: avoid;">
-        <div style="width: 250px; background: #f8fafc; border-radius: 6px; padding: 15px;">
+        <div style="width: 250px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <span style="color: #475569; font-weight: 600;">Total HT</span>
             <span style="font-weight: 600;">${formattedSousTotalHt.value} €</span>
@@ -726,20 +737,11 @@ function getReportHTML() {
             <span style="color: #475569; font-weight: 600;">Total TVA</span>
             <span style="font-weight: 600;">${formattedTotalTva.value} €</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #cbd5e1;">
+          <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px solid #e2e8f0;">
             <span style="color: #0f172a; font-weight: 800; font-size: 14px;">Net à Payer (TTC)</span>
             <span style="color: #2563eb; font-weight: 800; font-size: 14px;">${formattedTotalTtc.value} €</span>
           </div>
         </div>
-      </div>
-
-      <!-- PIED DE PAGE : Échéance & Conditions -->
-      <div style="margin-top: auto; page-break-inside: avoid;">
-        <div style="margin-bottom: 10px;">
-          <strong style="color: #0f172a; font-size: 11px;">Conditions particulières et informations :</strong>
-          <div style="font-size: 10px; color: #475569; line-height: 1.4; white-space: pre-wrap;">${facture.value.conditions_particulieres}</div>
-        </div>
-        ${facture.value.date_echeance ? `<div style="font-size: 10px; color: #475569; font-weight: 600;">Date d'échéance : ${pdfFormatDate(facture.value.date_echeance)} (${facture.value.nb_jours_echeance} jours)</div>` : ''}
       </div>
     </div>`
 }
