@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye, Link as LinkIcon, ExternalLink, Unlink, ClipboardList } from 'lucide-vue-next'
+import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
 
@@ -35,6 +36,7 @@ const aiError = ref('')
 const showPDFModal = ref(false)
 const pdfUrl = ref('')
 const previewHTML = ref('')
+const showLinkModal = ref(false)
 
 
 const aiInterventionTypes = [
@@ -71,6 +73,8 @@ interface Rapport {
   contenu: string
   photos: string[]
   statut: string
+  id_devis?: number | null
+  devis?: any
   createdAt: string
 }
 
@@ -87,6 +91,8 @@ const rapport = ref<Rapport>({
   contenu: '',
   photos: [],
   statut: 'en cours',
+  id_devis: null,
+  devis: null,
   createdAt: new Date().toISOString()
 })
 
@@ -279,6 +285,8 @@ async function loadExistingRapport(id: number) {
       contenu: data.contenu || '',
       photos: data.photos && data.photos.length > 0 ? data.photos : (data.photo_url ? [data.photo_url] : []),
       statut: data.statut || 'en cours',
+      id_devis: data.id_devis || null,
+      devis: data.devis || null,
       createdAt: data.created_at
     }
     
@@ -404,7 +412,8 @@ async function saveRapportToDatabase(clientId: number | null) {
     id_client: clientId,
     contenu: rapport.value.contenu || null,
     photos: rapport.value.photos,
-    statut: rapport.value.statut
+    statut: rapport.value.statut,
+    id_devis: rapport.value.id_devis
   }
   
   const endpoint = isEditMode.value && rapportId.value
@@ -442,6 +451,42 @@ async function saveRapport() {
     alert('Erreur lors de la sauvegarde du rapport : ' + e.message)
   } finally {
     isSaving.value = false
+  }
+}
+
+async function handleLinkDevis(devisId: number) {
+  try {
+    rapport.value.id_devis = devisId
+    if (isEditMode.value) {
+      await apiFetch(`rapports/${rapportId.value}`, {
+        method: 'PUT',
+        body: JSON.stringify({ id_devis: devisId })
+      })
+      // Re-load to get devis object
+      const res = await apiFetch(`rapports/${rapportId.value}`)
+      if (res.ok) {
+        const data = await res.json()
+        rapport.value.devis = data.devis
+      }
+    }
+  } catch (error) {
+    console.error('Error linking devis:', error)
+  }
+}
+
+async function unlinkDevis() {
+  if (!confirm('Voulez-vous vraiment détacher ce devis ?')) return
+  try {
+    rapport.value.id_devis = null
+    rapport.value.devis = null
+    if (isEditMode.value) {
+      await apiFetch(`rapports/${rapportId.value}`, {
+        method: 'PUT',
+        body: JSON.stringify({ id_devis: null })
+      })
+    }
+  } catch (error) {
+    console.error('Error unlinking devis:', error)
   }
 }
 
@@ -985,6 +1030,15 @@ async function generateWithAI() {
           <span class="hidden sm:inline">{{ isSaving ? 'Sauvegarde...' : 'Sauvegarder & PDF' }}</span>
           <span class="sm:hidden">PDF</span>
         </button>
+        <button 
+          v-if="!rapport.id_devis"
+          @click="showLinkModal = true" 
+          class="inline-flex items-center gap-2 px-3 py-2.5 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+          title="Lier un devis"
+        >
+          <LinkIcon class="w-5 h-5" />
+          <span class="hidden md:inline">Lier Devis</span>
+        </button>
       </div>
     </div>
 
@@ -1035,6 +1089,38 @@ async function generateWithAI() {
         </div>
         <input v-model="rapport.titre" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="RAPPORT D'INTERVENTION" />
         <p class="text-xs text-muted-foreground mt-1">Ce titre apparaîtra en haut du document PDF généré</p>
+
+        <!-- Document Lié -->
+        <div v-if="rapport.id_devis && rapport.devis" class="mt-6 p-4 rounded-xl border border-teal-100 bg-teal-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center mr-4 text-teal-600">
+              <ClipboardList class="w-5 h-5" />
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-teal-900">Devis lié</h4>
+              <p class="text-xs text-teal-700 font-medium">Devis #{{ rapport.devis.numero_devis }} - {{ rapport.devis.objet_devis || 'Sans objet' }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button 
+              type="button"
+              @click="router.push(`/app/devis/${rapport.id_devis}`)"
+              class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-teal-700 border border-teal-200 rounded-lg text-xs font-bold hover:bg-teal-50 transition-colors shadow-sm"
+            >
+              <ExternalLink class="w-3.5 h-3.5" />
+              Voir le devis
+            </button>
+            <button 
+              type="button"
+              @click="unlinkDevis"
+              class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-destructive border border-destructive/20 rounded-lg text-xs font-bold hover:bg-destructive/5 transition-colors shadow-sm"
+              title="Détacher le devis"
+            >
+              <Unlink class="w-3.5 h-3.5" />
+              Détacher
+            </button>
+          </div>
+        </div>
       </section>
 
       <!-- Client Infos -->
@@ -1264,6 +1350,13 @@ OBSERVATIONS ET RECOMMANDATIONS :
     </div>
 
 
+    <LinkDocumentModal 
+      :is-open="showLinkModal"
+      type="rapport"
+      :client-id="selectedClientId || undefined"
+      @close="showLinkModal = false"
+      @select="handleLinkDevis"
+    />
   </div>
 </template>
 

@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser, Link as LinkIcon, ExternalLink, Unlink } from 'lucide-vue-next'
+import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
 
@@ -28,6 +29,7 @@ const pdfUrl = ref('')
 const isUpdatingStatus = ref(false)
 const signatureCanvas = ref<HTMLCanvasElement | null>(null)
 const isDrawing = ref(false)
+const showLinkModal = ref(false)
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
@@ -64,6 +66,8 @@ interface DevisForm {
   nb_jours_validite: number
   statut: string
   signature?: string
+  id_rapport?: number | null
+  rapport?: any
   lignes: LigneDevis[]
 }
 
@@ -83,6 +87,8 @@ const devis = ref<DevisForm>({
   nb_jours_validite: 30,
   statut: 'brouillon',
   signature: '',
+  id_rapport: null,
+  rapport: null,
   lignes: []
 })
 
@@ -319,7 +325,9 @@ async function loadExistingDevis(id: number) {
         taux_tva: Number(l.taux_tva),
         total_ht: Number(l.total_ht)
       })) : [],
-      signature: data.signature || ''
+      signature: data.signature || '',
+      id_rapport: data.id_rapport || null,
+      rapport: data.rapport || null
     }
     
     if (data.client?.id) {
@@ -402,7 +410,8 @@ async function saveDevisToDatabase(clientId: number) {
       prix_unite_ht: l.prix_unite_ht,
       taux_tva: l.taux_tva,
       total_ht: l.total_ht
-    }))
+    })),
+    id_rapport: devis.value.id_rapport
   }
   
   const endpoint = isEditMode.value && devisId.value
@@ -544,7 +553,7 @@ function getReportHTML() {
       <div style="margin-bottom: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; overflow: hidden; page-break-inside: avoid;">
         <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #2563eb;"></div>
         <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Conditions & Informations</div>
-        <div style="font-size: 10px; color: #1f2937; line-height: 1.5; white-space: pre-wrap;">${devis.value.conditions_particulieres}</div>
+        <div style="font-size: 10px; color: #1f2937; line-height: 1.5; white-space: pre-wrap; text-align: justify;">${devis.value.conditions_particulieres}</div>
         <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 9.5px; color: #475569; font-weight: 600;">
           Valable jusqu'au : ${pdfFormatDate(new Date(new Date(devis.value.date_devis).getTime() + devis.value.nb_jours_validite * 24 * 60 * 60 * 1000).toISOString())} (${devis.value.nb_jours_validite} jours)
         </div>
@@ -844,6 +853,42 @@ watch(() => devis.value.signature, (newVal) => {
   }
 }, { immediate: true })
 
+async function handleLinkRapport(rapportId: number) {
+  try {
+    devis.value.id_rapport = rapportId
+    if (isEditMode.value) {
+      await apiFetch(`devis/${devisId.value}`, {
+        method: 'PUT',
+        body: JSON.stringify({ id_rapport: rapportId })
+      })
+      // Re-load to get rapport object
+      const res = await apiFetch(`devis/${devisId.value}`)
+      if (res.ok) {
+        const data = await res.json()
+        devis.value.rapport = data.rapport
+      }
+    }
+  } catch (error) {
+    console.error('Error linking rapport:', error)
+  }
+}
+
+async function unlinkRapport() {
+  if (!confirm('Voulez-vous vraiment détacher ce rapport ?')) return
+  try {
+    devis.value.id_rapport = null
+    devis.value.rapport = null
+    if (isEditMode.value) {
+      await apiFetch(`devis/${devisId.value}`, {
+        method: 'PUT',
+        body: JSON.stringify({ id_rapport: null })
+      })
+    }
+  } catch (error) {
+    console.error('Error unlinking rapport:', error)
+  }
+}
+
 </script>
 
 <template>
@@ -914,6 +959,15 @@ watch(() => devis.value.signature, (newVal) => {
                 <Receipt class="w-5 h-5" />
                 <span>Facturer</span>
               </button>
+              <button 
+                v-if="!devis.id_rapport"
+                @click="showLinkModal = true" 
+                class="inline-flex items-center gap-2 px-3 py-2 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+                title="Lier un rapport d'intervention"
+              >
+                <LinkIcon class="w-5 h-5" />
+                <span>Lier Rapport</span>
+              </button>
             </div>
           </div>
         </div>
@@ -947,6 +1001,15 @@ watch(() => devis.value.signature, (newVal) => {
           >
             <Share2 class="w-4 h-4" />
             <span class="text-xs">Partager</span>
+          </button>
+
+          <button
+            v-if="!devis.id_rapport"
+            @click="showLinkModal = true"
+            class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg font-medium whitespace-nowrap"
+          >
+            <LinkIcon class="w-4 h-4" />
+            <span class="text-xs">Lier Rapport</span>
           </button>
         </div>
       </div>
@@ -1001,6 +1064,38 @@ watch(() => devis.value.signature, (newVal) => {
             <div>
               <label class="block text-sm font-medium text-foreground mb-1.5">Objet du devis</label>
               <input type="text" v-model="devis.objet_devis" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: Rénovation salle de bain" />
+            </div>
+          </div>
+
+          <!-- Document Lié -->
+          <div v-if="devis.id_rapport && devis.rapport" class="mt-6 p-4 rounded-xl border border-blue-100 bg-blue-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div class="flex items-center">
+              <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4 text-blue-600">
+                <FileText class="w-5 h-5" />
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-blue-900">Rapport d'intervention lié</h4>
+                <p class="text-xs text-blue-700 font-medium">Rapport #{{ devis.id_rapport }} - {{ devis.rapport.titre || 'Sans titre' }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button 
+                type="button"
+                @click="router.push(`/app/rapports/${devis.id_rapport}`)"
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-blue-700 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors shadow-sm"
+              >
+                <ExternalLink class="w-3.5 h-3.5" />
+                Voir le rapport
+              </button>
+              <button 
+                type="button"
+                @click="unlinkRapport"
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-destructive border border-destructive/20 rounded-lg text-xs font-bold hover:bg-destructive/5 transition-colors shadow-sm"
+                title="Détacher le rapport"
+              >
+                <Unlink class="w-3.5 h-3.5" />
+                Détacher
+              </button>
             </div>
           </div>
         </section>
@@ -1295,6 +1390,14 @@ watch(() => devis.value.signature, (newVal) => {
       </div>
     </Transition>
   </Teleport>
+
+  <LinkDocumentModal 
+    :is-open="showLinkModal"
+    type="devis"
+    :client-id="selectedClientId || undefined"
+    @close="showLinkModal = false"
+    @select="handleLinkRapport"
+  />
 </template>
 
 <style scoped>

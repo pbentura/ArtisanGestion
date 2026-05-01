@@ -6,6 +6,7 @@ from sqlalchemy.orm import joinedload
 
 from app.api import deps
 from app.models.rapport import Rapport
+from app.models.devis import Devis
 from app.models.client import Client
 from app.models.user import User
 from app.schemas.rapport import Rapport as RapportSchema, RapportCreate, RapportUpdate
@@ -24,7 +25,7 @@ async def read_rapports(
     """
     result = await db.execute(
         select(Rapport)
-        .options(joinedload(Rapport.client))
+        .options(joinedload(Rapport.client), joinedload(Rapport.devis))
         .where(Rapport.id_user == current_user.id)
         .offset(skip)
         .limit(limit)
@@ -66,7 +67,7 @@ async def read_rapport(
     """
     result = await db.execute(
         select(Rapport)
-        .options(joinedload(Rapport.client))
+        .options(joinedload(Rapport.client), joinedload(Rapport.devis))
         .where(Rapport.id == rapport_id, Rapport.id_user == current_user.id)
     )
     rapport = result.scalars().first()
@@ -106,6 +107,23 @@ async def update_rapport(
     update_data = rapport_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_rapport, field, value)
+    
+    # Bidirectional link: if id_devis is updated, update the Devis to point to this rapport
+    if "id_devis" in update_data and update_data["id_devis"] is not None:
+        devis_result = await db.execute(
+            select(Devis).where(Devis.id == update_data["id_devis"], Devis.id_user == current_user.id)
+        )
+        db_devis = devis_result.scalars().first()
+        if db_devis:
+            db_devis.id_rapport = db_rapport.id
+    elif "id_devis" in update_data and update_data["id_devis"] is None:
+        # If unlinking, also unlink from the other side
+        devis_result = await db.execute(
+            select(Devis).where(Devis.id_rapport == db_rapport.id)
+        )
+        db_devis = devis_result.scalars().first()
+        if db_devis:
+            db_devis.id_rapport = None
         
     await db.commit()
     await db.refresh(db_rapport)

@@ -6,6 +6,7 @@ from sqlalchemy.orm import joinedload
 
 from app.api import deps
 from app.models.devis import Devis
+from app.models.rapport import Rapport
 from app.models.client import Client
 from app.models.user import User
 from app.schemas.devis import Devis as DevisSchema, DevisCreate, DevisUpdate
@@ -25,7 +26,7 @@ async def read_devis(
     """
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
         .where(Devis.id_user == current_user.id)
         .offset(skip)
         .limit(limit)
@@ -63,7 +64,7 @@ async def create_devis(
     # Reload fully mapped object with relationships to avoid MissingGreenlet on Pydantic serialization
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
         .where(Devis.id == db_devis.id)
     )
     db_devis_loaded = result.unique().scalars().first()
@@ -109,7 +110,7 @@ async def read_un_devis(
     """
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
         .where(Devis.id == devis_id, Devis.id_user == current_user.id)
     )
     devis = result.unique().scalars().first()
@@ -129,7 +130,7 @@ async def update_devis(
     """
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
         .where(Devis.id == devis_id, Devis.id_user == current_user.id)
     )
     db_devis = result.unique().scalars().first()
@@ -149,6 +150,23 @@ async def update_devis(
     update_data = devis_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_devis, field, value)
+    
+    # Bidirectional link: if id_rapport is updated, update the Rapport to point to this devis
+    if "id_rapport" in update_data and update_data["id_rapport"] is not None:
+        rapport_result = await db.execute(
+            select(Rapport).where(Rapport.id == update_data["id_rapport"], Rapport.id_user == current_user.id)
+        )
+        db_rapport = rapport_result.scalars().first()
+        if db_rapport:
+            db_rapport.id_devis = db_devis.id
+    elif "id_rapport" in update_data and update_data["id_rapport"] is None:
+        # If unlinking, also unlink from the other side
+        rapport_result = await db.execute(
+            select(Rapport).where(Rapport.id_devis == db_devis.id)
+        )
+        db_rapport = rapport_result.scalars().first()
+        if db_rapport:
+            db_rapport.id_devis = None
         
     await db.commit()
     await db.refresh(db_devis)

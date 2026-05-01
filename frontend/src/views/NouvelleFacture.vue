@@ -719,7 +719,7 @@ function getReportHTML() {
       <div style="margin-bottom: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; overflow: hidden; page-break-inside: avoid;">
         <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #2563eb;"></div>
         <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Conditions & Informations</div>
-        <div style="font-size: 10px; color: #1f2937; line-height: 1.5; white-space: pre-wrap;">${facture.value.conditions_particulieres}</div>
+        <div style="font-size: 10px; color: #1f2937; line-height: 1.5; white-space: pre-wrap; text-align: justify;">${facture.value.conditions_particulieres}</div>
         ${facture.value.date_echeance ? `
         <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 9.5px; color: #475569; font-weight: 600;">
           Date d'échéance : ${pdfFormatDate(facture.value.date_echeance)} (${facture.value.nb_jours_echeance} jours)

@@ -11,6 +11,7 @@ class RapportBase(BaseModel):
     photo_url: Optional[str] = None  # Legacy single photo
     photos: Optional[List[str]] = [] # Multiple photos
     statut: str = "en cours"
+    id_devis: Optional[int] = None
 
 class RapportCreate(RapportBase):
     pass
@@ -21,12 +22,14 @@ class RapportUpdate(RapportBase):
     id_client: Optional[int] = None
     statut: Optional[str] = None
     photos: Optional[List[str]] = None
+    id_devis: Optional[int] = None
 
 class Rapport(RapportBase):
     id: int
     id_user: int
     created_at: datetime
     client: Optional[ClientSchema] = None
+    devis: Optional[BaseModel] = None # Avoid circular import
 
     class Config:
         from_attributes = True
