@@ -720,7 +720,30 @@ function shareDevis() {
 // Signature Pad Logic
 function startDrawing(e: MouseEvent | TouchEvent) {
   isDrawing.value = true
-  draw(e)
+  
+  const canvas = signatureCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  
+  const rect = canvas.getBoundingClientRect()
+  const scaleX = canvas.width / rect.width
+  const scaleY = canvas.height / rect.height
+  
+  let clientX, clientY
+  if (e instanceof MouseEvent) {
+    clientX = e.clientX
+    clientY = e.clientY
+  } else {
+    clientX = e.touches[0].clientX
+    clientY = e.touches[0].clientY
+  }
+  
+  const x = (clientX - rect.left) * scaleX
+  const y = (clientY - rect.top) * scaleY
+  
+  ctx.beginPath()
+  ctx.moveTo(x, y)
 }
 
 function stopDrawing() {
@@ -740,24 +763,30 @@ function draw(e: MouseEvent | TouchEvent) {
   if (!ctx) return
 
   const rect = canvas.getBoundingClientRect()
-  let x, y
+  
+  // Correction du décalage : multiplication par le ratio (taille réelle / taille affichée)
+  const scaleX = canvas.width / rect.width
+  const scaleY = canvas.height / rect.height
 
+  let clientX, clientY
   if (e instanceof MouseEvent) {
-    x = e.clientX - rect.left
-    y = e.clientY - rect.top
+    clientX = e.clientX
+    clientY = e.clientY
   } else {
-    x = e.touches[0].clientX - rect.left
-    y = e.touches[0].clientY - rect.top
+    clientX = e.touches[0].clientX
+    clientY = e.touches[0].clientY
   }
 
-  ctx.lineWidth = 2
+  const x = (clientX - rect.left) * scaleX
+  const y = (clientY - rect.top) * scaleY
+
+  ctx.lineWidth = 2.5
   ctx.lineCap = 'round'
-  ctx.strokeStyle = '#000'
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = '#0f172a'
 
   ctx.lineTo(x, y)
   ctx.stroke()
-  ctx.beginPath()
-  ctx.moveTo(x, y)
 }
 
 function clearSignature() {
@@ -1170,9 +1199,9 @@ watch(() => devis.value.signature, (newVal) => {
                 @mousemove="draw"
                 @mouseup="stopDrawing"
                 @mouseleave="stopDrawing"
-                @touchstart.prevent="startDrawing"
-                @touchmove.prevent="draw"
-                @touchend.prevent="stopDrawing"
+                @touchstart.prevent.stop="startDrawing"
+                @touchmove.prevent.stop="draw"
+                @touchend.prevent.stop="stopDrawing"
               ></canvas>
               
               <div v-if="!devis.signature" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
