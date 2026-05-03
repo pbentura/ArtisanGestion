@@ -135,3 +135,19 @@
 .mt-safe { margin-top: calc(12px + env(safe-area-inset-top, 0px)); }
 .mb-safe { margin-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 
+/* ── Animations ── */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.5s ease-out both;
+}
+

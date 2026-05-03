@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Building2, Home, FileText, Settings, LogOut, 
@@ -8,7 +8,6 @@ import {
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileBottomNav from '@/components/mobile/MobileBottomNav.vue'
-import { apiFetch } from '@/lib/api'
 import { useMobile } from '@/composables/useMobile'
 import { dataStore } from '@/lib/store'
 
@@ -16,26 +15,20 @@ const router = useRouter()
 const route = useRoute()
 const { isNative } = useMobile()
 const isSidebarOpen = ref(false)
-const user = ref({ prenom: '', nom: '', email: '', role: '' })
-const societe = ref({ nom: '' })
+const user = computed(() => {
+  const d = dataStore.user.data
+  if (!d) return { prenom: '', nom: '', email: '', role: '' }
+  return { prenom: d.prenom, nom: d.nom, email: d.email, role: d.role || 'USER' }
+})
 
-onMounted(async () => {
-  try {
-    const res = await apiFetch('users/me')
-    if (res.ok) {
-      const data = await res.json()
-      user.value = { prenom: data.prenom, nom: data.nom, email: data.email, role: data.role || 'USER' }
-      if (data.societes?.length > 0) {
-        societe.value = data.societes[0]
-      }
-    } else {
-      console.error('Erreur API me:', await res.text())
-    }
-  } catch (e) {
-    console.error('Failed to fetch user data', e)
-  }
-  
-  // Prefetch data for other pages
+const societe = computed(() => {
+  const d = dataStore.user.data
+  if (d && d.societes?.length > 0) return d.societes[0]
+  return { nom: '' }
+})
+
+onMounted(() => {
+  // Prefetch everything including user data
   dataStore.prefetchAll()
 })
 
@@ -125,7 +118,7 @@ function handleLogout() {
       <header v-if="!isNative" class="main-header">
         <div class="header-left">
           <button 
-            class="hamburger-btn lg:hidden mr-4" 
+            class="hamburger-btn mr-4" 
             @click="isSidebarOpen = true"
           >
             <Menu class="w-6 h-6" />
@@ -405,9 +398,15 @@ function handleLogout() {
   border: none;
   color: var(--foreground);
   cursor: pointer;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .hamburger-btn {
+    display: flex;
+  }
 }
 
 @media (max-width: 1024px) {

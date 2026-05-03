@@ -9,13 +9,13 @@ import {
   Wallet, BarChart3, Target, ClipboardList,
   Camera, Calendar, RefreshCw
 } from 'lucide-vue-next'
-import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 
 const router = useRouter()
-const loading = ref(true)
+const loading = computed(() => dataStore.dashboard.loading)
 const error = ref(false)
-const userName = ref('')
-const companyName = ref('')
+const userName = computed(() => dataStore.user.data?.prenom || '')
+const companyName = computed(() => dataStore.user.data?.societes?.[0]?.nom || '')
 
 interface DashboardData {
   ca_mois_ht: number
@@ -40,7 +40,7 @@ interface DashboardData {
   factures_impayees: any[]
 }
 
-const data = ref<DashboardData | null>(null)
+const data = computed<DashboardData | null>(() => dataStore.dashboard.data)
 const { isNative } = useMobile()
 
 function formatMoney(value: number): string {
@@ -88,50 +88,35 @@ const caVariation = computed(() => {
 
 const maxEvolutionCA = computed(() => {
   if (!data.value) return 1
-  return Math.max(...data.value.evolution_ca.map(e => e.ca_ttc), 1)
+  return Math.max(...data.value.evolution_ca.map((e: any) => e.ca_ttc), 1)
 })
 
 const maxTopClientCA = computed(() => {
   if (!data.value || data.value.top_clients.length === 0) return 1
-  return Math.max(...data.value.top_clients.map(c => c.ca_ttc), 1)
+  return Math.max(...data.value.top_clients.map((c: any) => c.ca_ttc), 1)
 })
 
 const monthLabels = computed(() => {
   if (!data.value) return []
-  return data.value.evolution_ca.map(e => {
+  return data.value.evolution_ca.map((e: any) => {
     const d = new Date(e.mois + '-01')
     return d.toLocaleDateString('fr-FR', { month: 'short' })
   })
 })
 
 async function fetchDashboard() {
-  loading.value = true
   error.value = false
   try {
-    // Fetch user info & dashboard data in parallel
-    const [userRes, dashRes] = await Promise.all([
-      apiFetch('users/me'),
-      apiFetch('dashboard'),
+    await Promise.all([
+      dataStore.fetchUser(),
+      dataStore.fetchDashboard()
     ])
-
-    if (userRes.ok) {
-      const userData = await userRes.json()
-      userName.value = userData.prenom
-      if (userData.societes?.length > 0) {
-        companyName.value = userData.societes[0].nom
-      }
-    }
-
-    if (dashRes.ok) {
-      data.value = await dashRes.json()
-    } else {
+    if (!dataStore.dashboard.data) {
       error.value = true
     }
   } catch (e) {
     console.error('Dashboard fetch error:', e)
     error.value = true
-  } finally {
-    loading.value = false
   }
 }
 
@@ -1207,15 +1192,4 @@ onMounted(fetchDashboard)
   white-space: nowrap;
 }
 
-/* ── Animation ── */
-@keyframes fadeSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 </style>

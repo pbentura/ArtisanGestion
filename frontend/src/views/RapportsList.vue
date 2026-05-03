@@ -292,7 +292,7 @@ onMounted(fetchRapports)
 
 <template>
   <div class="max-w-6xl mx-auto">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex animate-fade-slide-up">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Rapports d'intervention</h1>
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos rapports d'intervention et créez-en de nouveaux</p>
@@ -333,7 +333,7 @@ onMounted(fetchRapports)
 
     <!-- Rapports List -->
     <div v-else-if="rapports.length > 0" class="grid gap-4">
-      <div class="relative">
+      <div class="relative animate-fade-slide-up" style="animation-delay: 0.1s">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
           v-model="searchQuery"
@@ -343,9 +343,10 @@ onMounted(fetchRapports)
         />
       </div>
       <div
-        v-for="rapport in filteredRapports"
+        v-for="(rapport, idx) in filteredRapports"
         :key="rapport.id"
-        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer"
+        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-colors cursor-pointer animate-fade-slide-up"
+        :style="{ animationDelay: (0.15 + idx * 0.05) + 's' }"
         @click="router.push(`/app/rapports/${rapport.id}`)"
       >
         <div class="flex items-start justify-between gap-3">

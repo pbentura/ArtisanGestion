@@ -337,7 +337,7 @@ onMounted(fetchFactures)
       />
     </div>
 
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex animate-fade-slide-up">
       <div>
         <div class="flex items-center gap-3">
           <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Factures</h1>
@@ -381,7 +381,7 @@ onMounted(fetchFactures)
 
     <!-- Factures List -->
     <div v-else-if="facturesList.length > 0" class="grid gap-4">
-      <div class="flex flex-col md:flex-row gap-4">
+      <div class="flex flex-col md:flex-row gap-4 animate-fade-slide-up" style="animation-delay: 0.1s">
         <div class="relative flex-1">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
@@ -446,9 +446,10 @@ onMounted(fetchFactures)
       </div>
 
       <div
-        v-for="facture in filteredFactures"
+        v-for="(facture, idx) in filteredFactures"
         :key="facture.id"
-        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-all cursor-pointer"
+        class="bg-card border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-all cursor-pointer animate-fade-slide-up"
+        :style="{ animationDelay: (0.15 + idx * 0.05) + 's' }"
         @click="router.push(`/app/factures/${facture.id}`)"
       >
         <div class="flex items-start justify-between gap-3">

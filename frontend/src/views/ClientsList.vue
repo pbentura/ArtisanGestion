@@ -136,7 +136,7 @@ onMounted(fetchClients)
 
 <template>
   <div class="clients-page">
-    <div class="page-header hidden lg:flex">
+    <div class="page-header hidden lg:flex animate-fade-slide-up">
       <h1 class="page-title">Mes clients</h1>
       <button @click="openCreateModal" class="btn-primary">
         <Plus class="w-4 h-4" /> Nouveau client
@@ -154,7 +154,12 @@ onMounted(fetchClients)
     </div>
 
     <div v-else class="clients-grid">
-      <div v-for="client in clients" :key="client.id" class="client-card">
+      <div 
+        v-for="(client, idx) in clients" 
+        :key="client.id" 
+        class="client-card animate-fade-slide-up"
+        :style="{ animationDelay: (idx * 0.05) + 's' }"
+      >
         <div class="card-header">
           <h3 class="client-name">{{ client.nom }}</h3>
           

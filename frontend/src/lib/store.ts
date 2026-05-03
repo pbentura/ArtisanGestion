@@ -31,6 +31,18 @@ export const dataStore = reactive({
     loading: false,
     lastFetched: null as number | null
   } as CollectionState<any>,
+  
+  user: {
+    data: null as any,
+    loading: false,
+    lastFetched: null as number | null
+  },
+
+  dashboard: {
+    data: null as any,
+    loading: false,
+    lastFetched: null as number | null
+  },
 
   async fetchRapports(force = false) {
     if (!force && this.rapports.data.length > 0 && this.rapports.lastFetched && (Date.now() - this.rapports.lastFetched < 30000)) {
@@ -104,7 +116,45 @@ export const dataStore = reactive({
     }
   },
 
+  async fetchUser(force = false) {
+    if (!force && this.user.data && this.user.lastFetched && (Date.now() - this.user.lastFetched < 300000)) {
+      return
+    }
+    this.user.loading = true
+    try {
+      const res = await apiFetch('users/me')
+      if (res.ok) {
+        this.user.data = await res.json()
+        this.user.lastFetched = Date.now()
+      }
+    } catch (e) {
+      console.error('Store fetch error (user):', e)
+    } finally {
+      this.user.loading = false
+    }
+  },
+
+  async fetchDashboard(force = false) {
+    if (!force && this.dashboard.data && this.dashboard.lastFetched && (Date.now() - this.dashboard.lastFetched < 60000)) {
+      return
+    }
+    this.dashboard.loading = !this.dashboard.data
+    try {
+      const res = await apiFetch('dashboard')
+      if (res.ok) {
+        this.dashboard.data = await res.json()
+        this.dashboard.lastFetched = Date.now()
+      }
+    } catch (e) {
+      console.error('Store fetch error (dashboard):', e)
+    } finally {
+      this.dashboard.loading = false
+    }
+  },
+
   prefetchAll() {
+    this.fetchUser()
+    this.fetchDashboard()
     this.fetchRapports()
     this.fetchDevis()
     this.fetchFactures()
