@@ -5,6 +5,8 @@ import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { apiFetch } from '@/lib/api'
 import { useMobile } from '@/composables/useMobile'
+import { dataStore } from '@/lib/store'
+import { computed } from 'vue'
 
 interface Client {
   id: number
@@ -17,8 +19,8 @@ interface Client {
   siret: string | null
 }
 
-const clients = ref<Client[]>([])
-const loading = ref(false)
+const clients = computed(() => dataStore.clients.data)
+const loading = computed(() => dataStore.clients.loading)
 const error = ref('')
 const showModal = ref(false)
 const editingClient = ref<Client | null>(null)
@@ -52,25 +54,8 @@ const form = ref({
 })
 
 
-async function fetchClients() {
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await apiFetch('clients')
-    if (res.ok) {
-      clients.value = await res.json()
-    } else {
-      error.value = 'Erreur lors du chargement'
-      if (res.status === 401) {
-        localStorage.removeItem('token')
-        window.location.href = '/auth'
-      }
-    }
-  } catch (e) {
-    error.value = 'Impossible de charger les clients'
-  } finally {
-    loading.value = false
-  }
+function fetchClients() {
+  dataStore.fetchClients()
 }
 
 function openCreateModal() {
@@ -120,7 +105,7 @@ async function saveClient() {
     
     if (!res.ok) throw new Error('Erreur lors de la sauvegarde')
     
-    await fetchClients()
+    dataStore.fetchClients(true)
     closeModal()
   } catch (e) {
     error.value = 'Erreur lors de la sauvegarde'
@@ -137,7 +122,7 @@ async function confirmDelete() {
     })
     
     if (!res.ok) throw new Error('Erreur lors de la suppression')
-    await fetchClients()
+    dataStore.fetchClients(true)
     closeDeleteModal()
   } catch (e) {
     error.value = 'Erreur lors de la suppression'

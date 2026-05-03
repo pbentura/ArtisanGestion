@@ -8,6 +8,7 @@ import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 
 import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 
 interface Client {
   nom: string
@@ -30,8 +31,8 @@ interface Facture {
 
 const router = useRouter()
 const { sharePDF, triggerHaptic, isNative } = useMobile()
-const facturesList = ref<Facture[]>([])
-const loading = ref(true)
+const facturesList = computed(() => dataStore.factures.data)
+const loading = computed(() => dataStore.factures.loading)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
 const isDeleting = ref(false)
@@ -118,25 +119,8 @@ function closeDeleteModal() {
   showDeleteConfirm.value = false
 }
 
-async function fetchFactures() {
-  loading.value = true
-  try {
-    const res = await apiFetch('factures')
-    if (res.ok) {
-      facturesList.value = await res.json()
-    } else {
-      const errorText = await res.text()
-      console.error('Erreur API factures:', errorText)
-      if (res.status === 401) {
-        localStorage.removeItem('token')
-        router.push('/auth')
-      }
-    }
-  } catch (e) {
-    console.error('Erreur lors du chargement des factures', e)
-  } finally {
-    loading.value = false
-  }
+function fetchFactures() {
+  dataStore.fetchFactures()
 }
 
 function formatDate(dateString: string): string {
@@ -161,7 +145,7 @@ async function confirmDelete() {
       method: 'DELETE'
     })
     if (res.ok) {
-      facturesList.value = facturesList.value.filter(f => f.id !== idToDelete.value)
+      dataStore.removeItem('factures', idToDelete.value)
       closeDeleteModal()
     } else {
       alert("Erreur lors de la suppression.")
@@ -198,10 +182,7 @@ async function confirmValidation() {
     
     if (res.ok) {
       const updatedFacture = await res.json()
-      const index = facturesList.value.findIndex(f => f.id === facture.id)
-      if (index !== -1) {
-        facturesList.value[index] = updatedFacture
-      }
+      dataStore.updateItem('factures', facture.id, updatedFacture)
       closeValidateModal()
     } else {
       console.error('Erreur lors de la validation')
@@ -226,10 +207,7 @@ async function togglePayment(facture: Facture) {
     
     if (res.ok) {
       const updatedFacture = await res.json()
-      const index = facturesList.value.findIndex(f => f.id === facture.id)
-      if (index !== -1) {
-        facturesList.value[index] = updatedFacture
-      }
+      dataStore.updateItem('factures', facture.id, updatedFacture)
     } else {
       console.error('Erreur lors du changement de paiement')
     }

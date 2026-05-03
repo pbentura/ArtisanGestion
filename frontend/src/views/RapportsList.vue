@@ -7,6 +7,7 @@ import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { useMobile } from '@/composables/useMobile'
 
 import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 
 interface Client {
   nom: string
@@ -39,8 +40,8 @@ function closeBottomSheet() {
     selectedRapport.value = null
   }, 300)
 }
-const rapports = ref<Rapport[]>([])
-const loading = ref(true)
+const rapports = computed(() => dataStore.rapports.data)
+const loading = computed(() => dataStore.rapports.loading)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
 const isDeleting = ref(false)
@@ -67,21 +68,8 @@ function closeDeleteModal() {
   showDeleteConfirm.value = false
 }
 
-async function fetchRapports() {
-  loading.value = true
-  try {
-    const res = await apiFetch('rapports')
-    if (res.ok) {
-      rapports.value = await res.json()
-    } else {
-      const errorText = await res.text()
-      console.error('Erreur API rapports:', errorText)
-    }
-  } catch (e) {
-    console.error('Erreur lors du chargement des rapports', e)
-  } finally {
-    loading.value = false
-  }
+function fetchRapports() {
+  dataStore.fetchRapports()
 }
 
 function formatDate(dateString: string): string {
@@ -102,7 +90,7 @@ async function confirmDelete() {
       method: 'DELETE',
     })
     if (res.ok) {
-      rapports.value = rapports.value.filter(r => r.id !== idToDelete.value)
+      dataStore.removeItem('rapports', idToDelete.value)
       closeDeleteModal()
     } else {
       alert("Erreur lors de la suppression.")
@@ -128,10 +116,7 @@ async function toggleStatus(rapport: Rapport) {
     
     if (res.ok) {
       const updatedRapport = await res.json()
-      const index = rapports.value.findIndex(r => r.id === rapport.id)
-      if (index !== -1) {
-        rapports.value[index] = updatedRapport
-      }
+      dataStore.updateItem('rapports', rapport.id, updatedRapport)
     } else {
       console.error('Erreur lors du changement de statut')
     }

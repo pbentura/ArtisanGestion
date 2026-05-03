@@ -8,6 +8,7 @@ import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 
 import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 
 interface Client {
   nom: string
@@ -25,8 +26,8 @@ interface Devis {
 
 const router = useRouter()
 const { isNative } = useMobile()
-const devisList = ref<Devis[]>([])
-const loading = ref(true)
+const devisList = computed(() => dataStore.devis.data)
+const loading = computed(() => dataStore.devis.loading)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
 const isDeleting = ref(false)
@@ -87,25 +88,8 @@ function closeDeleteModal() {
   showDeleteConfirm.value = false
 }
 
-async function fetchDevis() {
-  loading.value = true
-  try {
-    const res = await apiFetch('devis')
-    if (res.ok) {
-      devisList.value = await res.json()
-    } else {
-      const errorText = await res.text()
-      console.error('Erreur API devis:', errorText)
-      if (res.status === 401) {
-        localStorage.removeItem('token')
-        router.push('/auth')
-      }
-    }
-  } catch (e) {
-    console.error('Erreur lors du chargement des devis', e)
-  } finally {
-    loading.value = false
-  }
+function fetchDevis() {
+  dataStore.fetchDevis()
 }
 
 function formatDate(dateString: string): string {
@@ -126,7 +110,7 @@ async function confirmDelete() {
       method: 'DELETE'
     })
     if (res.ok) {
-      devisList.value = devisList.value.filter(d => d.id !== idToDelete.value)
+      dataStore.removeItem('devis', idToDelete.value)
       closeDeleteModal()
     } else {
       alert("Erreur lors de la suppression.")
@@ -152,10 +136,7 @@ async function toggleStatus(devis: Devis) {
     
     if (res.ok) {
       const updatedDevis = await res.json()
-      const index = devisList.value.findIndex(d => d.id === devis.id)
-      if (index !== -1) {
-        devisList.value[index] = updatedDevis
-      }
+      dataStore.updateItem('devis', devis.id, updatedDevis)
     } else {
       console.error('Erreur lors du changement de statut')
     }

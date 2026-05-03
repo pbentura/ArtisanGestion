@@ -10,6 +10,7 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileBottomNav from '@/components/mobile/MobileBottomNav.vue'
 import { apiFetch } from '@/lib/api'
 import { useMobile } from '@/composables/useMobile'
+import { dataStore } from '@/lib/store'
 
 const router = useRouter()
 const route = useRoute()
@@ -33,6 +34,9 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to fetch user data', e)
   }
+  
+  // Prefetch data for other pages
+  dataStore.prefetchAll()
 })
 
 function handleLogout() {

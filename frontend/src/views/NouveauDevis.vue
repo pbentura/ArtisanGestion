@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser, Link as LinkIcon, ExternalLink, Unlink } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import { useMobile } from '@/composables/useMobile'
@@ -455,6 +456,7 @@ async function saveDevis() {
     if (!clientId) throw new Error("Impossible de créer/récupérer le client")
     
     await saveDevisToDatabase(clientId)
+    dataStore.fetchDevis(true)
     router.push('/app/devis')
   } catch (e: any) {
     alert('Erreur lors de la sauvegarde : ' + e.message)
@@ -694,6 +696,7 @@ async function saveAndGeneratePDF() {
     document.body.removeChild(container)
     
     // Après téléchargement on retourne à la liste
+    dataStore.fetchDevis(true)
     router.push('/app/devis')
   } catch (e: any) {
     console.error(e)

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye, Link as LinkIcon, ExternalLink, Unlink, ClipboardList } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import { useMobile } from '@/composables/useMobile'
@@ -445,6 +446,7 @@ async function saveRapport() {
     if (!clientId) throw new Error("Impossible de créer le client")
     
     await saveRapportToDatabase(clientId)
+    dataStore.fetchRapports(true)
     router.push('/app/rapports')
   } catch (e: any) {
     console.error(e)
@@ -686,6 +688,7 @@ async function saveAndGeneratePDF() {
     console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
     
     await generatePDF(isNative)
+    dataStore.fetchRapports(true)
     router.push('/app/rapports')
   } catch (e: any) {
     console.error(e)

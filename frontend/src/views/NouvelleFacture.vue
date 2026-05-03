@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2, CreditCard, Undo2, Share2 } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
@@ -621,6 +622,7 @@ async function saveFacture() {
     if (!clientId) throw new Error("Impossible de créer/récupérer le client")
     
     await saveFactureToDatabase(clientId)
+    dataStore.fetchFactures(true)
     router.push('/app/factures')
   } catch (e: any) {
     alert('Erreur lors de la sauvegarde : ' + e.message)
