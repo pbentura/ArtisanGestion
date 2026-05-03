@@ -72,6 +72,13 @@ const routes = [
         meta: { title: 'Devis', hideMobileHeader: true, hideMobileNav: true }
       },
       {
+        path: 'devis/:id/pdf',
+        name: 'devis-pdf',
+        component: () => import('@/views/NouveauDevis.vue'),
+        props: true,
+        meta: { title: 'Aperçu PDF', hideMobileHeader: true, hideMobileNav: true }
+      },
+      {
         path: 'factures',
         name: 'factures',
         component: () => import('@/views/FacturesList.vue'),
@@ -89,6 +96,13 @@ const routes = [
         component: () => import('@/views/NouvelleFacture.vue'),
         props: true,
         meta: { title: 'Factures', hideMobileHeader: true, hideMobileNav: true }
+      },
+      {
+        path: 'factures/:id/pdf',
+        name: 'facture-pdf',
+        component: () => import('@/views/NouvelleFacture.vue'),
+        props: true,
+        meta: { title: 'Aperçu PDF', hideMobileHeader: true, hideMobileNav: true }
       },
       {
         path: 'rapports',

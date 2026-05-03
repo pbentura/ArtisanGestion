@@ -354,6 +354,13 @@ onMounted(async () => {
     // Ajouter une ligne vide par défaut pour un nouveau devis
     ajouterLigne()
   }
+
+  // Si on est en mode aperçu PDF
+  if (route.path.endsWith('/pdf')) {
+    setTimeout(() => {
+      openPreview()
+    }, 500)
+  }
 })
 
 // Sauvegarde

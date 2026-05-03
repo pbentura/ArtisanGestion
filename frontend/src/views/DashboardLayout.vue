@@ -3,15 +3,18 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Building2, Home, FileText, Settings, LogOut, 
-  Receipt, Bell, BarChart3, Users, ShieldCheck
+  Receipt, Bell, BarChart3, Users, ShieldCheck, Menu
 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileBottomNav from '@/components/mobile/MobileBottomNav.vue'
 import { apiFetch } from '@/lib/api'
+import { useMobile } from '@/composables/useMobile'
 
 const router = useRouter()
 const route = useRoute()
+const { isNative } = useMobile()
+const isSidebarOpen = ref(false)
 const user = ref({ prenom: '', nom: '', email: '', role: '' })
 const societe = ref({ nom: '' })
 
@@ -39,9 +42,20 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="layout-wrapper">
-    <!-- Desktop Sidebar (Hidden on mobile) -->
-    <aside class="sidebar hidden lg:flex">
+  <div class="layout-wrapper" :class="{ 'is-native': isNative, 'is-browser': !isNative }">
+    <!-- Mobile overlay for drawer in browser mode -->
+    <div 
+      v-if="!isNative && isSidebarOpen" 
+      class="mobile-overlay"
+      @click="isSidebarOpen = false"
+    ></div>
+
+    <!-- Desktop Sidebar (Hidden on native app, becomes drawer on small browser screens) -->
+    <aside 
+      v-if="!isNative" 
+      class="sidebar"
+      :class="{ 'sidebar-open': isSidebarOpen }"
+    >
       <div class="sidebar-header">
         <div class="logo-box">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
@@ -103,9 +117,15 @@ function handleLogout() {
 
     <!-- Content Area -->
     <div class="main-container">
-      <!-- Desktop Header (Hidden on mobile) -->
-      <header class="main-header hidden lg:flex">
+      <!-- Desktop Header (Hidden on native app) -->
+      <header v-if="!isNative" class="main-header">
         <div class="header-left">
+          <button 
+            class="hamburger-btn lg:hidden mr-4" 
+            @click="isSidebarOpen = true"
+          >
+            <Menu class="w-6 h-6" />
+          </button>
           <h1 class="current-page-title">{{ route.meta.title || route.name }}</h1>
         </div>
         
@@ -116,9 +136,9 @@ function handleLogout() {
         </div>
       </header>
 
-      <!-- Mobile Header (Visible only on mobile, hidden if route meta says so) -->
-      <div class="mobile-component lg:hidden">
-        <MobileHeader v-if="!route.meta.hideMobileHeader" />
+      <!-- Mobile Header (Visible only on native app) -->
+      <div v-if="isNative && !route.meta.hideMobileHeader" class="mobile-component">
+        <MobileHeader />
       </div>
 
       <main 
@@ -131,9 +151,9 @@ function handleLogout() {
         <router-view />
       </main>
 
-      <!-- Mobile Bottom Nav (Visible only on mobile) -->
-      <div class="mobile-component lg:hidden">
-        <MobileBottomNav v-if="!route.meta.hideMobileNav" />
+      <!-- Mobile Bottom Nav (Visible only on native app) -->
+      <div v-if="isNative && !route.meta.hideMobileNav" class="mobile-component">
+        <MobileBottomNav />
       </div>
     </div>
   </div>
@@ -169,11 +189,17 @@ function handleLogout() {
   position: sticky;
   top: 0;
   flex-shrink: 0;
+  z-index: 50;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (max-width: 1024px) {
-  .sidebar {
-    display: none !important;
+  .is-browser .sidebar {
+    position: fixed;
+    transform: translateX(-100%);
+  }
+  .is-browser .sidebar.sidebar-open {
+    transform: translateX(0);
   }
 }
 
@@ -370,31 +396,35 @@ function handleLogout() {
   overflow-y: auto;
 }
 
-@media (min-width: 1025px) {
-  .mobile-component {
-    display: none !important;
-  }
+.hamburger-btn {
+  background: none;
+  border: none;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 1024px) {
-  .sidebar, .main-header {
-    display: none !important;
-  }
-  
-  .main-container {
+  .is-native .main-container {
     padding-left: 0;
   }
 
-  .page-content {
+  .is-browser .page-content {
+    padding: 24px 16px;
+  }
+
+  .is-native .page-content {
     /* Reduced padding to avoid the huge gap */
     padding: calc(56px + env(safe-area-inset-top, 0px) + 8px) 16px calc(80px + env(safe-area-inset-bottom, 0px) + 8px) 16px;
   }
 
-  .page-content.no-mobile-header {
+  .is-native .page-content.no-mobile-header {
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  .page-content.no-mobile-nav {
+  .is-native .page-content.no-mobile-nav {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }

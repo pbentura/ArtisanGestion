@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMobile } from '@/composables/useMobile'
 import {
   TrendingUp, TrendingDown, Minus,
   Receipt, FileText, Users, AlertTriangle,
@@ -40,6 +41,7 @@ interface DashboardData {
 }
 
 const data = ref<DashboardData | null>(null)
+const { isNative } = useMobile()
 
 function formatMoney(value: number): string {
   return Number(value).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €'
@@ -165,7 +167,7 @@ onMounted(fetchDashboard)
     <div v-else-if="data" class="dashboard-content">
 
       <!-- Header + Shortcuts -->
-      <div class="dashboard-header hidden sm:flex">
+      <div v-if="!isNative" class="dashboard-header">
         <div class="header-text">
           <h1 class="header-title">Bienvenue, {{ userName }} 👋</h1>
           <p class="header-subtitle">

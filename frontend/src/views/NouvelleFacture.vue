@@ -518,6 +518,13 @@ onMounted(async () => {
     // Ajouter une ligne vide par défaut
     ajouterLigne()
   }
+
+  // Si on est en mode aperçu PDF
+  if (route.path.endsWith('/pdf')) {
+    setTimeout(() => {
+      openPreview()
+    }, 500)
+  }
 })
 
 // Sauvegarde
