@@ -24,4 +24,4 @@ class Rapport(Base):
     user = relationship("User", back_populates="rapports")
 
     id_devis = Column(Integer, ForeignKey("devis.id", ondelete="SET NULL"), nullable=True)
-    devis = relationship("Devis", back_populates="rapport", foreign_keys=[id_devis])
+    devis = relationship("Devis", foreign_keys=[id_devis])
