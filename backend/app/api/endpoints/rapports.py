@@ -41,19 +41,22 @@ async def create_rapport(
     """
     Crée un nouveau rapport pour l'utilisateur connecté.
     """
-    # Verify that the client belongs to the current user
-    client_result = await db.execute(
-        select(Client).where(Client.id == rapport_in.id_client, Client.id_user == current_user.id)
-    )
-    client_obj = client_result.scalars().first()
-    if not client_obj:
-        raise HTTPException(status_code=400, detail="Client invalide ou non autorisé")
+    client_obj = None
+    if rapport_in.id_client is not None:
+        # Verify that the client belongs to the current user
+        client_result = await db.execute(
+            select(Client).where(Client.id == rapport_in.id_client, Client.id_user == current_user.id)
+        )
+        client_obj = client_result.scalars().first()
+        if not client_obj:
+            raise HTTPException(status_code=400, detail="Client invalide ou non autorisé")
         
     db_rapport = Rapport(**rapport_in.model_dump(), id_user=current_user.id)
     db.add(db_rapport)
     await db.commit()
     await db.refresh(db_rapport)
-    db_rapport.client = client_obj
+    if client_obj:
+        db_rapport.client = client_obj
     return db_rapport
 
 @router.get("/{rapport_id}", response_model=RapportSchema)
