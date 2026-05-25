@@ -6,7 +6,7 @@ from app.schemas.client import Client as ClientSchema
 class RapportBase(BaseModel):
     date_intervention: date
     titre_document_pdf: str
-    id_client: int
+    id_client: Optional[int] = None
     contenu: Optional[str] = None
     photo_url: Optional[str] = None  # Legacy single photo
     photos: Optional[List[str]] = [] # Multiple photos

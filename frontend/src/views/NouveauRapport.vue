@@ -343,7 +343,7 @@ function removePhoto(index: number) {
 }
 
 const isValid = computed(() => {
-  return rapport.value.dateIntervention && rapport.value.titre.trim() && rapport.value.nomClient.trim() && rapport.value.adresseIntervention.trim()
+  return rapport.value.dateIntervention && rapport.value.titre.trim()
 })
 
 const activeFormats = ref({
@@ -376,6 +376,10 @@ async function saveClientToDatabase(): Promise<number | null> {
     if (c && c.nom === rapport.value.nomClient) {
       return selectedClientId.value
     }
+  }
+
+  if (!rapport.value.nomClient.trim()) {
+    return null
   }
 
   try {
@@ -436,14 +440,13 @@ async function saveRapportToDatabase(clientId: number | null) {
 
 async function saveRapport() {
   if (!isValid.value) {
-    alert('Veuillez remplir les informations obligatoires (Date, Titre, Client, Adresse)')
+    alert('Veuillez remplir les informations obligatoires (Date, Titre)')
     return
   }
 
   isSaving.value = true
   try {
     const clientId = await saveClientToDatabase()
-    if (!clientId) throw new Error("Impossible de créer le client")
     
     await saveRapportToDatabase(clientId)
     dataStore.fetchRapports(true)
@@ -675,14 +678,13 @@ function closePDFModal() {
 
 async function saveAndGeneratePDF() {
   if (!isValid.value) {
-    alert('Veuillez remplir les informations obligatoires (Date, Titre, Client, Adresse)')
+    alert('Veuillez remplir les informations obligatoires (Date, Titre)')
     return
   }
 
   isSaving.value = true
   try {
     const clientId = await saveClientToDatabase()
-    if (!clientId) throw new Error("Impossible de créer le client")
     
     const savedRapport = await saveRapportToDatabase(clientId)
     console.log("Rapport sauvegardé avec statut:", savedRapport.statut)
@@ -1131,7 +1133,7 @@ async function generateWithAI() {
         <h3 class="text-lg font-semibold text-foreground mb-4">Informations du Client</h3>
         
         <div class="relative">
-          <label class="block text-sm font-medium text-foreground mb-2">Nom complet du client *</label>
+          <label class="block text-sm font-medium text-foreground mb-2">Nom complet du client</label>
           <div class="relative">
             <input 
               v-model="rapport.nomClient" 
@@ -1191,7 +1193,7 @@ async function generateWithAI() {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-foreground mb-2">Adresse d'intervention *</label>
+          <label class="block text-sm font-medium text-foreground mb-2">Adresse d'intervention</label>
           <input v-model="rapport.adresseIntervention" type="text" class="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Adresse (N° et rue)" />
         </div>
         <div class="grid grid-cols-2 gap-4">

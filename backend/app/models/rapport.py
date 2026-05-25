@@ -17,7 +17,7 @@ class Rapport(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    id_client = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    id_client = Column(Integer, ForeignKey("clients.id"), nullable=True)
     client = relationship("Client", back_populates="rapports")
     
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
