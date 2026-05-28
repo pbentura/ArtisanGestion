@@ -41,7 +41,7 @@ interface DashboardData {
 }
 
 const data = computed<DashboardData | null>(() => dataStore.dashboard.data)
-const { isNative } = useMobile()
+const { isMobileView } = useMobile()
 
 function formatMoney(value: number): string {
   return Number(value).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €'
@@ -152,7 +152,7 @@ onMounted(fetchDashboard)
     <div v-else-if="data" class="dashboard-content">
 
       <!-- Header + Shortcuts -->
-      <div v-if="!isNative" class="dashboard-header">
+      <div v-if="!isMobileView" class="dashboard-header">
         <div class="header-text">
           <h1 class="header-title">Bienvenue, {{ userName }} 👋</h1>
           <p class="header-subtitle">

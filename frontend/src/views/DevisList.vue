@@ -25,7 +25,7 @@ interface Devis {
 }
 
 const router = useRouter()
-const { isNative } = useMobile()
+const { isNative, isMobileView } = useMobile()
 const devisList = computed(() => dataStore.devis.data)
 const loading = computed(() => dataStore.devis.loading)
 const showDeleteConfirm = ref(false)
@@ -389,7 +389,7 @@ onMounted(fetchDevis)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB v-if="isNative" class="lg:hidden" @click="router.push('/app/devis/new')" />
+    <MobileFAB v-if="isMobileView" class="lg:hidden" @click="router.push('/app/devis/new')" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 

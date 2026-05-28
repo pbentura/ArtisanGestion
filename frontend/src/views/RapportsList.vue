@@ -25,7 +25,7 @@ interface Rapport {
 }
 
 const router = useRouter()
-const { sharePDF, triggerHaptic, isNative } = useMobile()
+const { sharePDF, triggerHaptic, isNative, isMobileView } = useMobile()
 const isBottomSheetOpen = ref(false)
 const selectedRapport = ref<Rapport | null>(null)
 
@@ -466,7 +466,7 @@ onMounted(fetchRapports)
       </div>
     </div>
     <!-- Mobile FAB -->
-    <MobileFAB v-if="isNative" class="lg:hidden" @click="router.push('/app/rapports/new')" />
+    <MobileFAB v-if="isMobileView" class="lg:hidden" @click="router.push('/app/rapports/new')" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 

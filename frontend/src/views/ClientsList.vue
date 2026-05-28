@@ -29,7 +29,7 @@ const clientToDelete = ref<Client | null>(null)
 const isDeleting = ref(false)
 const isBottomSheetOpen = ref(false)
 const selectedClient = ref<Client | null>(null)
-const { isNative } = useMobile()
+const {  isMobileView } = useMobile()
 
 function openBottomSheet(client: Client) {
   selectedClient.value = client
@@ -287,7 +287,7 @@ onMounted(fetchClients)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB v-if="isNative" class="lg:hidden" @click="openCreateModal" />
+    <MobileFAB v-if="isMobileView" class="lg:hidden" @click="openCreateModal" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 

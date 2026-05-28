@@ -1,3 +1,4 @@
+import { ref, computed } from 'vue'
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
@@ -5,8 +6,24 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Toast } from '@capacitor/toast'
 import { Capacitor } from '@capacitor/core'
 
+// Singleton: reactive mobile screen detection via matchMedia
+const isMobileScreen = ref(false)
+let listenerSetup = false
+
+function setupMobileListener() {
+  if (listenerSetup || typeof window === 'undefined') return
+  const mq = window.matchMedia('(max-width: 768px)')
+  isMobileScreen.value = mq.matches
+  mq.addEventListener('change', (e) => { isMobileScreen.value = e.matches })
+  listenerSetup = true
+}
+
 export function useMobile() {
   const isNative = Capacitor.isNativePlatform()
+  setupMobileListener()
+
+  // True on native app OR mobile-width browser — use for layout/UX decisions
+  const isMobileView = computed(() => isNative || isMobileScreen.value)
 
   const takePhoto = async () => {
     try {
@@ -90,6 +107,7 @@ export function useMobile() {
 
   return {
     isNative,
+    isMobileView,
     takePhoto,
     sharePDF,
     triggerHaptic,

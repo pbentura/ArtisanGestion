@@ -13,7 +13,7 @@ import { dataStore } from '@/lib/store'
 
 const router = useRouter()
 const route = useRoute()
-const { isNative } = useMobile()
+const { isMobileView } = useMobile()
 const isSidebarOpen = ref(false)
 const user = computed(() => {
   const d = dataStore.user.data
@@ -39,17 +39,17 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="layout-wrapper" :class="{ 'is-native': isNative, 'is-browser': !isNative }">
+  <div class="layout-wrapper" :class="{ 'is-native': isMobileView, 'is-browser': !isMobileView }">
     <!-- Mobile overlay for drawer in browser mode -->
     <div 
-      v-if="!isNative && isSidebarOpen" 
+      v-if="!isMobileView && isSidebarOpen" 
       class="mobile-overlay"
       @click="isSidebarOpen = false"
     ></div>
 
     <!-- Desktop Sidebar (Hidden on native app, becomes drawer on small browser screens) -->
     <aside 
-      v-if="!isNative" 
+      v-if="!isMobileView" 
       class="sidebar"
       :class="{ 'sidebar-open': isSidebarOpen }"
     >
@@ -115,7 +115,7 @@ function handleLogout() {
     <!-- Content Area -->
     <div class="main-container">
       <!-- Desktop Header (Hidden on native app) -->
-      <header v-if="!isNative" class="main-header">
+      <header v-if="!isMobileView" class="main-header">
         <div class="header-left">
           <button 
             class="hamburger-btn mr-4" 
@@ -134,7 +134,7 @@ function handleLogout() {
       </header>
 
       <!-- Mobile Header (Visible only on native app) -->
-      <div v-if="isNative && !route.meta.hideMobileHeader" class="mobile-component">
+      <div v-if="isMobileView && !route.meta.hideMobileHeader" class="mobile-component">
         <MobileHeader />
       </div>
 
@@ -149,7 +149,7 @@ function handleLogout() {
       </main>
 
       <!-- Mobile Bottom Nav (Visible only on native app) -->
-      <div v-if="isNative && !route.meta.hideMobileNav" class="mobile-component">
+      <div v-if="isMobileView && !route.meta.hideMobileNav" class="mobile-component">
         <MobileBottomNav />
       </div>
     </div>

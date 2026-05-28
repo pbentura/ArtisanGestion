@@ -30,7 +30,7 @@ interface Facture {
 }
 
 const router = useRouter()
-const { sharePDF, triggerHaptic, isNative } = useMobile()
+const { sharePDF, triggerHaptic, isNative, isMobileView } = useMobile()
 const facturesList = computed(() => dataStore.factures.data)
 const loading = computed(() => dataStore.factures.loading)
 const showDeleteConfirm = ref(false)
@@ -667,7 +667,7 @@ onMounted(fetchFactures)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB v-if="isNative" class="lg:hidden" @click="router.push('/app/factures/new')" />
+    <MobileFAB v-if="isMobileView" class="lg:hidden" @click="router.push('/app/factures/new')" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 
