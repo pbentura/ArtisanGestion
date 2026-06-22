@@ -82,21 +82,21 @@ def build_rapport_prompt(request: GenerateRapportRequest) -> str:
     longueur = request.longueur if request.longueur in ("court", "normal", "long") else "normal"
 
     if longueur == "court":
-        instructions_longueur = """Le rapport doit être COURT et CONCIS (environ 150-250 mots).
-Va à l'essentiel sans détails superflus. Chaque section doit tenir en 1 à 2 phrases maximum.
+        instructions_longueur = """LONGUEUR : ULTRA-COURT. Maximum 80 à 120 mots au total. Sois extrêmement bref.
+UNE SEULE phrase par section. Pas de liste à puces, pas de détails superflus.
 
-Le rapport doit contenir ces sections avec des titres en <strong> et majuscules :
+Format EXACT à respecter :
 
-<strong>MOTIF DE L'INTERVENTION :</strong>
-<p>[1-2 phrases résumant le problème signalé, basé uniquement sur la description fournie]</p>
+<strong>MOTIF :</strong>
+<p>[1 seule phrase courte décrivant le problème]</p>
 
-<strong>TRAVAUX RÉALISÉS :</strong>
-<ul>
-<li>[Actions effectuées, basées sur la description]</li>
-</ul>
+<strong>TRAVAUX :</strong>
+<p>[1 seule phrase résumant ce qui a été fait]</p>
 
 <strong>RÉSULTAT :</strong>
-<p>[1 phrase sur l'état après intervention]</p>"""
+<p>[1 seule phrase sur l'état final]</p>
+
+C'est TOUT. Ne dépasse JAMAIS 120 mots. Pas d'observations ni de recommandations."""
 
     elif longueur == "long":
         instructions_longueur = """Le rapport doit être TRÈS DÉTAILLÉ et COMPLET (environ 600-900 mots).
@@ -179,11 +179,19 @@ Ne génère QUE le contenu HTML des sections ci-dessus, sans aucun texte avant o
 def get_max_tokens_for_longueur(longueur: str) -> int:
     """Retourne le max_tokens adapté à la longueur demandée."""
     if longueur == "court":
-        return 800
+        return 400
     elif longueur == "long":
         return 4096
     else:
         return 2048
+
+
+def get_model_for_longueur(longueur: str) -> str:
+    """Retourne le modèle Mistral adapté. Small = plus rapide pour les rapports courts."""
+    if longueur == "court":
+        return "mistral-small-latest"
+    else:
+        return "mistral-large-latest"
 
 
 class GenerateRapportResponse(BaseModel):
@@ -201,13 +209,15 @@ async def generate_rapport(
     if not settings.MISTRAL_API_KEY:
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
 
-    # --- Validation de la saisie ---
-    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
-    if validation_error:
-        raise HTTPException(status_code=400, detail=validation_error)
+    # --- Validation de la saisie (sautée en mode court pour la rapidité) ---
+    if request.longueur != "court":
+        validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+        if validation_error:
+            raise HTTPException(status_code=400, detail=validation_error)
 
     prompt = build_rapport_prompt(request)
     max_tokens = get_max_tokens_for_longueur(request.longueur)
+    model = get_model_for_longueur(request.longueur)
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -218,7 +228,7 @@ async def generate_rapport(
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "mistral-large-latest",
+                    "model": model,
                     "messages": [
                         {
                             "role": "user",
@@ -268,13 +278,15 @@ async def generate_rapport_stream(
     if not settings.MISTRAL_API_KEY:
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
 
-    # --- Validation de la saisie ---
-    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
-    if validation_error:
-        raise HTTPException(status_code=400, detail=validation_error)
+    # --- Validation de la saisie (sautée en mode court pour la rapidité) ---
+    if request.longueur != "court":
+        validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+        if validation_error:
+            raise HTTPException(status_code=400, detail=validation_error)
 
     prompt = build_rapport_prompt(request)
     max_tokens = get_max_tokens_for_longueur(request.longueur)
+    model = get_model_for_longueur(request.longueur)
 
     async def event_stream():
         try:
@@ -287,7 +299,7 @@ async def generate_rapport_stream(
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "mistral-large-latest",
+                        "model": model,
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.4,
                         "max_tokens": max_tokens,
