@@ -62,7 +62,7 @@ function handleLogout() {
 
       <nav class="sidebar-nav">
         <p class="nav-section-title">Menu Principal</p>
-        <router-link to="/app" class="nav-link">
+        <router-link to="/app/dashboard" class="nav-link">
           <Home class="w-5 h-5" /> Tableau de bord
         </router-link>
         <router-link to="/app/rapports" class="nav-link">
@@ -272,7 +272,7 @@ function handleLogout() {
   color: var(--primary-foreground);
 }
 
-.nav-link.router-link-active:not([href="/app"]) {
+.nav-link.router-link-active:not([href="/app"]):not([href="/app/dashboard"]) {
   background: var(--primary);
   color: var(--primary-foreground);
 }

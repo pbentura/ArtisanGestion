@@ -39,15 +39,16 @@ const routes = [
   },
   {
     path: '/dashboard',
-    redirect: '/app'
+    redirect: '/app/dashboard'
   },
   {
     path: '/app',
     component: () => import('@/views/DashboardLayout.vue'),
     meta: { requiresAuth: true, requiresSociete: true, title: 'Application' },
+    redirect: '/app/rapports',
     children: [
       {
-        path: '',
+        path: 'dashboard',
         name: 'dashboard',
         component: () => import('@/views/Dashboard.vue'),
         meta: { title: 'Tableau de bord' }

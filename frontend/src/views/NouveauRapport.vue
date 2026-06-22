@@ -3,7 +3,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { dataStore } from '@/lib/store'
-import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye, Link as LinkIcon, ExternalLink, Unlink, ClipboardList } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye, Link as LinkIcon, ExternalLink, Unlink, ClipboardList, AlignLeft, AlignCenter, AlignJustify } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
@@ -31,7 +31,8 @@ const isGeneratingAI = ref(false)
 const isStreamingAI = ref(false)
 const aiForm = ref({
   type_intervention: '',
-  description: ''
+  description: '',
+  longueur: 'normal' as 'court' | 'normal' | 'long'
 })
 const aiError = ref('')
 const showPDFModal = ref(false)
@@ -714,6 +715,7 @@ async function generateWithAI() {
       body: JSON.stringify({
         type_intervention: aiForm.value.type_intervention,
         description: aiForm.value.description,
+        longueur: aiForm.value.longueur,
         nom_client: rapport.value.nomClient || undefined,
         adresse: rapport.value.adresseIntervention || undefined,
         date_intervention: rapport.value.dateIntervention || undefined
@@ -735,7 +737,7 @@ async function generateWithAI() {
       editorRef.value.innerHTML = ''
     }
 
-    aiForm.value = { type_intervention: '', description: '' }
+    aiForm.value = { type_intervention: '', description: '', longueur: 'normal' }
 
     // Lecture du stream SSE
     const reader = res.body.getReader()
@@ -883,6 +885,58 @@ async function generateWithAI() {
                   class="w-full px-3 py-2.5 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none text-foreground text-sm transition-shadow disabled:opacity-50"
                 ></textarea>
                 <p class="text-xs text-muted-foreground mt-1">Plus vous êtes précis, meilleur sera le rapport généré.</p>
+              </div>
+
+              <!-- Longueur du rapport -->
+              <div>
+                <label class="block text-sm font-medium text-foreground mb-2">Longueur du rapport</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    @click="aiForm.longueur = 'court'"
+                    :disabled="isGeneratingAI"
+                    :class="[
+                      'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center disabled:opacity-50',
+                      aiForm.longueur === 'court'
+                        ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
+                        : 'border-border hover:border-primary/30 hover:bg-muted/50'
+                    ]"
+                  >
+                    <AlignLeft :class="['w-5 h-5 transition-colors', aiForm.longueur === 'court' ? 'text-primary' : 'text-muted-foreground']" />
+                    <span :class="['text-xs font-semibold transition-colors', aiForm.longueur === 'court' ? 'text-primary' : 'text-foreground']">Court</span>
+                    <span class="text-[10px] text-muted-foreground leading-tight">Essentiel uniquement</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="aiForm.longueur = 'normal'"
+                    :disabled="isGeneratingAI"
+                    :class="[
+                      'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center disabled:opacity-50',
+                      aiForm.longueur === 'normal'
+                        ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
+                        : 'border-border hover:border-primary/30 hover:bg-muted/50'
+                    ]"
+                  >
+                    <AlignCenter :class="['w-5 h-5 transition-colors', aiForm.longueur === 'normal' ? 'text-primary' : 'text-muted-foreground']" />
+                    <span :class="['text-xs font-semibold transition-colors', aiForm.longueur === 'normal' ? 'text-primary' : 'text-foreground']">Normal</span>
+                    <span class="text-[10px] text-muted-foreground leading-tight">Équilibré</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="aiForm.longueur = 'long'"
+                    :disabled="isGeneratingAI"
+                    :class="[
+                      'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center disabled:opacity-50',
+                      aiForm.longueur === 'long'
+                        ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
+                        : 'border-border hover:border-primary/30 hover:bg-muted/50'
+                    ]"
+                  >
+                    <AlignJustify :class="['w-5 h-5 transition-colors', aiForm.longueur === 'long' ? 'text-primary' : 'text-muted-foreground']" />
+                    <span :class="['text-xs font-semibold transition-colors', aiForm.longueur === 'long' ? 'text-primary' : 'text-foreground']">Long détaillé</span>
+                    <span class="text-[10px] text-muted-foreground leading-tight">Très complet</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Info client pré-remplie -->
@@ -1219,7 +1273,7 @@ async function generateWithAI() {
             </div>
             <div>
               <p class="font-semibold text-foreground text-sm">Générer le rapport avec l'IA</p>
-              <p class="text-xs text-muted-foreground">Mistral AI rédige un rapport professionnel et structuré en quelques secondes</p>
+              <p class="text-xs text-muted-foreground">Rédiger un rapport professionnel et structuré en quelques secondes avec l'IA</p>
             </div>
           </div>
           <button

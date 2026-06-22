@@ -18,7 +18,7 @@ function isActive(paths: string[]) {
 <template>
   <nav class="mobile-bottom-nav">
     <div class="nav-container">
-      <router-link to="/app" class="nav-item" :class="{ active: isActive(['/app']) && !route.path.includes('rapports') && !route.path.includes('factures') && !route.path.includes('devis') && !route.path.includes('clients') && !route.path.includes('menu') }">
+      <router-link to="/app/dashboard" class="nav-item" :class="{ active: isActive(['/app/dashboard']) }">
         <Home class="icon" />
         <span class="label">Accueil</span>
       </router-link>
