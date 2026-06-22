@@ -151,3 +151,16 @@
   animation: fadeSlideUp 0.5s ease-out both;
 }
 
+/* Styles pour le rendu des rapports générés (markdown / html) */
+.rapport-content h3 {
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+.rapport-content ul {
+  margin: 4px 0;
+  padding-left: 20px;
+  list-style-type: disc;
+}

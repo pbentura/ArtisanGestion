@@ -347,14 +347,13 @@ from app.core.config import settings
 
 router = APIRouter()
 
-
 async def validate_input_with_ai(type_intervention: str, description: str) -> str | None:
     """
     Vérifie si la saisie a du sens. Retourne une erreur (str) si invalide, ou None si valide.
     """
     if not settings.MISTRAL_API_KEY:
         return None
-
+        
     prompt = f"""Tu es un assistant strict chargé de vérifier la validité d'une saisie utilisateur pour un rapport d'intervention technique.
 Type d'intervention : {type_intervention}
 Description : {description}
@@ -385,7 +384,6 @@ Ne génère rien d'autre.
     except Exception:
         pass
     return None
-
 
 class GenerateRapportRequest(BaseModel):
     type_intervention: str
@@ -437,35 +435,23 @@ def build_rapport_prompt(request: GenerateRapportRequest) -> str:
     if longueur == "court":
         instructions_longueur = """LONGUEUR : COURT. Le rapport doit rester concis (environ 80-150 mots), mais la section "Travaux effectués" doit lister les étapes métier du déroulé logique (voir règles ci-dessus), pas une seule ligne.
 
-Génère le rapport en MARKDOWN, en respectant EXACTEMENT cette structure (titres, gras, listes) :
+Le rapport doit contenir EXACTEMENT ces sections, avec des titres en <h3> :
 
-# RAPPORT D'INTERVENTION
+<h3>Objet de l'intervention</h3>
+<p>[1 phrase reprenant le motif décrit par l'utilisateur]</p>
 
-**Client :** {nom_client}
-**Adresse :** {adresse}
-**Date d'intervention :** {date_intervention}
-**Technicien :** {nom_technicien}
+<h3>Travaux effectués</h3>
+<ul>
+<li>[Étape 1 du déroulé métier]</li>
+<li>[Étape 2 du déroulé métier]</li>
+<li>[...]</li>
+</ul>
 
-## Objet de l'intervention
-[1 phrase reprenant le motif décrit par l'utilisateur]
+<h3>Résultat de l'intervention</h3>
+<p>[1 à 2 phrases confirmant la fin de l'intervention et son résultat, sans inventer de mesures]</p>
 
-## Travaux effectués
-* [Étape 1 du déroulé métier]
-* [Étape 2 du déroulé métier]
-* [...]
-
-## Résultat de l'intervention
-[1 à 2 phrases confirmant la fin de l'intervention et son résultat, sans inventer de mesures]
-
-## Observations
-[1 phrase : soit "Aucune réserve particulière à signaler à l'issue de l'intervention." soit une remarque brève si pertinente. N'invente pas de recommandation détaillée.]
-
-**Fin d'intervention :** [Heure]
-
-Signature du technicien : ___________________
-Signature du client : ___________________
-
-IMPORTANT : remplace {nom_client}, {adresse}, {date_intervention}, {nom_technicien} par les valeurs fournies dans le contexte ci-dessus. Si une valeur n'est pas fournie, laisse le champ correspondant vide après les deux-points (n'invente jamais un nom, une adresse ou une date). Pour "Fin d'intervention", laisse [Heure] tel quel si aucune heure n'est fournie."""
+<h3>Observations</h3>
+<p>[Soit "Aucune réserve particulière à signaler à l'issue de l'intervention." soit une remarque brève si pertinente. N'invente pas de recommandation détaillée.]</p>"""
 
     elif longueur == "long":
         instructions_longueur = """Le rapport doit être TRÈS DÉTAILLÉ et COMPLET (environ 600-900 mots).
@@ -523,13 +509,12 @@ Le rapport doit contenir ces sections avec des titres en <strong> et majuscules 
 <strong>OBSERVATIONS ET RECOMMANDATIONS :</strong>
 <p>[Conseils de maintenance préventive adaptés au type d'intervention]</p>"""
 
-    if longueur == "court":
-        format_instructions = """Génère le rapport directement en MARKDOWN (pas de HTML), en respectant strictement la structure donnée ci-dessous (titres avec #, ##, gras avec **, listes avec *)."""
-    else:
-        format_instructions = """Génère un rapport d'intervention professionnel et structuré en HTML (sans balises <html>, <head>, <body>).
-Utilise uniquement des balises HTML inline simples : <p>, <strong>, <em>, <ul>, <ol>, <li>, <br>.
+    balises_autorisees = "<p>, <strong>, <em>, <ul>, <ol>, <li>, <br>, <h3>" if longueur == "court" else "<p>, <strong>, <em>, <ul>, <ol>, <li>, <br>"
 
-IMPORTANT : Ne génère PAS d'en-tête ou de titre de rapport. Ne répète PAS les informations suivantes car elles sont déjà affichées dans le document : nom du client, adresse, date d'intervention, nom du technicien, nom de la société. Commence directement par les sections de contenu."""
+    format_instructions = f"""Génère un rapport d'intervention professionnel et structuré en HTML (sans balises <html>, <head>, <body>).
+Utilise uniquement des balises HTML inline simples : {balises_autorisees}.
+
+IMPORTANT : Ne génère PAS d'en-tête ou de titre de rapport (pas de "RAPPORT D'INTERVENTION" en titre). Ne répète PAS les informations suivantes car elles sont déjà affichées ailleurs dans le document : nom du client, adresse, date d'intervention, nom du technicien, nom de la société. Ne génère AUCUN champ vide du type "Client :", "Adresse :", "Technicien :" — ces informations ne font pas partie du contenu à générer. Ne génère pas non plus de ligne de signature ou d'heure de fin, elles sont gérées séparément par le document. Commence directement par la première section de contenu."""
 
     prompt = f"""Tu es un technicien expert rédigeant un rapport d'intervention professionnel en français.
 
@@ -566,8 +551,8 @@ class GenerateRapportResponse(BaseModel):
 
 @router.post("/generate-rapport", response_model=GenerateRapportResponse)
 async def generate_rapport(
-        request: GenerateRapportRequest,
-        current_user: User = Depends(deps.get_current_user)
+    request: GenerateRapportRequest,
+    current_user: User = Depends(deps.get_current_user)
 ):
     """
     Génère le contenu d'un rapport d'intervention via l'API Mistral AI.
@@ -613,9 +598,7 @@ async def generate_rapport(
         data = response.json()
         contenu = data["choices"][0]["message"]["content"].strip()
 
-        # Nettoyer les blocs de code markdown si présents
-        if contenu.startswith("```markdown"):
-            contenu = contenu[11:]
+        # Nettoyer les blocs de code si le modèle en a quand même ajouté
         if contenu.startswith("```html"):
             contenu = contenu[7:]
         if contenu.startswith("```"):
@@ -634,8 +617,8 @@ async def generate_rapport(
 
 @router.post("/generate-rapport-stream")
 async def generate_rapport_stream(
-        request: GenerateRapportRequest,
-        current_user: User = Depends(deps.get_current_user)
+    request: GenerateRapportRequest,
+    current_user: User = Depends(deps.get_current_user)
 ):
     """
     Génère le contenu d'un rapport via Mistral AI en streaming SSE.
@@ -656,19 +639,19 @@ async def generate_rapport_stream(
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
                 async with client.stream(
-                        "POST",
-                        "https://api.mistral.ai/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {settings.MISTRAL_API_KEY}",
-                            "Content-Type": "application/json"
-                        },
-                        json={
-                            "model": "mistral-large-latest",
-                            "messages": [{"role": "user", "content": prompt}],
-                            "temperature": 0.4,
-                            "max_tokens": max_tokens,
-                            "stream": True
-                        }
+                    "POST",
+                    "https://api.mistral.ai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {settings.MISTRAL_API_KEY}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "mistral-large-latest",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.4,
+                        "max_tokens": max_tokens,
+                        "stream": True
+                    }
                 ) as response:
                     if response.status_code != 200:
                         error_body = await response.aread()

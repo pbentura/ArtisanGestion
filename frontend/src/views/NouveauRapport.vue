@@ -3,6 +3,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { dataStore } from '@/lib/store'
+import { marked } from 'marked'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye, Link as LinkIcon, ExternalLink, Unlink, ClipboardList, AlignLeft, AlignCenter, AlignJustify } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import { useMobile } from '@/composables/useMobile'
@@ -508,6 +509,10 @@ function getReportHTML() {
     .join(' ')
 
   return `
+    <style>
+      .rapport-content h3 { color: #2563eb; font-size: 14px; font-weight: 600; margin-top: 16px; margin-bottom: 6px; }
+      .rapport-content ul { margin: 4px 0; padding-left: 20px; list-style-type: disc; }
+    </style>
     <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
 
       <!-- EN-TÊTE : Logo + Infos société -->
@@ -569,7 +574,7 @@ function getReportHTML() {
 
       <div style="margin-bottom: 20px;">
         <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Rapport d'intervention</h2>
-        <div style="font-size: 12px; line-height: 1.8;">${rapport.value.contenu || '<p>Aucun contenu</p>'}</div>
+        <div class="rapport-content" style="font-size: 12px; line-height: 1.8;">${rapport.value.contenu || '<p>Aucun contenu</p>'}</div>
       </div>
 
       ${rapport.value.photos && rapport.value.photos.length > 0 ? `
@@ -737,6 +742,7 @@ async function generateWithAI() {
       editorRef.value.innerHTML = ''
     }
 
+    const currentLongueur = aiForm.value.longueur
     aiForm.value = { type_intervention: '', description: '', longueur: 'normal' }
 
     // Lecture du stream SSE
@@ -770,7 +776,9 @@ async function generateWithAI() {
           accumulatedHTML += delta
           // Nettoyer les balises markdown ```html ... ``` avant d'afficher
           let displayHTML = accumulatedHTML
-          if (displayHTML.startsWith('```html')) {
+          if (displayHTML.startsWith('```markdown')) {
+            displayHTML = displayHTML.slice(11)
+          } else if (displayHTML.startsWith('```html')) {
             displayHTML = displayHTML.slice(7)
           } else if (displayHTML.startsWith('```')) {
             displayHTML = displayHTML.slice(3)
@@ -779,6 +787,12 @@ async function generateWithAI() {
             displayHTML = displayHTML.slice(0, -3)
           }
           displayHTML = displayHTML.trimStart()
+          
+          // Si on est en mode court, on parse le markdown
+          if (currentLongueur === 'court') {
+            displayHTML = await marked.parse(displayHTML)
+          }
+
           // Mettre à jour l'éditeur avec le HTML nettoyé
           if (editorRef.value) {
             editorRef.value.innerHTML = displayHTML
@@ -1330,7 +1344,7 @@ async function generateWithAI() {
             @input="onEditorInput"
             @mouseup="updateActiveFormats"
             @keyup="updateActiveFormats"
-            class="min-h-[400px] max-h-[600px] overflow-y-auto p-4 outline-none prose prose-sm max-w-none transition-all"
+            class="rapport-content min-h-[400px] max-h-[600px] overflow-y-auto p-4 outline-none prose prose-sm max-w-none transition-all"
             :class="{ 'cursor-not-allowed pointer-events-none': isStreamingAI }"
             placeholder="Rédigez ici votre rapport d'intervention complet...
 
