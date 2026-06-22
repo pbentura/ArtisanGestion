@@ -72,31 +72,33 @@ def build_rapport_prompt(request: GenerateRapportRequest) -> str:
     context = "\n".join(context_parts) if context_parts else ""
 
     # Instructions anti-hallucination (communes à toutes les longueurs)
-    anti_hallucination = """RÈGLES STRICTES ANTI-INVENTION :
-- Tu ne dois JAMAIS inventer ou fabriquer des informations qui ne sont pas explicitement mentionnées dans la description fournie.
-- N'invente JAMAIS de marques, modèles, numéros de série, références produit, dimensions, mesures, valeurs techniques (pression, tension, ampérage, etc.) qui ne figurent pas dans la description.
-- Si un détail technique n'est pas précisé dans la description, utilise des formulations génériques comme "l'équipement existant", "le matériel en place", "selon les normes en vigueur".
-- Ne mentionne JAMAIS de noms de techniciens, de numéros de bon d'intervention, ou de références internes inventés.
-- Base-toi UNIQUEMENT sur les informations fournies par l'utilisateur. Reformule et structure ces informations de manière professionnelle sans rien ajouter de factuel."""
+    anti_hallucination = """RÈGLES ABSOLUES — INTERDICTION D'INVENTER :
+- Tu dois UNIQUEMENT reformuler ce que l'utilisateur a écrit dans sa description. Rien de plus.
+- N'ajoute JAMAIS d'étapes, d'actions ou de détails qui ne sont PAS explicitement écrits dans la description, même s'ils semblent logiques ou habituels pour ce type d'intervention.
+- Par exemple, si l'utilisateur dit "remplacement du robinet", tu ne dois PAS ajouter "diagnostic de l'installation", "recherche de la fuite", "raccordement", "contrôle d'étanchéité", "vérification du bon fonctionnement", etc. Tu ne mentionnes QUE "remplacement du robinet".
+- N'invente JAMAIS de marques, modèles, numéros de série, références, dimensions, mesures ou valeurs techniques.
+- N'invente JAMAIS de noms de techniciens, numéros de bon d'intervention ou références internes.
+- Si l'utilisateur donne peu de détails, le rapport doit être court. Ne comble JAMAIS le manque d'information par des détails inventés."""
 
     longueur = request.longueur if request.longueur in ("court", "normal", "long") else "normal"
 
     if longueur == "court":
-        instructions_longueur = """LONGUEUR : ULTRA-COURT. Maximum 80 à 120 mots au total. Sois extrêmement bref.
-UNE SEULE phrase par section. Pas de liste à puces, pas de détails superflus.
+        instructions_longueur = """LONGUEUR : TRÈS COURT. Maximum 50 à 80 mots au total. Sois extrêmement bref et concis.
 
-Format EXACT à respecter :
+RÈGLE CRUCIALE : Ne mentionne QUE ce que l'utilisateur a écrit. Si la description est courte, le rapport doit être encore plus court. N'invente AUCUNE étape supplémentaire.
 
-<strong>MOTIF :</strong>
-<p>[1 seule phrase courte décrivant le problème]</p>
+Format STRICT (3 paragraphes courts, PAS de listes à puces) :
 
-<strong>TRAVAUX :</strong>
-<p>[1 seule phrase résumant ce qui a été fait]</p>
+<strong>OBJET DE L'INTERVENTION :</strong>
+<p>[1 phrase reprenant le motif décrit par l'utilisateur]</p>
+
+<strong>TRAVAUX EFFECTUÉS :</strong>
+<p>[1 phrase résumant UNIQUEMENT les actions décrites par l'utilisateur, rien de plus]</p>
 
 <strong>RÉSULTAT :</strong>
-<p>[1 seule phrase sur l'état final]</p>
+<p>[1 phrase simple confirmant la fin de l'intervention]</p>
 
-C'est TOUT. Ne dépasse JAMAIS 120 mots. Pas d'observations ni de recommandations."""
+STOP. Rien d'autre. Pas d'observations, pas de recommandations, pas de listes détaillées."""
 
     elif longueur == "long":
         instructions_longueur = """Le rapport doit être TRÈS DÉTAILLÉ et COMPLET (environ 600-900 mots).
