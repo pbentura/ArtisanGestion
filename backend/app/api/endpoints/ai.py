@@ -85,7 +85,10 @@ def build_rapport_prompt(request: GenerateRapportRequest) -> str:
     if longueur == "court":
         instructions_longueur = """LONGUEUR : TRÈS COURT. Maximum 50 à 80 mots au total. Sois extrêmement bref et concis.
 
-RÈGLE CRUCIALE : Ne mentionne QUE ce que l'utilisateur a écrit. Si la description est courte, le rapport doit être encore plus court. N'invente AUCUNE étape supplémentaire.
+RAPPEL CRITIQUE AVANT DE RÉDIGER :
+- Tu ne dois écrire QUE ce qui est explicitement dans la description ci-dessus.
+- N'ajoute AUCUNE étape, AUCUN diagnostic, AUCUNE vérification qui n'est pas mentionnée.
+- Si tu hésites entre ajouter un détail ou non : NE L'AJOUTE PAS.
 
 Format STRICT (3 paragraphes courts, PAS de listes à puces) :
 
@@ -181,19 +184,11 @@ Ne génère QUE le contenu HTML des sections ci-dessus, sans aucun texte avant o
 def get_max_tokens_for_longueur(longueur: str) -> int:
     """Retourne le max_tokens adapté à la longueur demandée."""
     if longueur == "court":
-        return 400
+        return 150
     elif longueur == "long":
         return 4096
     else:
         return 2048
-
-
-def get_model_for_longueur(longueur: str) -> str:
-    """Retourne le modèle Mistral adapté. Small = plus rapide pour les rapports courts."""
-    if longueur == "court":
-        return "mistral-small-latest"
-    else:
-        return "mistral-large-latest"
 
 
 class GenerateRapportResponse(BaseModel):
@@ -211,15 +206,13 @@ async def generate_rapport(
     if not settings.MISTRAL_API_KEY:
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
 
-    # --- Validation de la saisie (sautée en mode court pour la rapidité) ---
-    if request.longueur != "court":
-        validation_error = await validate_input_with_ai(request.type_intervention, request.description)
-        if validation_error:
-            raise HTTPException(status_code=400, detail=validation_error)
+    # --- Validation de la saisie ---
+    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+    if validation_error:
+        raise HTTPException(status_code=400, detail=validation_error)
 
     prompt = build_rapport_prompt(request)
     max_tokens = get_max_tokens_for_longueur(request.longueur)
-    model = get_model_for_longueur(request.longueur)
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -230,7 +223,7 @@ async def generate_rapport(
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": model,
+                    "model": "mistral-large-latest",
                     "messages": [
                         {
                             "role": "user",
@@ -280,15 +273,13 @@ async def generate_rapport_stream(
     if not settings.MISTRAL_API_KEY:
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
 
-    # --- Validation de la saisie (sautée en mode court pour la rapidité) ---
-    if request.longueur != "court":
-        validation_error = await validate_input_with_ai(request.type_intervention, request.description)
-        if validation_error:
-            raise HTTPException(status_code=400, detail=validation_error)
+    # --- Validation de la saisie ---
+    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+    if validation_error:
+        raise HTTPException(status_code=400, detail=validation_error)
 
     prompt = build_rapport_prompt(request)
     max_tokens = get_max_tokens_for_longueur(request.longueur)
-    model = get_model_for_longueur(request.longueur)
 
     async def event_stream():
         try:
@@ -301,7 +292,7 @@ async def generate_rapport_stream(
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": model,
+                        "model": "mistral-large-latest",
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.4,
                         "max_tokens": max_tokens,
