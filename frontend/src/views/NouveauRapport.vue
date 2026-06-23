@@ -979,7 +979,7 @@ async function generateWithAI() {
               <button
                 @click="generateWithAI"
                 :disabled="isGeneratingAI || !aiForm.type_intervention || aiForm.description.trim().length < 10"
-                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                class="btn-primary flex-1"
               >
                 <Loader2 v-if="isGeneratingAI" class="w-4 h-4 animate-spin" />
                 <Sparkles v-else class="w-4 h-4" />
@@ -1016,7 +1016,7 @@ async function generateWithAI() {
                 <a 
                   :href="pdfUrl" 
                   :download="`${rapport.titre.replace(/\s+/g, '_')}.pdf`"
-                  class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                  class="btn-primary"
                 >
                   <FileDown class="w-4 h-4" />
                   <span class="hidden sm:inline">Télécharger</span>
@@ -1051,7 +1051,7 @@ async function generateWithAI() {
                 </p>
                 <button 
                   @click="() => generatePDF()"
-                  class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  class="btn-primary w-full"
                 >
                   <FileDown class="w-5 h-5" />
                   Générer le PDF final
@@ -1097,7 +1097,7 @@ async function generateWithAI() {
         <button
           @click="saveAndGeneratePDF"
           :disabled="isSaving || isGeneratingPDF"
-          class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+          class="btn-primary"
         >
           <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
           <FileDown v-else class="w-5 h-5" />
@@ -1142,7 +1142,7 @@ async function generateWithAI() {
               :class="[
                 'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                 rapport.statut === 'en cours' 
-                  ? 'bg-primary text-primary-foreground shadow-sm' 
+                  ? 'btn-primary' 
                   : 'text-muted-foreground hover:text-foreground'
               ]"
             >
@@ -1294,7 +1294,7 @@ async function generateWithAI() {
           </div>
           <button
             @click="showAIModal = true"
-            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 flex-shrink-0"
+            class="btn-primary flex-shrink-0"
           >
             <Sparkles class="w-4 h-4" />
             Générer avec l'IA
@@ -1383,7 +1383,7 @@ OBSERVATIONS ET RECOMMANDATIONS :
             <video ref="videoRef" autoplay playsinline class="w-full h-full object-cover"></video>
           </div>
           <div class="flex gap-3">
-            <button @click="capturePhoto" class="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-bold shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2">
+            <button @click="capturePhoto" class="btn-primary flex-1">
               <Camera class="w-5 h-5" /> Capturer
             </button>
             <button @click="stopCamera" class="px-4 py-3 border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors">

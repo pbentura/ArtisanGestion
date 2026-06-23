@@ -334,24 +334,7 @@ onMounted(fetchClients)
   color: var(--foreground);
 }
 
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
 
-.btn-primary:hover {
-  background: var(--primary);
-  opacity: 0.9;
-}
 
 .btn-secondary {
   padding: 10px 16px;

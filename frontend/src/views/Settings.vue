@@ -223,10 +223,10 @@ onMounted(() => {
                     </div>
                   </transition>
                 </div>
-                <Button 
+                <button 
                   @click="handleSave" 
                   :disabled="isSaving"
-                  class="min-w-[160px] shadow-lg shadow-primary/10"
+                  class="btn-primary min-w-[160px]"
                 >
                   <template v-if="isSaving">
                     <Loader2 class="w-4 h-4 mr-2 animate-spin" />
@@ -236,7 +236,7 @@ onMounted(() => {
                     <Save class="w-4 h-4 mr-2" />
                     Enregistrer
                   </template>
-                </Button>
+                </button>
               </div>
             </CardContent>
           </Card>

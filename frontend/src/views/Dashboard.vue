@@ -160,13 +160,13 @@ onMounted(fetchDashboard)
           </p>
         </div>
         <div class="shortcuts">
-          <button @click="router.push('/app/devis/new')" class="shortcut-btn shortcut-devis">
+          <button @click="router.push('/app/devis/new')" class="btn-primary ">
             <Plus class="w-4 h-4" /> Nouveau Devis
           </button>
-          <button @click="router.push('/app/factures/new')" class="shortcut-btn shortcut-facture">
+          <button @click="router.push('/app/factures/new')" class="btn-primary ">
             <Plus class="w-4 h-4" /> Nouvelle Facture
           </button>
-          <button @click="router.push('/app/clients')" class="shortcut-btn shortcut-client">
+          <button @click="router.push('/app/clients')" class="btn-primary ">
             <Users class="w-4 h-4" /> Ajouter Client
           </button>
         </div>
@@ -684,9 +684,9 @@ onMounted(fetchDashboard)
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
-.shortcut-devis:hover { border-color: #3b82f6; color: #3b82f6; }
+/*.shortcut-devis:hover { border-color: #3b82f6; color: #3b82f6; }
 .shortcut-facture:hover { border-color: #16a34a; color: #16a34a; }
-.shortcut-client:hover { border-color: #8b5cf6; color: #8b5cf6; }
+.shortcut-client:hover { border-color: #8b5cf6; color: #8b5cf6; }*/
 
 /* ── KPI Grid ── */
 .kpi-grid {

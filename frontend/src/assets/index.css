@@ -127,6 +127,14 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    touch-action: manipulation; /* Empecher le double-tap to zoom */
+  }
+}
+
+/* Fix iOS Safari input zoom issue (iOS zooms if font size is less than 16px) */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
   }
 }
 
@@ -163,4 +171,26 @@
   margin: 4px 0;
   padding-left: 20px;
   list-style-type: disc;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 border bg-card text-foreground cursor-pointer transition-all duration-200;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border-color: var(--border);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }

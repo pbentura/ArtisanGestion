@@ -188,7 +188,7 @@ onMounted(fetchDevis)
       </div>
       <button
         @click="router.push('/app/devis/new')"
-        class="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shrink-0"
+        class="btn-primary shrink-0"
       >
         <Plus class="w-5 h-5" />
         Nouveau devis
@@ -213,7 +213,7 @@ onMounted(fetchDevis)
       <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de devis.</p>
       <button
         @click="router.push('/app/devis/new')"
-        class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+        class="btn-primary"
       >
         <Plus class="w-4 h-4" />
         Créer mon premier devis
@@ -356,7 +356,7 @@ onMounted(fetchDevis)
       <p class="text-muted-foreground mb-6">Aucun devis ne correspond à vos filtres actuels.</p>
       <button
         @click="searchQuery = ''; statusFilter = 'tous'"
-        class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+        class="btn-primary"
       >
         Effacer la recherche
       </button>

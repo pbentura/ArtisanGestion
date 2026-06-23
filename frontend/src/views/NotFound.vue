@@ -231,25 +231,6 @@ onMounted(() => {
   margin-bottom: 36px;
 }
 
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #2563eb, #6366f1);
-  color: white;
-  font-weight: 700;
-  font-size: 0.9rem;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-}
 .btn-primary:active {
   transform: translateY(0);
 }

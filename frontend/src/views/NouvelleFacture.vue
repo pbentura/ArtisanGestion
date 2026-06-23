@@ -939,7 +939,7 @@ async function downloadFacturX() {
             <button
               @click="saveAndGeneratePDF"
               :disabled="isSaving || isGeneratingPDF"
-              class="inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+              class="btn-primary"
             >
               <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
               <FileDown v-else class="w-5 h-5" />
@@ -1076,7 +1076,7 @@ async function downloadFacturX() {
                     :class="[
                       'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                       facture.statut === 'brouillon' 
-                        ? 'bg-primary text-primary-foreground shadow-sm' 
+                        ? 'btn-primary' 
                         : 'text-muted-foreground hover:text-foreground',
                       isLocked ? 'opacity-50 cursor-not-allowed' : ''
                     ]"
@@ -1238,7 +1238,7 @@ async function downloadFacturX() {
             
             <div v-if="facture.lignes.length === 0" class="text-center py-8 bg-muted/20 border border-border border-dashed rounded-lg">
               <p class="text-sm text-muted-foreground mb-3">Aucune ligne dans cette facture.</p>
-              <button @click="ajouterLigne" class="inline-flex items-center justify-center bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
+              <button @click="ajouterLigne" class="btn-primary">
                 <Plus class="w-4 h-4 mr-2" /> Ajouter la première ligne
               </button>
             </div>
@@ -1317,7 +1317,7 @@ async function downloadFacturX() {
               <a 
                 :href="pdfUrl" 
                 :download="`${facture.titre_document_pdf.replace(/\s+/g, '_')}_${facture.numero_facture}.pdf`"
-                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                class="btn-primary"
                 v-if="pdfUrl"
               >
                 <FileDown class="w-4 h-4" />
@@ -1353,7 +1353,7 @@ async function downloadFacturX() {
               </p>
               <button 
                 @click="saveAndGeneratePDF"
-                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                class="btn-primary w-full"
                 :disabled="!isValid || isGeneratingPDF"
               >
                 <Loader2 v-if="isGeneratingPDF" class="w-5 h-5 animate-spin" />
