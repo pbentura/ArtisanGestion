@@ -393,6 +393,10 @@ function handleLogout() {
   overflow-y: auto;
 }
 
+.page-content.no-mobile-header {
+  padding-top: 0;
+}
+
 .hamburger-btn {
   background: none;
   border: none;
@@ -417,6 +421,10 @@ function handleLogout() {
   .is-browser .page-content {
     padding: 24px 16px;
   }
+  
+  .is-browser .page-content.no-mobile-header {
+    padding-top: 0;
+  }
 
   .is-native .page-content {
     /* Reduced padding to avoid the huge gap */
@@ -424,7 +432,7 @@ function handleLogout() {
   }
 
   .is-native .page-content.no-mobile-header {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: 0;
   }
 
   .is-native .page-content.no-mobile-nav {

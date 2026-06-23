@@ -1065,15 +1065,16 @@ async function generateWithAI() {
 
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6 sticky top-0 bg-background/95 backdrop-blur z-20 py-3 border-b pt-safe px-4 -mx-4">
-      <button
-        @click="router.push('/app/rapports')"
-        class="inline-flex items-center gap-1.5 text-foreground font-semibold transition-colors"
-      >
-        <ArrowLeft class="w-5 h-5" />
-        Retour
-      </button>
-      <div class="flex items-center gap-2">
+    <div class="sticky top-0 bg-background/95 backdrop-blur z-20 border-b pt-safe px-4 -mx-4 mb-6">
+      <div class="flex items-center justify-between py-3">
+        <button
+          @click="router.push('/app/rapports')"
+          class="inline-flex items-center gap-1.5 text-foreground font-semibold transition-colors"
+        >
+          <ArrowLeft class="w-5 h-5" />
+          Retour
+        </button>
+        <div class="flex items-center gap-2">
         <button
           @click="openPreview"
           :disabled="isSaving || isGeneratingPDF"
@@ -1113,6 +1114,7 @@ async function generateWithAI() {
           <span class="hidden md:inline">Lier Devis</span>
         </button>
       </div>
+    </div>
     </div>
 
     <h1 class="text-2xl font-bold text-foreground mb-4 hidden sm:block">{{ isEditMode ? 'Modifier le Rapport' : 'Nouveau Rapport' }}</h1>
