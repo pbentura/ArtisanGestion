@@ -220,7 +220,7 @@ export const Scene2Dashboard: React.FC = () => {
               className="mb-6"
             >
               <h2 className="text-2xl font-extrabold text-ventura-slate-900 tracking-tight">
-                Bienvenue, Pierre 👋
+                Bienvenue, Pierre
               </h2>
               <p className="text-sm text-ventura-slate-500 mt-1">
                 Vue d'ensemble de{" "}

@@ -154,7 +154,7 @@ onMounted(fetchDashboard)
       <!-- Header + Shortcuts -->
       <div v-if="!isMobileView" class="dashboard-header">
         <div class="header-text">
-          <h1 class="header-title">Bienvenue, {{ userName }} 👋</h1>
+          <h1 class="header-title">Bienvenue, {{ userName }}</h1>
           <p class="header-subtitle">
             Vue d'ensemble de <strong>{{ companyName || 'votre entreprise' }}</strong>
           </p>
