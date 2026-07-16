@@ -134,13 +134,13 @@ const routes = [
         path: 'entreprise',
         name: 'entreprise',
         component: () => import('@/views/SocieteInfo.vue'),
-        meta: { title: 'Mon entreprise' }
+        meta: { title: 'Entreprise' }
       },
       {
         path: 'clients',
         name: 'clients',
         component: () => import('@/views/ClientsList.vue'),
-        meta: { title: 'Mes clients' }
+        meta: { title: 'Clients' }
       },
       {
         path: 'admin',

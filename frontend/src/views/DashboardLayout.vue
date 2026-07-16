@@ -77,10 +77,10 @@ function handleLogout() {
 
         <p class="nav-section-title mt-8">Administration</p>
         <router-link to="/app/entreprise" class="nav-link">
-          <Building2 class="w-5 h-5" /> Mon entreprise
+          <Building2 class="w-5 h-5" /> Entreprise
         </router-link>
         <router-link to="/app/clients" class="nav-link">
-          <Users class="w-5 h-5" /> Mes clients
+          <Users class="w-5 h-5" /> Clients
         </router-link>
 
         <template v-if="user.role === 'ADMIN'">

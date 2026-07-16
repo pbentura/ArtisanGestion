@@ -137,7 +137,7 @@ onMounted(fetchClients)
 <template>
   <div class="clients-page">
     <div class="page-header hidden lg:flex animate-fade-slide-up">
-      <h1 class="page-title">Mes clients</h1>
+      <h1 class="page-title">Clients</h1>
       <button @click="openCreateModal" class="btn-primary">
         <Plus class="w-4 h-4" /> Nouveau client
       </button>
@@ -419,6 +419,18 @@ onMounted(fetchClients)
   border-radius: 12px;
   border: 1px solid var(--border);
   padding: 20px;
+}
+@media (max-width: 768px) {
+  .client-card {
+    border: none;
+    border-radius: 20px;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+  .client-card:active {
+    transform: scale(0.985);
+  }
 }
 
 .card-header {

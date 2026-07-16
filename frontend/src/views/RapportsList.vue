@@ -477,12 +477,7 @@ onMounted(fetchRapports)
       <div v-if="selectedRapport" class="flex flex-col gap-2 mt-4">
         <button
           @click="toggleStatus(selectedRapport); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl transition-colors text-left"
-          :class="[
-            selectedRapport.statut === 'terminée' 
-              ? 'text-green-600 bg-green-50' 
-              : 'text-blue-600 bg-blue-50'
-          ]"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <CheckCircle2 v-if="selectedRapport.statut === 'en cours'" class="w-5 h-5" />
           <Clock v-else class="w-5 h-5" />
@@ -491,7 +486,7 @@ onMounted(fetchRapports)
 
         <button
           @click="generateFullPDF(selectedRapport); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-teal-600 bg-teal-50 transition-colors text-left"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <Share2 class="w-5 h-5" />
           <span class="font-medium">Partager le rapport (PDF)</span>

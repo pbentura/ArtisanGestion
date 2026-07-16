@@ -196,7 +196,7 @@ onMounted(fetchDashboard)
 
         <!-- Encours -->
         <div class="kpi-card" style="--delay: 1">
-          <div class="kpi-icon-box kpi-icon-amber">
+          <div class="kpi-icon-box kpi-icon-blue">
             <Receipt class="w-5 h-5" />
           </div>
           <div class="kpi-info">
@@ -224,7 +224,7 @@ onMounted(fetchDashboard)
 
         <!-- Pipeline -->
         <div class="kpi-card" style="--delay: 3">
-          <div class="kpi-icon-box kpi-icon-purple">
+          <div class="kpi-icon-box kpi-icon-blue">
             <Target class="w-5 h-5" />
           </div>
           <div class="kpi-info">
@@ -714,6 +714,25 @@ onMounted(fetchDashboard)
   box-shadow: 0 8px 30px rgba(37, 99, 235, 0.08);
   transform: translateY(-2px);
 }
+@media (max-width: 768px) {
+  .kpi-card {
+    border: none;
+    border-radius: 20px;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+  .kpi-card:hover {
+    border-color: transparent;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 16px rgba(0, 0, 0, 0.04);
+    transform: none;
+  }
+  .kpi-card:active {
+    transform: scale(0.985);
+  }
+}
 
 .kpi-icon-box {
   width: 44px;
@@ -780,6 +799,18 @@ onMounted(fetchDashboard)
 }
 .chart-card:hover {
   border-color: var(--primary);
+}
+@media (max-width: 768px) {
+  .chart-card {
+    border: none;
+    border-radius: 20px;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+  .chart-card:hover {
+    border-color: transparent;
+  }
 }
 
 .chart-title {

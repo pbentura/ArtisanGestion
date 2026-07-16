@@ -680,7 +680,7 @@ onMounted(fetchFactures)
         <button
           v-if="selectedFacture.statut === 'brouillon'"
           @click="requestValidation(selectedFacture); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-green-600 bg-green-50 transition-colors text-left"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <CheckCircle2 class="w-5 h-5" />
           <span class="font-medium">Valider cette facture</span>
@@ -689,12 +689,7 @@ onMounted(fetchFactures)
         <button
           v-if="selectedFacture.statut === 'validée'"
           @click="togglePayment(selectedFacture); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl transition-colors text-left"
-          :class="[
-            selectedFacture.est_payee 
-              ? 'text-emerald-600 bg-emerald-50' 
-              : 'text-amber-600 bg-amber-50'
-          ]"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <CreditCard class="w-5 h-5" />
           <span class="font-medium">{{ selectedFacture.est_payee ? 'Marquer comme non payée' : 'Marquer comme payée' }}</span>
@@ -703,7 +698,7 @@ onMounted(fetchFactures)
         <button
           v-if="selectedFacture.statut === 'validée' && !selectedFacture.est_avoir"
           @click="creerAvoir(selectedFacture); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-purple-600 bg-purple-50 transition-colors text-left"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <Undo2 class="w-5 h-5" />
           <span class="font-medium">Créer un avoir</span>
@@ -712,7 +707,7 @@ onMounted(fetchFactures)
         <button
           v-if="selectedFacture.statut === 'validée'"
           @click="shareFacture(selectedFacture); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-teal-600 bg-teal-50 transition-colors text-left"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <Share2 class="w-5 h-5" />
           <span class="font-medium">Partager la facture (PDF)</span>
@@ -721,7 +716,7 @@ onMounted(fetchFactures)
         <button
           v-if="selectedFacture.statut === 'validée'"
           @click="downloadFacturX(selectedFacture); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-slate-600 bg-slate-50 transition-colors text-left"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <FileCheck2 class="w-5 h-5" />
           <span class="font-medium">Télécharger Factur-X</span>
@@ -729,7 +724,7 @@ onMounted(fetchFactures)
 
         <button
           @click="router.push(`/app/factures/${selectedFacture.id}/pdf`); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-primary bg-primary/10 transition-colors text-left"
+          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
           <Download class="w-5 h-5" />
           <span class="font-medium">Aperçu PDF</span>

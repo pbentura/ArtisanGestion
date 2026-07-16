@@ -194,3 +194,75 @@
     cursor: not-allowed;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE CARD RESTYLING — Premium, modern surfaces
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── shadcn Card component ── */
+  [data-slot="card"] {
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    transition: box-shadow 0.2s ease, transform 0.2s ease !important;
+  }
+
+  [data-slot="card"]:active {
+    transform: scale(0.985);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 8px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  /* ── Generic card-like elements (bg-card + border + rounded-xl) ── */
+  .bg-card.border.border-border.rounded-xl,
+  .bg-card.border.border-border.rounded-2xl {
+    border-color: transparent !important;
+    border-radius: 20px !important;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 16px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .bg-card.border.border-border.rounded-xl:active,
+  .bg-card.border.border-border.rounded-2xl:active {
+    transform: scale(0.985);
+  }
+
+  /* ── Dark mode adjustments ── */
+  .dark [data-slot="card"],
+  .dark .bg-card.border.border-border.rounded-xl,
+  .dark .bg-card.border.border-border.rounded-2xl {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.2),
+      0 4px 20px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+
+  /* ── Search inputs ── */
+  input.bg-card.border.border-border {
+    border-color: transparent !important;
+    border-radius: 14px !important;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 12px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  input.bg-card.border.border-border:focus {
+    border-color: var(--primary) !important;
+    box-shadow:
+      0 0 0 3px rgba(37, 99, 235, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* ── Select / filter dropdowns ── */
+  select.border.border-border,
+  .border.border-border.rounded-lg {
+    border-radius: 12px !important;
+  }
+}
+

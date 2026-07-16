@@ -49,7 +49,7 @@ function handleLogout() {
             <div class="icon-box bg-blue-100 text-blue-600">
               <Building2 class="w-5 h-5" />
             </div>
-            <span>Mon Entreprise</span>
+            <span>Entreprise</span>
           </div>
           <ChevronRight class="w-5 h-5 text-muted-foreground" />
         </button>
