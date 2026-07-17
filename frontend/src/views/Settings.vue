@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -13,7 +13,8 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
-const activeTab = ref('compte')
+const route = useRoute()
+const activeTab = ref((route.query.tab as string) || 'compte')
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isDeleting = ref(false)

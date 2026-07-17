@@ -860,8 +860,8 @@ async function generateWithAI() {
                   <Sparkles class="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 class="text-lg font-bold text-foreground">Générer avec l'IA</h2>
-                  <p class="text-sm text-muted-foreground">Quelques informations suffisent pour rédiger un rapport professionnel</p>
+                  <h2 class="text-lg font-bold text-foreground">{{ isEditMode ? "Réécrire avec l'IA" : "Générer avec l'IA" }}</h2>
+                  <p class="text-sm text-muted-foreground">{{ isEditMode ? "Quelques informations suffisent pour réécrire votre rapport" : "Quelques informations suffisent pour rédiger un rapport professionnel" }}</p>
                 </div>
                 <button
                   @click="showAIModal = false"
@@ -983,7 +983,7 @@ async function generateWithAI() {
               >
                 <Loader2 v-if="isGeneratingAI" class="w-4 h-4 animate-spin" />
                 <Sparkles v-else class="w-4 h-4" />
-                {{ isGeneratingAI ? 'Génération...' : 'Générer le rapport' }}
+                {{ isGeneratingAI ? (isEditMode ? 'Réécriture...' : 'Génération...') : (isEditMode ? 'Réécrire le rapport' : 'Générer le rapport') }}
               </button>
             </div>
           </div>
@@ -1278,8 +1278,8 @@ async function generateWithAI() {
         </div>
       </section>
 
-      <!-- AI Generation Banner (creation only) -->
-    <div v-if="!isEditMode" class="mb-6">
+      <!-- AI Generation Banner -->
+    <div class="mb-6">
       <div class="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl p-4">
         <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -1288,8 +1288,8 @@ async function generateWithAI() {
               <Sparkles class="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p class="font-semibold text-foreground text-sm">Générer le rapport avec l'IA</p>
-              <p class="text-xs text-muted-foreground">Rédiger un rapport professionnel et structuré en quelques secondes avec l'IA</p>
+              <p class="font-semibold text-foreground text-sm">{{ isEditMode ? "Réécrire ce rapport avec l'IA" : "Générer le rapport avec l'IA" }}</p>
+              <p class="text-xs text-muted-foreground">{{ isEditMode ? "Améliorer et restructurer le contenu de ce rapport à l'aide de l'IA" : "Rédiger un rapport professionnel et structuré en quelques secondes avec l'IA" }}</p>
             </div>
           </div>
           <button
@@ -1297,7 +1297,7 @@ async function generateWithAI() {
             class="btn-primary flex-shrink-0"
           >
             <Sparkles class="w-4 h-4" />
-            Générer avec l'IA
+            {{ isEditMode ? "Réécrire avec l'IA" : "Générer avec l'IA" }}
           </button>
         </div>
       </div>

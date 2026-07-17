@@ -129,7 +129,7 @@ function handleLogout() {
         <div class="header-right">
           <button class="icon-btn"><Bell class="w-5 h-5" /></button>
           <ThemeToggle />
-          <div class="user-pill">Mon compte</div>
+          <button class="user-pill cursor-pointer hover:bg-muted/50 transition-colors" @click="router.push('/app/settings?tab=compte')">Mon compte</button>
         </div>
       </header>
 
