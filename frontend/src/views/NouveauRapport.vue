@@ -14,11 +14,38 @@ const route = useRoute()
 const { takePhoto, sharePDF, triggerHaptic, isNative } = useMobile()
 
 const mainContainer = ref<HTMLElement | null>(null)
-useSwipe(mainContainer, {
+const isLeaving = ref(false)
+
+const { lengthX, isSwiping } = useSwipe(mainContainer, {
   onSwipeEnd(_e: TouchEvent, direction) {
     if (direction === 'right' && isNative) {
-      router.push('/app/rapports')
+      if (lengthX.value < -100) {
+        isLeaving.value = true
+        setTimeout(() => {
+          router.push('/app/rapports')
+        }, 200)
+      }
     }
+  }
+})
+
+const swipeStyle = computed(() => {
+  if (!isNative) return {}
+  if (isSwiping.value && lengthX.value < 0) {
+    return {
+      transform: `translateX(${-lengthX.value}px)`,
+      transition: 'none'
+    }
+  }
+  if (isLeaving.value) {
+    return {
+      transform: 'translateX(100%)',
+      transition: 'transform 0.2s ease-out'
+    }
+  }
+  return {
+    transform: 'translateX(0)',
+    transition: 'transform 0.2s ease-out'
   }
 })
 
@@ -820,7 +847,7 @@ async function generateWithAI() {
 </script>
 
 <template>
-  <div ref="mainContainer" class="max-w-4xl mx-auto pb-20">
+  <div ref="mainContainer" :style="swipeStyle" class="max-w-4xl mx-auto pb-20">
     <!-- AI Modal Overlay -->
     <Teleport to="body">
       <Transition name="modal-fade">
