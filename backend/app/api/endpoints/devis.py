@@ -169,8 +169,14 @@ async def update_devis(
             db_rapport.id_devis = None
         
     await db.commit()
-    await db.refresh(db_devis)
-    return db_devis
+    
+    # Reload fully mapped object with relationships to avoid MissingGreenlet
+    reload_result = await db.execute(
+        select(Devis)
+        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
+        .where(Devis.id == db_devis.id)
+    )
+    return reload_result.unique().scalars().first()
 
 @router.delete("/{devis_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_devis(

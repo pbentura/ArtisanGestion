@@ -50,14 +50,18 @@ async def create_rapport(
         client_obj = client_result.scalars().first()
         if not client_obj:
             raise HTTPException(status_code=400, detail="Client invalide ou non autorisé")
-        
+            
     db_rapport = Rapport(**rapport_in.model_dump(), id_user=current_user.id)
     db.add(db_rapport)
     await db.commit()
-    await db.refresh(db_rapport)
-    if client_obj:
-        db_rapport.client = client_obj
-    return db_rapport
+    
+    # Reload with joins to prevent MissingGreenlet error during serialization
+    result = await db.execute(
+        select(Rapport)
+        .options(joinedload(Rapport.client), joinedload(Rapport.devis))
+        .where(Rapport.id == db_rapport.id)
+    )
+    return result.scalars().first()
 
 @router.get("/{rapport_id}", response_model=RapportSchema)
 async def read_rapport(
@@ -129,8 +133,14 @@ async def update_rapport(
             db_devis.id_rapport = None
         
     await db.commit()
-    await db.refresh(db_rapport)
-    return db_rapport
+    
+    # Reload with joins to prevent MissingGreenlet error during serialization
+    reload_result = await db.execute(
+        select(Rapport)
+        .options(joinedload(Rapport.client), joinedload(Rapport.devis))
+        .where(Rapport.id == db_rapport.id)
+    )
+    return reload_result.scalars().first()
 
 @router.delete("/{rapport_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_rapport(

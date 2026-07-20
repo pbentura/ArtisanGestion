@@ -404,8 +404,14 @@ async def update_facture(
         setattr(db_facture, field, value)
 
     await db.commit()
-    await db.refresh(db_facture)
-    return db_facture
+    
+    # Reload fully mapped object with relationships to avoid MissingGreenlet
+    reload_result = await db.execute(
+        select(Facture)
+        .options(joinedload(Facture.client), joinedload(Facture.lignes))
+        .where(Facture.id == db_facture.id)
+    )
+    return reload_result.unique().scalars().first()
 
 
 @router.delete("/{facture_id}", status_code=status.HTTP_204_NO_CONTENT)

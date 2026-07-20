@@ -1349,6 +1349,18 @@ async function unlinkRapport() {
           </div>
         </section>
 
+        <!-- Bouton Sauvegarder (Bas de page) -->
+        <div class="flex justify-end mt-8">
+          <button
+            @click="saveDevis"
+            :disabled="isSaving || isGeneratingPDF"
+            class="btn-primary w-full sm:w-auto"
+          >
+            <Loader2 v-if="isSaving" class="w-5 h-5 animate-spin mr-2" />
+            <Save v-else class="w-5 h-5 mr-2" />
+            Sauvegarder
+          </button>
+        </div>
       </div>
     </div>
   </div>
