@@ -14,7 +14,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata_prod:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     networks:
       - app-network
 
@@ -42,4 +42,4 @@ networks:
     external: true
 
 volumes:
-  pgdata_prod:
+  pgdata:
