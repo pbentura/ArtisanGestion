@@ -69,7 +69,7 @@ onMounted(() => {
 
       <!-- Decorative line -->
       <div class="divider-line">
-        <span class="divider-text">Ventura</span>
+        <span class="divider-text">Artisan<span class="text-primary">Gestion</span></span>
       </div>
     </div>
   </div>

@@ -5,7 +5,7 @@ const isDark = useDark({
   attribute: 'class',
   valueDark: 'dark',
   valueLight: '',
-  storageKey: 'ventura-theme',
+  storageKey: 'artisangestion-theme',
 })
 
 const toggleDark = useToggle(isDark)

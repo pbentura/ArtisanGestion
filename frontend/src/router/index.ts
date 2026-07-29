@@ -14,8 +14,8 @@ const routes = [
     name: 'landing',
     component: LandingPage,
     meta: { 
-      title: 'Ventura | Gérez vos devis, factures et interventions sereinement',
-      description: 'Ventura est la plateforme tout-en-un pour les artisans et PME. Gérez vos devis, factures et rapports d\'intervention avec l\'aide de l\'IA.'
+      title: 'ArtisanGestion | Gérez vos devis, factures et interventions sereinement',
+      description: 'ArtisanGestion est la plateforme tout-en-un pour les artisans et PME. Gérez vos devis, factures et rapports d\'intervention avec l\'aide de l\'IA.'
     }
   },
   {
@@ -24,7 +24,7 @@ const routes = [
     component: AuthPage,
     meta: { 
       title: 'Connexion',
-      description: 'Connectez-vous à votre espace Ventura pour gérer votre activité.'
+      description: 'Connectez-vous à votre espace ArtisanGestion pour gérer votre activité.'
     }
   },
   {
@@ -252,15 +252,15 @@ router.beforeEach(async (to, _from, next) => {
     if (to.name === 'landing') {
       document.title = title // Conserver le titre complet pour la landing
     } else {
-      document.title = `Ventura | ${title}`
+      document.title = `ArtisanGestion | ${title}`
     }
   } else {
-    document.title = 'Ventura | Gestion simplifiée pour artisans & PME'
+    document.title = 'ArtisanGestion | Gestion simplifiée pour artisans & PME'
   }
   
   const descriptionTag = document.querySelector('meta[name="description"]')
   if (descriptionTag) {
-    descriptionTag.setAttribute('content', (meta?.description as string) || 'Ventura — La solution tout-en-un pour les artisans et PME.')
+    descriptionTag.setAttribute('content', (meta?.description as string) || 'ArtisanGestion — La solution tout-en-un pour les artisans et PME.')
   }
 
   next()

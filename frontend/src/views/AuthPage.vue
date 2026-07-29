@@ -324,9 +324,9 @@ onUnmounted(() => {
         <!-- Centered Logo & Text -->
         <div class="auth-welcome-content">
           <div class="auth-welcome-logo-wrapper">
-            <img src="/logo.svg" alt="Ventura" class="auth-welcome-logo" />
+            <img src="/logo.svg" alt="ArtisanGestion" class="auth-welcome-logo" />
           </div>
-          <h1 class="auth-welcome-title">Ventura</h1>
+          <h1 class="auth-welcome-title">Artisan<span class="text-primary">Gestion</span></h1>
           <p class="auth-welcome-subtitle">Votre assistant de gestion intelligent</p>
         </div>
 
@@ -385,7 +385,7 @@ onUnmounted(() => {
             <!-- Sheet Header -->
             <div class="auth-sheet-header">
               <div class="auth-sheet-logo-wrapper">
-                <img src="/logo.svg" alt="Ventura" class="auth-sheet-logo" />
+                <img src="/logo.svg" alt="ArtisanGestion" class="auth-sheet-logo" />
               </div>
               <h2 class="auth-sheet-title">Se connecter ou s'inscrire</h2>
               <p class="auth-sheet-description">
@@ -600,7 +600,7 @@ onUnmounted(() => {
         <!-- Header -->
         <div class="flex items-center gap-3">
           <img src="/logo.svg" alt="Logo" class="w-12 h-12" />
-          <span class="text-2xl font-bold text-foreground">Ventura</span>
+          <span class="text-2xl font-bold text-foreground">Artisan<span class="text-primary">Gestion</span></span>
         </div>
 
         <!-- Content -->
@@ -609,13 +609,13 @@ onUnmounted(() => {
             Simplifiez la gestion de votre activité
           </h2>
           <p class="text-lg text-muted-foreground">
-            Rejoignez plus de 500 artisans et PME qui gagnent du temps chaque jour avec Ventura.
+            Rejoignez plus de 500 artisans et PME qui gagnent du temps chaque jour avec ArtisanGestion.
           </p>
           
           <!-- Testimonial -->
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl p-6 border border-border/50">
             <p class="text-foreground mb-4 italic">
-              "Ventura a transformé notre façon de travailler. Nous gagnons 10 heures par semaine sur l'administratif."
+              "ArtisanGestion a transformé notre façon de travailler. Nous gagnons 10 heures par semaine sur l'administratif."
             </p>
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600" />
@@ -629,7 +629,7 @@ onUnmounted(() => {
 
         <!-- Footer -->
         <div class="text-sm text-muted-foreground">
-          © {{ new Date().getFullYear() }} Ventura. Tous droits réservés.
+          © {{ new Date().getFullYear() }} ArtisanGestion. Tous droits réservés.
         </div>
       </div>
 
@@ -639,7 +639,7 @@ onUnmounted(() => {
         <div class="lg:hidden flex items-center justify-between w-full mb-8 pt-safe mt-4">
           <div class="flex items-center gap-2">
             <img src="/logo.svg" alt="Logo" class="w-9 h-9" />
-            <span class="text-xl font-bold">Ventura</span>
+            <span class="text-xl font-bold">Artisan<span class="text-primary">Gestion</span></span>
           </div>
           <Button variant="ghost" size="sm" @click="goBack">
             <ArrowLeft class="h-4 w-4 mr-1" />

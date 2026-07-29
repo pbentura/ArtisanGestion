@@ -48,7 +48,7 @@
 
 :root {
   --radius: 0.625rem;
-  /* Ventura Light Mode */
+  /* ArtisanGestion Light Mode */
   --background: #F8FAFC;
   --foreground: #0F172A;
   --card: #FFFFFF;
@@ -85,7 +85,7 @@
 }
 
 .dark {
-  /* Ventura Dark Mode */
+  /* ArtisanGestion Dark Mode */
   --background: #0F172A;
   --foreground: #E2E8F0;
   --card: #1E293B;

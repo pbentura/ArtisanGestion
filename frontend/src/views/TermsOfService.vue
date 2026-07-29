@@ -13,7 +13,7 @@ const effectiveDate = '7 avril 2026'
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
-          <span class="font-bold text-lg">Ventura</span>
+          <span class="font-bold text-lg">Artisan<span class="text-primary">Gestion</span></span>
         </div>
         <button
           @click="router.push('/')"
@@ -58,6 +58,7 @@ const effectiveDate = '7 avril 2026'
           </div>
           <div class="section-body space-y-3">
             <p><strong>Ventura</strong> est une plateforme SaaS (Software as a Service) de gestion d'entreprise destinée aux artisans, indépendants et petites et moyennes entreprises (PME) établis principalement en France.</p>
+            <p><strong>ArtisanGestion</strong> est une plateforme SaaS (Software as a Service) de gestion d'entreprise destinée aux artisans, indépendants et petites et moyennes entreprises (PME) établis principalement en France.</p>
             <p>La plateforme permet notamment :</p>
             <ul class="data-list">
               <li>La création et gestion de rapports d'intervention (avec photos, statut, génération de PDF)</li>
@@ -66,7 +67,7 @@ const effectiveDate = '7 avril 2026'
               <li>La génération de documents professionnels (rapports, devis, factures)</li>
               <li>Le suivi de l'activité commerciale (chiffre d'affaires, objectif mensuel)</li>
             </ul>
-            <p>L'éditeur du service est <strong>Ventura SAS</strong>, société par actions simplifiée, dont le siège est à Paris, France. Contact : <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline">pinhasbent@gmail.com</a>.</p>
+            <p>L'éditeur du service est <strong>ArtisanGestion SAS</strong>, société par actions simplifiée, dont le siège est à Paris, France. Contact : <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline">pinhasbent@gmail.com</a>.</p>
           </div>
         </section>
 
@@ -78,7 +79,7 @@ const effectiveDate = '7 avril 2026'
           </div>
           <div class="section-body space-y-4">
             <h3 class="sub-title">2.1 Conditions d'accès</h3>
-            <p>L'accès à Ventura est réservé aux personnes physiques ou morales :</p>
+            <p>L'accès à ArtisanGestion est réservé aux personnes physiques ou morales :</p>
             <ul class="data-list">
               <li>Âgées d'au moins 18 ans ou disposant de la capacité juridique pour s'engager</li>
               <li>Exerçant une activité professionnelle (artisan, commerçant, prestataire de services, PME)</li>
@@ -89,9 +90,9 @@ const effectiveDate = '7 avril 2026'
             <p>Vous pouvez créer un compte de deux manières :</p>
             <ul class="data-list">
               <li><strong>Inscription email/mot de passe :</strong> en fournissant votre nom, prénom, adresse e-mail et un mot de passe sécurisé (minimum 8 caractères).</li>
-              <li><strong>Connexion via Google OAuth :</strong> en autorisant Ventura à accéder aux informations de base de votre compte Google (nom, prénom, e-mail).</li>
+              <li><strong>Connexion via Google OAuth :</strong> en autorisant ArtisanGestion à accéder aux informations de base de votre compte Google (nom, prénom, e-mail).</li>
             </ul>
-            <p>Vous êtes responsable de la confidentialité de vos identifiants. Toute utilisation du service avec vos identifiants vous est imputable. En cas de compromission, vous devez nous prévenir immédiatement à <a href="mailto:security@ventura.app" class="text-primary hover:underline">security@ventura.app</a>.</p>
+            <p>Vous êtes responsable de la confidentialité de vos identifiants. Toute utilisation du service avec vos identifiants vous est imputable. En cas de compromission, vous devez nous prévenir immédiatement à <a href="mailto:security@artisangestion.app" class="text-primary hover:underline">security@artisangestion.app</a>.</p>
 
             <h3 class="sub-title">2.3 Onboarding entreprise</h3>
             <p>Après inscription, vous êtes invité à renseigner les informations de votre société (nom, SIRET, adresse, coordonnées bancaires, etc.). Ces données sont nécessaires à l'utilisation complète du service. L'accès au tableau de bord est conditionné à l'enregistrement d'une société.</p>
@@ -142,7 +143,7 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">4. Obligations de l'utilisateur</h2>
           </div>
           <div class="section-body space-y-4">
-            <p>En utilisant Ventura, vous vous engagez à :</p>
+            <p>En utilisant ArtisanGestion, vous vous engagez à :</p>
             <ul class="data-list">
               <li>Fournir des informations exactes, complètes et à jour lors de votre inscription et de l'utilisation du service</li>
               <li>N'utiliser le service qu'à des fins professionnelles légales et légitimes</li>
@@ -150,12 +151,12 @@ const effectiveDate = '7 avril 2026'
               <li>Ne pas accéder aux données d'autres utilisateurs sans autorisation</li>
               <li>Respecter la législation applicable aux données de vos propres clients (RGPD, Code civil)</li>
               <li>Conserver la confidentialité de vos identifiants de connexion</li>
-              <li>Ne pas utiliser Ventura pour des activités frauduleuses, illégales ou contraires à l'ordre public</li>
+              <li>Ne pas utiliser ArtisanGestion pour des activités frauduleuses, illégales ou contraires à l'ordre public</li>
               <li>Ne pas surcharger intentionnellement les infrastructures du service (attaques DDoS, scraping massif…)</li>
             </ul>
             <div class="warning-box">
               <AlertTriangle class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p class="text-sm">En tant qu'utilisateur professionnel, vous êtes responsable de la licéité du traitement des données personnelles de vos propres clients. Ventura agit en tant que <strong>sous-traitant</strong> au sens du RGPD pour ces données.</p>
+              <p class="text-sm">En tant qu'utilisateur professionnel, vous êtes responsable de la licéité du traitement des données personnelles de vos propres clients. ArtisanGestion agit en tant que <strong>sous-traitant</strong> au sens du RGPD pour ces données.</p>
             </div>
           </div>
         </section>
@@ -167,7 +168,7 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">5. Utilisations interdites</h2>
           </div>
           <div class="section-body">
-            <p>Il est strictement interdit d'utiliser Ventura pour :</p>
+            <p>Il est strictement interdit d'utiliser ArtisanGestion pour :</p>
             <ul class="data-list">
               <li>La collecte de données personnelles à des fins non liées à l'exercice de votre activité professionnelle déclarée</li>
               <li>La transmission de contenus illicites, diffamatoires, obscènes ou portant atteinte aux droits de tiers</li>
@@ -187,9 +188,9 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">6. Propriété intellectuelle</h2>
           </div>
           <div class="section-body space-y-3">
-            <p>L'ensemble des éléments composant la plateforme Ventura (code source, design, interface, logos, marques, documentation) est la propriété exclusive de Ventura SAS et est protégé par les lois françaises et européennes relatives à la propriété intellectuelle.</p>
+            <p>L'ensemble des éléments composant la plateforme ArtisanGestion (code source, design, interface, logos, marques, documentation) est la propriété exclusive de ArtisanGestion SAS et est protégé par les lois françaises et européennes relatives à la propriété intellectuelle.</p>
             <p>L'utilisation de la plateforme ne vous confère aucun droit de propriété sur ces éléments. Toute reproduction, représentation, modification ou exploitation non autorisée est formellement interdite.</p>
-            <p><strong>Vos données restent les vôtres.</strong> Ventura revendique aucun droit de propriété sur les données que vous créez (rapports, clients, documents). Vous nous accordez uniquement une licence limitée pour héberger, traiter et restituer ces données dans le cadre du service.</p>
+            <p><strong>Vos données restent les vôtres.</strong> ArtisanGestion revendique aucun droit de propriété sur les données que vous créez (rapports, clients, documents). Vous nous accordez uniquement une licence limitée pour héberger, traiter et restituer ces données dans le cadre du service.</p>
           </div>
         </section>
 
@@ -200,13 +201,13 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">7. Disponibilité et niveaux de service</h2>
           </div>
           <div class="section-body space-y-3">
-            <p>Ventura s'efforce de maintenir la plateforme accessible <strong>24h/24 et 7j/7</strong>. Cependant, des interruptions peuvent survenir pour :</p>
+            <p>ArtisanGestion s'efforce de maintenir la plateforme accessible <strong>24h/24 et 7j/7</strong>. Cependant, des interruptions peuvent survenir pour :</p>
             <ul class="data-list">
               <li>Maintenances programmées (annoncées à l'avance, de préférence en dehors des heures ouvrées)</li>
               <li>Mises à jour, correctifs de sécurité ou évolutions fonctionnelles</li>
               <li>Incidents techniques indépendants de notre volonté (pannes réseau, force majeure)</li>
             </ul>
-            <p>Ventura SAS ne saurait être tenu responsable de préjudices résultant d'une interruption de service temporaire. Nous nous engageons à communiquer sur tout incident majeur via l'adresse e-mail de votre compte.</p>
+            <p>ArtisanGestion SAS ne saurait être tenu responsable de préjudices résultant d'une interruption de service temporaire. Nous nous engageons à communiquer sur tout incident majeur via l'adresse e-mail de votre compte.</p>
           </div>
         </section>
 

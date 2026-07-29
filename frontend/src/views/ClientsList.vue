@@ -136,8 +136,8 @@ onMounted(fetchClients)
 
 <template>
   <div class="clients-page">
-    <div class="page-header hidden lg:flex animate-fade-slide-up">
-      <h1 class="page-title">Clients</h1>
+    <div class="hidden lg:flex items-center justify-between mb-6 animate-fade-slide-up">
+      <h1 class="text-2xl font-bold text-foreground">Clients</h1>
       <button @click="openCreateModal" class="btn-primary">
         <Plus class="w-4 h-4" /> Nouveau client
       </button>
@@ -319,19 +319,6 @@ onMounted(fetchClients)
 <style scoped>
 .clients-page {
   max-width: 1200px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--foreground);
 }
 
 

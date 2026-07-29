@@ -19,12 +19,12 @@ function toggleMenu() {
 }
 
 onMounted(() => {
-  // Écouter les liens personnalisés (ex: com.pinhasbentura.ventura://auth?token=...)
+  // Écouter les liens personnalisés (ex: com.artisangestion.app://auth?token=...)
   CapApp.addListener('appUrlOpen', data => {
     console.log('App opened with URL:', data.url)
     try {
       const url = new URL(data.url)
-      // On accepte à la fois le format ventura://auth et com.pinhasbentura.ventura://auth
+      // On accepte à la fois le format artisangestion://auth et com.artisangestion.app://auth
       if (url.host === 'auth') {
         const token = url.searchParams.get('token')
         if (token) {
@@ -54,7 +54,7 @@ onMounted(() => {
           <!-- Logo -->
           <div class="flex items-center gap-3">
             <img src="/logo.svg" alt="Logo" class="w-9 h-9" />
-            <span class="text-xl font-bold text-foreground">Ventura</span>
+            <span class="text-xl font-bold text-foreground">Artisan<span class="text-primary">Gestion</span></span>
           </div>
 
           <!-- Nav Links -->

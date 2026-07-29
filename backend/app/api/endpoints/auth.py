@@ -90,7 +90,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     # Si on est sur mobile, on redirige vers le schéma d'URL personnalisé de l'app
     if platform == 'mobile':
         # On utilise le schéma d'URL de l'application Capacitor
-        return RedirectResponse(url=f"com.pinhasbentura.ventura://auth?token={access_token}")
+        return RedirectResponse(url=f"com.artisangestion.app://auth?token={access_token}")
         
     # Retourner une page HTML qui communique avec la fenêtre parente (popup)
     # ou redirige si ouvert directement
@@ -100,7 +100,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Authentification réussie | Ventura</title>
+        <title>Authentification réussie | ArtisanGestion</title>
         <style>
             body {{
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;

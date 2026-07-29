@@ -66,7 +66,7 @@ const socialLinks = [
         <div class="col-span-2">
           <div class="flex items-center gap-3 mb-4">
             <img src="/logo.svg" alt="Logo" class="w-10 h-10" />
-            <span class="text-xl font-bold">Ventura</span>
+            <span class="text-xl font-bold">Artisan<span class="text-primary">Gestion</span></span>
           </div>
           <p class="text-secondary-foreground/70 text-sm mb-6 max-w-xs leading-relaxed">
             La solution moderne de gestion pour artisans et PME. Simplifiez votre quotidien, concentrez-vous sur votre métier.
@@ -105,7 +105,7 @@ const socialLinks = [
       <div class="border-t border-secondary-foreground/10 py-6">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p class="text-sm text-secondary-foreground/60">
-            © {{ new Date().getFullYear() }} Ventura. Tous droits réservés.
+            © {{ new Date().getFullYear() }} ArtisanGestion. Tous droits réservés.
           </p>
           
           <!-- Social Links -->

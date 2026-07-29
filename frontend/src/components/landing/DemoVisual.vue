@@ -26,7 +26,7 @@ import {
           Une interface pensée pour vous
         </h2>
         <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Découvrez un aperçu de l'interface Ventura : moderne, intuitive et optimisée pour votre productivité.
+          Découvrez un aperçu de l'interface ArtisanGestion : moderne, intuitive et optimisée pour votre productivité.
         </p>
       </div>
 

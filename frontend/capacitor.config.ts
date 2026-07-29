@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.pinhasbentura.ventura',
-  appName: 'Ventura',
+  appId: 'com.artisangestion.app',
+  appName: 'ArtisanGestion',
   webDir: 'dist',
   plugins: {
     CapacitorHttp: {

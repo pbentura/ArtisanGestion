@@ -78,7 +78,7 @@ export function useMobile() {
 
         await Share.share({
           title: filename,
-          text: 'Consultez mon document Ventura',
+          text: 'Consultez mon document ArtisanGestion',
           url: savedFile.uri,
           dialogTitle: 'Partager le PDF'
         })

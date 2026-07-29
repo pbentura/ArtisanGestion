@@ -709,7 +709,7 @@ async function saveAndGeneratePDF() {
         pdf.setFontSize(6)
         pdf.setTextColor(156, 163, 175) // COLOR_LIGHT_MUTED
         pdf.setFont('helvetica', 'italic')
-        pdf.text("Généré via Ventura", 25, pageHeight - 10)
+        pdf.text("Généré via ArtisanGestion", 25, pageHeight - 10)
       }
     }
 

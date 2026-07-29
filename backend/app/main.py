@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     # Base.metadata.create_all is now handled by Alembic migrations
     yield
 
-app = FastAPI(title="Ventura API", lifespan=lifespan)
+app = FastAPI(title="ArtisanGestion API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -46,7 +46,7 @@ app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"]
 
 @app.get("/")
 async def hello_world():
-    return {"message": "Hello from Ventura Backend!"}
+    return {"message": "Hello from ArtisanGestion Backend!"}
 
 @app.get("/health")
 async def health():

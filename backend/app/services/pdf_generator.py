@@ -1,5 +1,5 @@
 """
-Générateur de PDF côté serveur pour les factures Ventura.
+Générateur de PDF côté serveur pour les factures ArtisanGestion.
 
 Utilise ReportLab pour produire un PDF de haute qualité,
 répliquant le design du frontend pour une cohérence visuelle.
@@ -77,7 +77,7 @@ def generate_invoice_pdf(
         topMargin=25 * mm,
         bottomMargin=bottom_margin + 10 * mm,
         title=f"{getattr(facture, 'titre_document_pdf', 'FACTURE')} {facture.numero_facture}",
-        author=getattr(societe, "nom", "Ventura"),
+        author=getattr(societe, "nom", "ArtisanGestion"),
     )
 
     # Styles
@@ -410,7 +410,7 @@ def generate_invoice_pdf(
         # 4. Petit branding (Bas Gauche - optionnel mais pro)
         canvas.setFont("Helvetica-Oblique", 6)
         canvas.setFillColor(COLOR_LIGHT_MUTED)
-        canvas.drawString(15 * mm, 10 * mm, "Généré via Ventura")
+        canvas.drawString(15 * mm, 10 * mm, "Généré via ArtisanGestion")
 
         canvas.restoreState()
 

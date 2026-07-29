@@ -5,7 +5,7 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
 class Settings:
-    PROJECT_NAME: str = "Ventura API"
+    PROJECT_NAME: str = "ArtisanGestion API"
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "ventura")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "ventura")
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")

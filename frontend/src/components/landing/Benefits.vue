@@ -51,7 +51,7 @@ const benefits = [
       <div class="text-center mb-16">
         <span class="text-primary font-semibold text-sm uppercase tracking-wider">Avantages</span>
         <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mt-4 mb-6">
-          Pourquoi choisir Ventura ?
+          Pourquoi choisir ArtisanGestion ?
         </h2>
         <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
           Des bénéfices concrets et mesurables pour votre activité, dès le premier jour.
@@ -110,7 +110,7 @@ const benefits = [
           </div>
           <div class="text-center sm:text-left">
             <p class="text-foreground font-semibold">Rejoignez 500+ artisans et PME</p>
-            <p class="text-sm text-muted-foreground">qui gagnent du temps chaque jour avec Ventura</p>
+            <p class="text-sm text-muted-foreground">qui gagnent du temps chaque jour avec ArtisanGestion</p>
           </div>
           <div class="flex items-center gap-1 text-sm font-medium text-success">
             <CheckCircle2 class="h-4 w-4" />

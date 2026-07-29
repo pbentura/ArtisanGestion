@@ -80,7 +80,7 @@ const solutions = [
       <!-- Solution Arrow -->
       <div class="flex justify-center mb-16">
         <div class="flex items-center gap-4 bg-primary/10 rounded-full px-6 py-3">
-          <span class="text-primary font-semibold">La solution Ventura</span>
+          <span class="text-primary font-semibold">La solution ArtisanGestion</span>
           <ArrowRight class="h-5 w-5 text-primary animate-bounce" />
         </div>
       </div>
@@ -98,7 +98,7 @@ const solutions = [
                 Centralisez, simplifiez, accélérez
               </h3>
               <p class="text-muted-foreground text-lg mb-6 leading-relaxed">
-                Ventura remplace vos feuilles Excel, vos notes papier et vos emails éparpillés par un outil unique, pensé pour les artisans et PME.
+                ArtisanGestion remplace vos feuilles Excel, vos notes papier et vos emails éparpillés par un outil unique, pensé pour les artisans et PME.
               </p>
               <ul class="space-y-3">
                 <li

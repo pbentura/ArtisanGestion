@@ -40,7 +40,7 @@ function navigateToAuth() {
               </h2>
 
               <p class="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Rejoignez plus de 500 artisans et PME qui gagnent du temps chaque jour avec Ventura. Essai gratuit de 14 jours, sans engagement.
+                Rejoignez plus de 500 artisans et PME qui gagnent du temps chaque jour avec ArtisanGestion. Essai gratuit de 14 jours, sans engagement.
               </p>
 
               <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

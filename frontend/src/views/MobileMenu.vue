@@ -95,7 +95,7 @@ function handleLogout() {
     </div>
     
     <div class="app-version text-center text-xs text-muted-foreground mt-8 pb-8">
-      Ventura v1.0.0
+      ArtisanGestion v1.0.0
     </div>
   </div>
 </template>

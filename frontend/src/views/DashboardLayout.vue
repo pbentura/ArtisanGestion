@@ -56,7 +56,7 @@ function handleLogout() {
       <div class="sidebar-header">
         <div class="logo-box">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
-          <span class="logo-name">Ventura</span>
+          <span class="logo-name">Artisan<span class="text-primary">Gestion</span></span>
         </div>
       </div>
 

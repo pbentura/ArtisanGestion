@@ -87,7 +87,7 @@ watch(
 )
 
 // Local Storage for saving drafts logically
-const STORAGE_KEY = 'ventura_draft_societe'
+const STORAGE_KEY = 'artisangestion_draft_societe'
 
 onMounted(() => {
   const savedDraft = localStorage.getItem(STORAGE_KEY)

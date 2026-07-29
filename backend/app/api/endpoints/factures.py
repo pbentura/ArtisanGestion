@@ -314,7 +314,7 @@ async def download_facturx(
         level="en16931",
         lang="fr-FR",
         pdf_metadata={
-            "author": db_societe.nom or "Ventura",
+            "author": db_societe.nom or "ArtisanGestion",
             "keywords": "Factur-X, Facture, EN16931",
             "title": f"{db_facture.titre_document_pdf} {db_facture.numero_facture}",
             "subject": f"Factur-X {db_facture.numero_facture} du {db_facture.date_facture} - {db_societe.nom}",

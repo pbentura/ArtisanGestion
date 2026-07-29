@@ -74,7 +74,7 @@ function scrollToFeatures() {
 
           <!-- Subtitle -->
           <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed animate-slide-up" style="animation-delay: 0.3s">
-            Ventura simplifie la gestion quotidienne des artisans et PME. Gagnez du temps, organisez votre activité et suivez votre chiffre d'affaires en un seul endroit.
+            ArtisanGestion simplifie la gestion quotidienne des artisans et PME. Gagnez du temps, organisez votre activité et suivez votre chiffre d'affaires en un seul endroit.
           </p>
 
           <!-- CTAs -->
