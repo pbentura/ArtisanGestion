@@ -80,7 +80,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     )
     
     # Rediriger vers le frontend avec le token
-    frontend_url = "https://ventura-e277f.web.app"
+    frontend_url = "https://artisangestion.com"
     if "localhost" in str(request.base_url):
         frontend_url = "http://localhost:5173"
         
