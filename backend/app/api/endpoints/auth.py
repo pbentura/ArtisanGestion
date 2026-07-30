@@ -144,11 +144,11 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
                     setTimeout(() => window.close(), 200);
                 }} else {{
                     // Sinon (redirection classique), on redirige directement
-                    window.location.href = frontendUrl + "/dashboard?token=" + token;
+                    window.location.href = frontendUrl + "/app/dashboard?token=" + token;
                 }}
             }} catch (e) {{
                 console.error("Erreur lors de la finalisation de l'auth:", e);
-                window.location.href = frontendUrl + "/dashboard?token=" + token;
+                window.location.href = frontendUrl + "/app/dashboard?token=" + token;
             }}
         </script>
     </body>
