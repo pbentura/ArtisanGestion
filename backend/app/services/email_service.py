@@ -23,34 +23,40 @@ def _base_template(content: str) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArtisanGestion</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f7;">
+<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f7; padding: 40px 20px;">
         <tr>
-            <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <!-- Header -->
+            <td align="center">
+                <!-- Main Container -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                    
+                    <!-- Header with Gradient and Logo -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 32px 40px; text-align: center;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">ArtisanGestion</h1>
+                        <td style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 40px 40px; text-align: center;">
+                            <span style="display: block; margin: 0 auto; max-width: 100%; height: auto; font-size: 28px; color: #ffffff; font-weight: bold; letter-spacing: -0.5px;">ArtisanGestion</span>
                         </td>
                     </tr>
-                    <!-- Content -->
+                    
+                    <!-- Body Content -->
                     <tr>
-                        <td style="padding: 40px;">
+                        <td style="padding: 48px 40px 40px 40px;">
                             {content}
                         </td>
                     </tr>
+                    
                     <!-- Footer -->
                     <tr>
-                        <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
-                            <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">
-                                © 2024 ArtisanGestion — Gestion simplifiée pour artisans &amp; PME
+                        <td style="background-color: #f8fafc; padding: 32px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0 0 12px 0; color: #64748b; font-size: 14px; line-height: 1.5;">
+                                Si vous avez des questions ou besoin d'aide, n'hésitez pas à répondre directement à cet email.
                             </p>
-                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #d1d5db;">
-                                Vous recevez cet email car vous avez un compte ArtisanGestion.
+                            <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+                                &copy; 2026 ArtisanGestion. Tous droits réservés.<br>
+                                Paris, France
                             </p>
                         </td>
                     </tr>
+                    
                 </table>
             </td>
         </tr>
@@ -61,10 +67,16 @@ def _base_template(content: str) -> str:
 
 def _button(url: str, text: str) -> str:
     """Generate a styled CTA button for emails."""
-    return f"""<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 28px auto;">
+    return f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
         <tr>
-            <td style="border-radius: 8px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-                <a href="{url}" target="_blank" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">{text}</a>
+            <td align="center">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="border-radius: 8px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+                            <a href="{url}" target="_blank" style="display: inline-block; padding: 16px 36px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: 0.3px;">{text}</a>
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>"""
@@ -77,26 +89,31 @@ async def send_welcome_email(to: str, prenom: str) -> bool:
     _init_resend()
 
     content = f"""
-        <h2 style="margin: 0 0 16px 0; color: #111827; font-size: 20px; font-weight: 600;">Bienvenue, {prenom} ! 🎉</h2>
-        <p style="margin: 0 0 16px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Votre compte ArtisanGestion a été créé avec succès. Nous sommes ravis de vous compter parmi nous !
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">Bienvenue, {prenom} ! 🎉</h1>
+        
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+            Votre compte <strong>ArtisanGestion</strong> a été créé avec succès. Nous sommes ravis de vous compter parmi nous et de vous accompagner dans la gestion de votre activité.
         </p>
-        <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Voici comment démarrer en quelques étapes :
-        </p>
-        <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 16px 0 24px 0; width: 100%;">
+        
+        <!-- Steps Box -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0; background-color: #eff6ff; border-radius: 12px; border-left: 4px solid #3b82f6;">
             <tr>
-                <td style="padding: 12px 16px; background-color: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                    <p style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">1. Configurez votre entreprise</p>
-                    <p style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">2. Ajoutez vos premiers clients</p>
-                    <p style="margin: 0; color: #1e40af; font-size: 14px; font-weight: 600;">3. Créez votre premier devis ou facture</p>
+                <td style="padding: 24px;">
+                    <h3 style="margin: 0 0 16px 0; color: #1e40af; font-size: 16px; font-weight: 600;">Voici comment démarrer :</h3>
+                    <p style="margin: 0 0 12px 0; color: #1e40af; font-size: 15px;">
+                        <strong style="display: inline-block; background: #3b82f6; color: white; width: 24px; height: 24px; text-align: center; border-radius: 50%; line-height: 24px; font-size: 13px; margin-right: 8px;">1</strong> Configurez les informations de votre entreprise
+                    </p>
+                    <p style="margin: 0 0 12px 0; color: #1e40af; font-size: 15px;">
+                        <strong style="display: inline-block; background: #3b82f6; color: white; width: 24px; height: 24px; text-align: center; border-radius: 50%; line-height: 24px; font-size: 13px; margin-right: 8px;">2</strong> Ajoutez vos premiers clients
+                    </p>
+                    <p style="margin: 0; color: #1e40af; font-size: 15px;">
+                        <strong style="display: inline-block; background: #3b82f6; color: white; width: 24px; height: 24px; text-align: center; border-radius: 50%; line-height: 24px; font-size: 13px; margin-right: 8px;">3</strong> Créez votre premier devis ou facture
+                    </p>
                 </td>
             </tr>
         </table>
+
         {_button(settings.FRONTEND_URL + '/app', 'Accéder à mon espace')}
-        <p style="margin: 0; color: #9ca3af; font-size: 13px; text-align: center;">
-            Si vous avez des questions, n'hésitez pas à nous contacter.
-        </p>
     """
 
     try:
@@ -122,20 +139,21 @@ async def send_verification_email(to: str, prenom: str, token: str) -> bool:
     verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
 
     content = f"""
-        <h2 style="margin: 0 0 16px 0; color: #111827; font-size: 20px; font-weight: 600;">Vérifiez votre adresse email</h2>
-        <p style="margin: 0 0 16px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Bonjour {prenom},
+        <div style="width: 64px; height: 64px; background-color: #eff6ff; border-radius: 50%; margin: 0 auto 24px auto; text-align: center; line-height: 64px;">
+            <span style="font-size: 28px;">✉️</span>
+        </div>
+
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">Vérifiez votre adresse email</h1>
+        
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+            Bonjour <strong>{prenom}</strong>,<br><br>
+            Bienvenue sur ArtisanGestion ! Pour activer votre compte et sécuriser votre accès, veuillez cliquer sur le bouton ci-dessous pour confirmer votre adresse email.
         </p>
-        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Pour finaliser votre inscription et sécuriser votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous.
-        </p>
-        {_button(verification_url, 'Vérifier mon adresse email')}
-        <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 13px; text-align: center;">
-            Ce lien est valide pendant {settings.EMAIL_VERIFICATION_EXPIRE_HOURS} heures.
-        </p>
-        <p style="margin: 16px 0 0 0; color: #9ca3af; font-size: 12px; text-align: center; word-break: break-all;">
-            Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-            <a href="{verification_url}" style="color: #3b82f6;">{verification_url}</a>
+        
+        {_button(verification_url, 'Confirmer mon email')}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; text-align: center; line-height: 1.5;">
+            Si vous n'avez pas créé de compte ArtisanGestion, vous pouvez ignorer cet email en toute sécurité.
         </p>
     """
 
@@ -162,30 +180,28 @@ async def send_password_reset_email(to: str, prenom: str, token: str) -> bool:
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
 
     content = f"""
-        <h2 style="margin: 0 0 16px 0; color: #111827; font-size: 20px; font-weight: 600;">Réinitialisation de votre mot de passe</h2>
-        <p style="margin: 0 0 16px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Bonjour {prenom},
+        <div style="width: 64px; height: 64px; background-color: #fef2f2; border-radius: 50%; margin: 0 auto 24px auto; text-align: center; line-height: 64px;">
+            <span style="font-size: 28px;">🔒</span>
+        </div>
+
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">Réinitialisation du mot de passe</h1>
+        
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+            Bonjour {prenom},<br><br>
+            Nous avons reçu une demande de réinitialisation de votre mot de passe pour votre compte ArtisanGestion. Ce lien est valable pendant {settings.PASSWORD_RESET_EXPIRE_MINUTES} minutes.
         </p>
-        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.
-        </p>
-        {_button(reset_url, 'Réinitialiser mon mot de passe')}
-        <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 13px; text-align: center;">
-            Ce lien est valide pendant {settings.PASSWORD_RESET_EXPIRE_MINUTES} minutes.
-        </p>
-        <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0 0 0; width: 100%;">
+        
+        {_button(reset_url, 'Créer un nouveau mot de passe')}
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0; background-color: #fef2f2; border-radius: 12px; border-left: 4px solid #ef4444;">
             <tr>
-                <td style="padding: 12px 16px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                    <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.5;">
-                        ⚠️ Si vous n'avez pas demandé cette réinitialisation, ignorez simplement cet email. Votre mot de passe restera inchangé.
+                <td style="padding: 16px;">
+                    <p style="margin: 0; color: #b91c1c; font-size: 14px; line-height: 1.5;">
+                        Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet email. Votre mot de passe restera inchangé.
                     </p>
                 </td>
             </tr>
         </table>
-        <p style="margin: 16px 0 0 0; color: #9ca3af; font-size: 12px; text-align: center; word-break: break-all;">
-            Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-            <a href="{reset_url}" style="color: #3b82f6;">{reset_url}</a>
-        </p>
     """
 
     try:
@@ -200,3 +216,4 @@ async def send_password_reset_email(to: str, prenom: str, token: str) -> bool:
     except Exception as e:
         logger.error(f"Failed to send password reset email to {to}: {e}")
         return False
+
