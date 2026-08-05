@@ -1,9 +1,10 @@
 import hashlib
 import base64
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -32,3 +33,39 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+
+def create_email_verification_token(email: str) -> str:
+    """Generate a JWT token for email verification."""
+    expire = datetime.utcnow() + timedelta(hours=settings.EMAIL_VERIFICATION_EXPIRE_HOURS)
+    to_encode = {"sub": email, "purpose": "email_verify", "exp": expire}
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def verify_email_token(token: str) -> Optional[str]:
+    """Verify an email verification token. Returns the email if valid, None otherwise."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("purpose") != "email_verify":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
+def create_password_reset_token(email: str) -> str:
+    """Generate a JWT token for password reset."""
+    expire = datetime.utcnow() + timedelta(minutes=settings.PASSWORD_RESET_EXPIRE_MINUTES)
+    to_encode = {"sub": email, "purpose": "password_reset", "exp": expire}
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def verify_password_reset_token(token: str) -> Optional[str]:
+    """Verify a password reset token. Returns the email if valid, None otherwise."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("purpose") != "password_reset":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None

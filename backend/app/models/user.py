@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -11,6 +11,14 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     mdp = Column(String, nullable=True)
     role = Column(String, default="USER", nullable=True)
+
+    # Email verification
+    is_email_verified = Column(Boolean, default=False, nullable=False, server_default="false")
+    email_verification_token = Column(String, nullable=True)
+
+    # Password reset
+    password_reset_token = Column(String, nullable=True)
+    password_reset_expires = Column(DateTime, nullable=True)
 
     societes = relationship("Societe", back_populates="user", cascade="all, delete-orphan")
     clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")

@@ -159,6 +159,25 @@ const routes = [
       }
     ]
   },
+  // Email verification & password reset
+  {
+    path: '/verify-email',
+    name: 'verify-email',
+    component: () => import('@/views/VerifyEmail.vue'),
+    meta: { 
+      title: 'Vérification de l\'email',
+      description: 'Vérifiez votre adresse email pour finaliser votre inscription ArtisanGestion.'
+    }
+  },
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('@/views/ResetPassword.vue'),
+    meta: { 
+      title: 'Réinitialisation du mot de passe',
+      description: 'Réinitialisez votre mot de passe ArtisanGestion.'
+    }
+  },
   // Legal pages
   {
     path: '/legal/privacy',
@@ -194,7 +213,7 @@ router.beforeEach(async (to, _from, next) => {
 
   // 1. Capture du token depuis l'URL (Google OAuth)
   const tokenFromUrl = to.query.token as string
-  if (tokenFromUrl) {
+  if (tokenFromUrl && to.path !== '/verify-email' && to.path !== '/reset-password') {
     localStorage.setItem('token', tokenFromUrl)
     
     // Nettoyer l'URL en restant sur la même route mais sans le token dans l'URL

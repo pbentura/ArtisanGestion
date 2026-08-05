@@ -55,6 +55,13 @@ const signupForm = ref({
 const errorMessage = ref('')
 const successMessage = ref('')
 
+// Forgot password flow
+const showForgotPassword = ref(false)
+const forgotEmail = ref('')
+const forgotLoading = ref(false)
+const forgotMessage = ref('')
+const forgotError = ref('')
+
 onMounted(() => {
   if (localStorage.getItem('token')) {
     router.push('/app')
@@ -226,7 +233,7 @@ async function handleSignup() {
       throw new Error(errorText)
     }
 
-    successMessage.value = "Votre compte a bien été créé ! Vous pouvez maintenant vous connecter."
+    successMessage.value = "Votre compte a bien été créé ! Un email de vérification vous a été envoyé. Vérifiez votre boîte mail (et vos spams) pour activer votre compte."
     activeTab.value = 'login'
     loginForm.value.email = signupForm.value.email
     loginForm.value.password = ''
@@ -240,6 +247,48 @@ async function handleSignup() {
 function goBack() {
   if (isNative) return
   router.push('/')
+}
+
+async function handleForgotPassword() {
+  forgotError.value = ''
+  forgotMessage.value = ''
+
+  if (!forgotEmail.value) {
+    forgotError.value = 'Veuillez entrer votre adresse email.'
+    return
+  }
+
+  forgotLoading.value = true
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail.value })
+    })
+
+    if (res.ok) {
+      forgotMessage.value = 'Si un compte existe avec cet email, un lien de réinitialisation vous a été envoyé. Vérifiez votre boîte mail.'
+    } else {
+      forgotError.value = 'Une erreur est survenue. Veuillez réessayer.'
+    }
+  } catch {
+    forgotError.value = 'Erreur réseau. Veuillez réessayer.'
+  } finally {
+    forgotLoading.value = false
+  }
+}
+
+function openForgotPassword() {
+  showForgotPassword.value = true
+  forgotEmail.value = loginForm.value.email
+  forgotError.value = ''
+  forgotMessage.value = ''
+}
+
+function closeForgotPassword() {
+  showForgotPassword.value = false
+  forgotError.value = ''
+  forgotMessage.value = ''
 }
 
 let authMessageListener: ((event: MessageEvent) => void) | null = null
@@ -431,9 +480,9 @@ onUnmounted(() => {
                     <div class="space-y-2">
                       <div class="flex items-center justify-between">
                         <Label for="sheet-login-password">Mot de passe</Label>
-                        <a href="#" class="text-xs text-primary hover:underline">
+                        <button type="button" class="text-xs text-primary hover:underline" @click="openForgotPassword">
                           Mot de passe oublié ?
-                        </a>
+                        </button>
                       </div>
                       <div class="relative">
                         <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -580,6 +629,37 @@ onUnmounted(() => {
                 Continuer avec Google
               </button>
             </div>
+
+            <!-- Forgot password overlay inside sheet -->
+            <div v-if="showForgotPassword" class="auth-sheet-forgot">
+              <button class="auth-sheet-forgot-back" @click="closeForgotPassword">
+                <ArrowLeft :size="16" />
+                Retour
+              </button>
+              <h3 class="auth-sheet-forgot-title">Mot de passe oublié</h3>
+              <p class="auth-sheet-forgot-desc">Entrez votre adresse email. Si un compte existe, nous vous enverrons un lien de réinitialisation.</p>
+
+              <div v-if="forgotError" class="auth-sheet-message auth-sheet-message--error">{{ forgotError }}</div>
+              <div v-if="forgotMessage" class="auth-sheet-message auth-sheet-message--success">{{ forgotMessage }}</div>
+
+              <form v-if="!forgotMessage" @submit.prevent="handleForgotPassword" class="auth-sheet-forgot-form">
+                <div class="relative">
+                  <Mail class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    v-model="forgotEmail"
+                    type="email"
+                    placeholder="vous@exemple.fr"
+                    class="pl-10 auth-sheet-input"
+                    required
+                  />
+                </div>
+                <button type="submit" class="auth-sheet-submit" :disabled="forgotLoading">
+                  <Loader2 v-if="forgotLoading" class="mr-2 h-4 w-4 animate-spin" />
+                  {{ forgotLoading ? 'Envoi...' : 'Envoyer le lien' }}
+                </button>
+              </form>
+              <button v-else class="auth-sheet-submit" @click="closeForgotPassword">Retour à la connexion</button>
+            </div>
           </div>
         </div>
       </Teleport>
@@ -722,9 +802,9 @@ onUnmounted(() => {
                   <div class="space-y-2">
                     <div class="flex items-center justify-between">
                       <Label for="login-password">Mot de passe</Label>
-                      <a href="#" class="text-xs text-primary hover:underline">
+                      <button type="button" class="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer" @click="openForgotPassword">
                         Mot de passe oublié ?
-                      </a>
+                      </button>
                     </div>
                     <div class="relative">
                       <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -849,6 +929,49 @@ onUnmounted(() => {
                 </p>
               </TabsContent>
             </Tabs>
+
+            <!-- Forgot password form (Desktop) -->
+            <div v-if="showForgotPassword" class="forgot-password-overlay">
+              <div class="forgot-password-card">
+                <button class="forgot-back-btn" @click="closeForgotPassword">
+                  <ArrowLeft :size="16" />
+                  Retour
+                </button>
+                <h3 class="forgot-title">Mot de passe oublié</h3>
+                <p class="forgot-desc">Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.</p>
+
+                <div v-if="forgotError" class="p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center mb-4">
+                  {{ forgotError }}
+                </div>
+                <div v-if="forgotMessage" class="p-3 bg-green-500/10 border border-green-500/50 rounded-xl text-green-500 text-sm text-center mb-4">
+                  {{ forgotMessage }}
+                </div>
+
+                <form v-if="!forgotMessage" @submit.prevent="handleForgotPassword" class="space-y-4">
+                  <div class="space-y-2">
+                    <Label for="forgot-email">Email</Label>
+                    <div class="relative">
+                      <Mail class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="forgot-email"
+                        v-model="forgotEmail"
+                        type="email"
+                        placeholder="vous@exemple.fr"
+                        class="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" class="w-full rounded-xl py-6 font-semibold" :disabled="forgotLoading">
+                    <Loader2 v-if="forgotLoading" class="mr-2 h-4 w-4 animate-spin" />
+                    {{ forgotLoading ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation' }}
+                  </Button>
+                </form>
+                <Button v-else class="w-full rounded-xl py-6 font-semibold" @click="closeForgotPassword">
+                  Retour à la connexion
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1270,5 +1393,108 @@ onUnmounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FORGOT PASSWORD — Mobile Sheet Overlay
+   ══════════════════════════════════════════════════════════════ */
+.auth-sheet-forgot {
+  position: absolute;
+  inset: 0;
+  background: var(--background);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  animation: fadeSlideUp 0.25s ease-out;
+  z-index: 10;
+  border-radius: 20px 20px 0 0;
+}
+
+.auth-sheet-forgot-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 24px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-sheet-forgot-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 8px 0;
+}
+
+.auth-sheet-forgot-desc {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.auth-sheet-forgot-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FORGOT PASSWORD — Desktop Overlay
+   ══════════════════════════════════════════════════════════════ */
+.forgot-password-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: inherit;
+  animation: fadeSlideUp 0.25s ease-out;
+}
+
+.forgot-password-card {
+  width: 100%;
+  padding: 8px;
+}
+
+.forgot-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  transition: opacity 0.15s;
+}
+
+.forgot-back-btn:hover {
+  opacity: 0.8;
+}
+
+.forgot-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 8px 0;
+}
+
+.forgot-desc {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  margin: 0 0 24px 0;
 }
 </style>
