@@ -40,6 +40,10 @@ async def update_user_me(
         current_user.prenom = user_in.prenom
     if user_in.email is not None:
         current_user.email = user_in.email
+    if hasattr(user_in, 'onboarding_draft') and user_in.onboarding_draft is not None:
+        current_user.onboarding_draft = user_in.onboarding_draft
+    elif "onboarding_draft" in user_in.model_dump(exclude_unset=True) and user_in.onboarding_draft is None:
+        current_user.onboarding_draft = None
 
     db.add(current_user)
     await db.commit()

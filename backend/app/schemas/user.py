@@ -13,6 +13,7 @@ class UserCreate(UserBase):
 
 class UserRead(UserBase):
     id: int
+    onboarding_draft: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -21,6 +22,7 @@ class UserUpdate(BaseModel):
     nom: Optional[str] = None
     prenom: Optional[str] = None
     email: Optional[EmailStr] = None
+    onboarding_draft: Optional[dict] = None
 
 class UserReadWithSocietes(UserRead):
     societes: List[SocieteRead] = []

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+ <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch } from '@/lib/api'
@@ -86,23 +86,34 @@ watch(
   }
 )
 
-// Local Storage for saving drafts logically
-const STORAGE_KEY = 'artisangestion_draft_societe'
+let saveTimeout: ReturnType<typeof setTimeout> | null = null
 
-onMounted(() => {
-  const savedDraft = localStorage.getItem(STORAGE_KEY)
-  if (savedDraft) {
-    try {
-      const parsed = JSON.parse(savedDraft)
-      if (parsed) form.value = { ...form.value, ...parsed }
-    } catch (e) {
-      console.error('Failed to parse draft from local storage.')
+onMounted(async () => {
+  try {
+    const res = await apiFetch('users/me')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.onboarding_draft) {
+        form.value = { ...form.value, ...data.onboarding_draft }
+      }
     }
+  } catch (e) {
+    console.error('Failed to fetch draft from API.', e)
   }
 })
 
 watch(form, (newVal) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(newVal))
+  if (saveTimeout) clearTimeout(saveTimeout)
+  saveTimeout = setTimeout(async () => {
+    try {
+      await apiFetch('users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ onboarding_draft: newVal })
+      })
+    } catch (e) {
+      console.error('Failed to save draft to API.', e)
+    }
+  }, 1000)
 }, { deep: true })
 
 const isAutoEntrepreneur = computed(() => form.value.forme_juridique === 'Auto-entrepreneur')
@@ -153,7 +164,16 @@ async function submitForm() {
       throw new Error(errorData.detail || "Erreur lors de la création de l'entreprise")
     }
 
-    localStorage.removeItem(STORAGE_KEY)
+    // Clear draft on backend
+    try {
+      await apiFetch('users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ onboarding_draft: null })
+      })
+    } catch(e) {
+      console.error('Failed to clear draft on API.', e)
+    }
+
     router.push('/app')
   } catch (error: any) {
     alert(error.message)
