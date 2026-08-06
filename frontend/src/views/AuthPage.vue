@@ -21,6 +21,8 @@ import {
   X
 } from 'lucide-vue-next'
 
+import { App } from '@capacitor/app'
+
 const router = useRouter()
 const activeTab = ref('login')
 const isLoading = ref(false)
@@ -63,10 +65,36 @@ const forgotMessage = ref('')
 const forgotError = ref('')
 
 let waitingSocket: WebSocket | null = null
+let appStateListener: any = null
 
-onMounted(() => {
+onMounted(async () => {
   if (localStorage.getItem('token')) {
     router.push('/app')
+  }
+  
+  const handleVisibility = () => {
+    // Si on a l'email et le mot de passe en mémoire, on essaye de se connecter
+    // au cas où l'utilisateur aurait vérifié son email sur un autre appareil
+    // pendant que l'app était en arrière-plan
+    if (signupForm.value.email && signupForm.value.password) {
+       loginForm.value.email = signupForm.value.email
+       loginForm.value.password = signupForm.value.password
+       handleLogin().catch(() => {})
+    }
+  }
+
+  if (isNative) {
+    appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        handleVisibility()
+      }
+    })
+  } else {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        handleVisibility()
+      }
+    })
   }
 })
 
@@ -243,12 +271,13 @@ async function handleSignup() {
     
     // Connect WebSocket to listen for verification from another device
     if (data.waiting_token) {
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
       let wsUrl = ''
       if (API_BASE_URL.startsWith('http')) {
         const url = new URL(API_BASE_URL)
+        const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
         wsUrl = `${wsProtocol}//${url.host}/api/ws?token=${data.waiting_token}`
       } else {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         wsUrl = `${wsProtocol}//${window.location.host}/api/ws?token=${data.waiting_token}`
       }
       
@@ -393,6 +422,10 @@ onUnmounted(() => {
     waitingSocket.close()
     waitingSocket = null
   }
+  if (appStateListener) {
+    appStateListener.remove()
+  }
+  document.removeEventListener('visibilitychange', () => {})
 })
 </script>
 

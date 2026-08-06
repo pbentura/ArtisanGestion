@@ -12,6 +12,9 @@ import {
   ChevronRight, ArrowLeft, Upload, Loader2, Info, X
 } from 'lucide-vue-next'
 
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
+
 const router = useRouter()
 const { wsEvents } = useWebSocket()
 
@@ -122,6 +125,41 @@ onMounted(async () => {
     // Si la société a été créée sur un autre appareil, on redirige vers l'app
     router.push('/app')
   })
+
+  // Synchronisation au retour au premier plan (si l'app était en arrière-plan)
+  const syncState = async () => {
+    try {
+      const res = await apiFetch('users/me')
+      if (res.ok) {
+        const data = await res.json()
+        
+        // Vérifier si la société a été créée entre temps
+        if (data.societes && data.societes.length > 0) {
+          router.push('/app')
+          return
+        }
+        
+        // Sinon, récupérer le dernier brouillon
+        if (data.onboarding_draft) {
+          isUpdatingFromWS = true
+          form.value = { ...form.value, ...data.onboarding_draft }
+          setTimeout(() => { isUpdatingFromWS = false }, 100)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to sync state.', e)
+    }
+  }
+
+  if (Capacitor.isNativePlatform()) {
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) syncState()
+    })
+  } else {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') syncState()
+    })
+  }
 })
 
 import { onUnmounted } from 'vue'
@@ -129,6 +167,7 @@ import { onUnmounted } from 'vue'
 onUnmounted(() => {
   wsEvents.off('SYNC_DRAFT')
   wsEvents.off('SYNC_SOCIETE')
+  document.removeEventListener('visibilitychange', () => {})
 })
 
 watch(form, (newVal) => {
@@ -137,10 +176,16 @@ watch(form, (newVal) => {
   if (saveTimeout) clearTimeout(saveTimeout)
   saveTimeout = setTimeout(async () => {
     try {
-      await apiFetch('users/me', {
+      const res = await apiFetch('users/me', {
         method: 'PATCH',
         body: JSON.stringify({ onboarding_draft: newVal })
       })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.societes && data.societes.length > 0) {
+          router.push('/app')
+        }
+      }
     } catch (e) {
       console.error('Failed to save draft to API.', e)
     }
@@ -158,6 +203,15 @@ const isStepValid = computed(() => {
 })
 
 function nextStep() {
+  // Optionnel : vérifier manuellement si la société a été créée entre temps
+  apiFetch('users/me').then(res => {
+    if (res.ok) {
+      res.json().then(data => {
+        if (data.societes && data.societes.length > 0) router.push('/app')
+      })
+    }
+  }).catch(() => {})
+
   if (currentStep.value < 5 && isStepValid.value) {
     currentStep.value++
   }

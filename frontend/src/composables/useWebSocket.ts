@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { API_BASE_URL } from '@/lib/api'
 
 // Global event bus to easily listen to WS events anywhere in the app
@@ -6,7 +6,6 @@ import mitt from 'mitt'
 export const wsEvents = mitt()
 
 let socket: WebSocket | null = null
-let isConnected = false
 let reconnectTimer: any = null
 
 function connectWebSocket() {
@@ -17,14 +16,14 @@ function connectWebSocket() {
   const token = localStorage.getItem('token')
   if (!token) return
 
-  // Convert HTTP URL to WS URL
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   // Extract domain/port from API_BASE_URL, handling relative URLs or full URLs
   let wsUrl = ''
   if (API_BASE_URL.startsWith('http')) {
     const url = new URL(API_BASE_URL)
+    const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     wsUrl = `${wsProtocol}//${url.host}/api/ws?token=${token}`
   } else {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     wsUrl = `${wsProtocol}//${window.location.host}/api/ws?token=${token}`
   }
 
@@ -32,7 +31,6 @@ function connectWebSocket() {
 
   socket.onopen = () => {
     console.log('WebSocket connected')
-    isConnected = true
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
@@ -51,7 +49,6 @@ function connectWebSocket() {
 
   socket.onclose = () => {
     console.log('WebSocket disconnected')
-    isConnected = false
     socket = null
     // Attempt to reconnect after 3 seconds
     if (!reconnectTimer && localStorage.getItem('token')) {
