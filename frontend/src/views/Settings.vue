@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { 
   User, Settings, CreditCard, Receipt, LifeBuoy, Loader2, Save, CheckCircle2,
-  LogOut, Trash2, AlertTriangle, X
+  LogOut, Trash2, AlertTriangle, X, Check, Sparkles, Zap
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -20,6 +20,72 @@ const isSaving = ref(false)
 const isDeleting = ref(false)
 const showSuccess = ref(false)
 const confirmDelete = ref(false)
+const isAnnual = ref(false)
+const loadingPlan = ref<string | null>(null)
+
+const plans = [
+  {
+    name: 'Indépendant',
+    description: 'Pour l\'artisan seul',
+    priceMonthly: '19',
+    priceAnnual: '15.50',
+    features: [
+      '1 Utilisateur',
+      'Clients, devis & factures illimités',
+      'Catalogue de prestations',
+      'Rapports d\'intervention simples',
+      'Support par email',
+    ],
+    cta: 'S\'abonner',
+    popular: false,
+    gradient: '',
+  },
+  {
+    name: 'Équipe',
+    description: 'Pour vous et vos collaborateurs',
+    priceMonthly: '39',
+    priceAnnual: '32.50',
+    features: [
+      'Jusqu\'à 3 utilisateurs',
+      'Rôles et permissions sur l\'app',
+      'Signature électronique des devis/rapports',
+      'Export comptable avancé (Factur-X)',
+      'Support prioritaire (Chat/Téléphone)',
+    ],
+    cta: 'S\'abonner',
+    popular: true,
+    gradient: 'from-primary to-blue-700',
+  }
+]
+
+async function handleSubscribe(plan: any) {
+  loadingPlan.value = plan.name
+  try {
+    const res = await apiFetch('subscriptions/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify({
+        plan_name: plan.name,
+        is_annual: isAnnual.value,
+        price: isAnnual.value ? parseFloat(plan.priceAnnual) : parseFloat(plan.priceMonthly)
+      })
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url
+      }
+    } else {
+      const errorData = await res.json()
+      alert(errorData.detail || "Erreur lors de la création de la session de paiement")
+    }
+  } catch (error) {
+    console.error('Error creating checkout session:', error)
+    alert("Une erreur est survenue")
+  } finally {
+    loadingPlan.value = null
+  }
+}
 
 const user = ref({
   nom: '',
@@ -288,8 +354,121 @@ onMounted(() => {
         </div>
       </TabsContent>
 
+      <!-- Abonnement Tab -->
+      <TabsContent value="abonnement">
+        <div class="space-y-6">
+          <div class="pricing-header text-center mb-8 mt-4">
+            <h2 class="text-2xl font-bold text-foreground mb-4">
+              Gérer mon abonnement
+            </h2>
+            <p class="text-sm text-muted-foreground max-w-xl mx-auto">
+              Choisissez le plan qui correspond le mieux à vos besoins actuels.
+            </p>
+          </div>
+
+          <!-- Toggle -->
+          <div class="flex justify-center mb-8">
+            <div class="relative flex items-center p-1 bg-muted/50 rounded-full border border-border/50">
+              <button
+                @click="isAnnual = false"
+                class="relative w-32 py-2 text-sm font-medium rounded-full transition-colors z-10"
+                :class="!isAnnual ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+              >
+                Mensuel
+              </button>
+              <button
+                @click="isAnnual = true"
+                class="relative w-32 py-2 text-sm font-medium rounded-full transition-colors z-10 flex items-center justify-center gap-2"
+                :class="isAnnual ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+              >
+                Annuel
+                <span class="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">-18%</span>
+              </button>
+              <!-- Sliding indicator -->
+              <div
+                class="absolute left-1 top-1 bottom-1 w-32 bg-background shadow-sm rounded-full transition-transform duration-300 ease-in-out border border-border/50"
+                :class="isAnnual ? 'translate-x-full' : 'translate-x-0'"
+              />
+            </div>
+          </div>
+
+          <!-- Cards -->
+          <div class="pricing-grid grid md:grid-cols-2 gap-6 items-start">
+            <div
+              v-for="(plan, i) in plans"
+              :key="i"
+              class="pricing-card relative transition-all duration-500"
+              :class="plan.popular ? 'z-10' : ''"
+            >
+              <div v-if="plan.popular" class="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] uppercase font-bold shadow-sm">
+                  <Sparkles class="h-3 w-3" />
+                  Recommandé
+                </span>
+              </div>
+
+              <div 
+                class="h-full rounded-2xl overflow-hidden transition-all duration-300 bg-card border"
+                :class="[
+                  plan.popular
+                    ? 'border-primary/50 shadow-md'
+                    : 'border-border/50'
+                ]"
+              >
+                <div v-if="plan.popular" class="h-1 w-full bg-gradient-to-r" :class="plan.gradient" />
+
+                <div class="p-6">
+                  <!-- Plan info -->
+                  <div class="mb-4" :class="plan.popular ? 'pt-2' : ''">
+                    <h3 class="text-lg font-bold text-foreground">{{ plan.name }}</h3>
+                    <p class="text-xs text-muted-foreground">{{ plan.description }}</p>
+                  </div>
+
+                  <!-- Price -->
+                  <div class="mb-6">
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-4xl font-extrabold text-foreground">{{ isAnnual ? plan.priceAnnual : plan.priceMonthly }}€</span>
+                      <span class="text-muted-foreground text-xs">/mois</span>
+                    </div>
+                    <p class="text-[10px] text-muted-foreground mt-1">
+                      {{ isAnnual ? 'HT, facturé annuellement' : 'HT, sans engagement' }}
+                    </p>
+                  </div>
+
+                  <!-- Features -->
+                  <ul class="space-y-2.5 mb-6">
+                    <li v-for="(feature, fi) in plan.features" :key="fi" class="flex items-start gap-2.5">
+                      <div class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" :class="plan.popular ? 'bg-primary/15' : 'bg-primary/10'">
+                        <Check class="h-2.5 w-2.5 text-primary" />
+                      </div>
+                      <span class="text-xs text-muted-foreground">{{ feature }}</span>
+                    </li>
+                  </ul>
+
+                  <!-- CTA -->
+                  <button
+                    @click="handleSubscribe(plan)"
+                    :disabled="loadingPlan !== null"
+                    class="w-full py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2"
+                    :class="plan.popular
+                      ? 'bg-primary text-primary-foreground hover:opacity-90'
+                      : 'bg-muted text-foreground hover:bg-primary/10 hover:text-primary'"
+                  >
+                    <Loader2 v-if="loadingPlan === plan.name" class="w-4 h-4 animate-spin" />
+                    <template v-else>
+                      <Zap v-if="plan.popular" class="h-3.5 w-3.5" />
+                      {{ plan.cta }}
+                    </template>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </TabsContent>
+
       <!-- Placeholder content for other tabs -->
-      <TabsContent v-for="tab in ['preferences', 'abonnement', 'facturation', 'support']" :key="tab" :value="tab">
+      <TabsContent v-for="tab in ['preferences', 'facturation', 'support']" :key="tab" :value="tab">
         <Card class="border-border/50 shadow-sm">
           <CardHeader>
             <CardTitle class="capitalize">{{ tab }}</CardTitle>
@@ -298,7 +477,7 @@ onMounted(() => {
           <CardContent class="py-12 flex flex-col items-center justify-center text-center">
             <div class="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Settings v-if="tab === 'preferences'" class="w-8 h-8 text-muted-foreground" />
-              <CreditCard v-if="tab === 'abonnement'" class="w-8 h-8 text-muted-foreground" />
+
               <Receipt v-if="tab === 'facturation'" class="w-8 h-8 text-muted-foreground" />
               <LifeBuoy v-if="tab === 'support'" class="w-8 h-8 text-muted-foreground" />
             </div>
