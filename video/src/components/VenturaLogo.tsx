@@ -126,12 +126,13 @@ export const VenturaLogo: React.FC<{
           style={{
             opacity: textOpacity,
             transform: `translateX(${textSlide}px)`,
-            fontSize: size * 0.8,
+            fontSize: size * 0.52,
             color: white ? "white" : "#0F172A",
+            letterSpacing: "-0.02em",
           }}
-          className="font-sans font-extrabold tracking-tight"
+          className="font-sans font-extrabold tracking-tight whitespace-nowrap"
         >
-          Ventura
+          Artisan<span style={{ color: white ? "rgba(255,255,255,0.85)" : "#2563EB" }}>Gestion</span>
         </span>
       )}
     </div>

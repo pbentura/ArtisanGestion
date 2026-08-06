@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
 @theme inline {
@@ -8,13 +9,20 @@
   --color-ventura-slate-800: #1E293B;
   --color-ventura-slate-700: #334155;
   --color-ventura-slate-500: #64748B;
+  --color-ventura-slate-400: #94A3B8;
   --color-ventura-slate-300: #CBD5E1;
   --color-ventura-slate-200: #E2E8F0;
   --color-ventura-slate-100: #F1F5F9;
   --color-ventura-slate-50: #F8FAFC;
   --color-ventura-success: #16A34A;
+  --color-ventura-success-light: #22C55E;
   --color-ventura-warning: #F59E0B;
   --color-ventura-danger: #EF4444;
   --color-ventura-purple: #8B5CF6;
+  --color-ventura-emerald: #10B981;
+  --color-ventura-emerald-dark: #059669;
+  --color-ventura-cyan: #06B6D4;
+  --color-ventura-pink: #EC4899;
+  --color-ventura-orange: #F97316;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }

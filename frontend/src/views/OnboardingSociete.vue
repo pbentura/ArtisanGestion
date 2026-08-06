@@ -230,7 +230,7 @@ function removeLogo() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex flex-col items-center py-6 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-background flex flex-col items-center pb-6 px-4 sm:px-6 lg:px-8" style="padding-top: max(env(safe-area-inset-top), 24px);">
     
     <!-- Top Header Navigation -->
     <div class="w-full max-w-3xl flex justify-between items-center mb-8">
