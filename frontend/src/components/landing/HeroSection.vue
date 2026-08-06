@@ -1,154 +1,188 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Button } from '@/components/ui/button'
-// import { Card, CardContent } from '@/components/ui/card'
-import { 
-  ArrowRight, 
-  // BarChart3,
-  // FileText,
-  // Users,
-  // Clock,
-  CheckCircle2,
-  // TrendingUp
-} from 'lucide-vue-next'
+import { ArrowRight, CheckCircle2, Play, Shield } from 'lucide-vue-next'
+import gsap from 'gsap'
 
 const router = useRouter()
+const heroRef = ref<HTMLElement | null>(null)
+const isVisible = ref(false)
 
 function navigateToAuth() {
   router.push('/auth')
 }
 
-function scrollToFeatures() {
-  const element = document.getElementById('features')
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
-  }
+function scrollToVideo() {
+  const el = document.getElementById('video-section')
+  if (el) el.scrollIntoView({ behavior: 'smooth' })
 }
+
+onMounted(() => {
+  isVisible.value = true
+
+  if (!heroRef.value) return
+
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+
+  tl.from('.hero-badge', { y: 20, opacity: 0, duration: 0.6 })
+    .from('.hero-headline .word', { y: 40, opacity: 0, duration: 0.5, stagger: 0.08 }, '-=0.3')
+    .from('.hero-subtitle', { y: 20, opacity: 0, duration: 0.5 }, '-=0.2')
+    .from('.hero-cta', { y: 20, opacity: 0, duration: 0.5 }, '-=0.3')
+    .from('.hero-proof', { y: 20, opacity: 0, duration: 0.5 }, '-=0.3')
+    .from('.hero-visual', { y: 40, opacity: 0, scale: 0.95, duration: 0.8 }, '-=0.4')
+
+  // Animate background beams
+  gsap.to('.beam-1', { x: '100vw', duration: 8, repeat: -1, ease: 'none' })
+  gsap.to('.beam-2', { x: '-100vw', duration: 12, repeat: -1, ease: 'none', delay: 2 })
+  gsap.to('.beam-3', { y: '100vh', duration: 10, repeat: -1, ease: 'none', delay: 4 })
+})
 </script>
 
 <template>
-  <section class="relative overflow-hidden pt-20 pb-32 lg:pt-32 lg:pb-40">
-    <!-- Background decoration -->
-    <div class="absolute inset-0 -z-10 overflow-hidden">
+  <section ref="heroRef" class="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16 lg:pt-32 lg:pb-24">
+    <!-- Background -->
+    <div class="absolute inset-0 -z-10">
+      <!-- Base gradient -->
       <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
-      
-      <!-- Animated blobs -->
-      <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse-slow" />
-      <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/10 rounded-full blur-[120px] animate-pulse-slow" style="animation-delay: -2s" />
-      <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px] animate-float" />
-      
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
+
+      <!-- Animated beams -->
+      <div class="beam-1 absolute top-[20%] -left-[50%] w-[200%] h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent rotate-[-15deg]" />
+      <div class="beam-2 absolute top-[50%] -right-[50%] w-[200%] h-[1px] bg-gradient-to-r from-transparent via-primary/10 to-transparent rotate-[10deg]" />
+      <div class="beam-3 absolute -top-[50%] left-[30%] w-[1px] h-[200%] bg-gradient-to-b from-transparent via-primary/15 to-transparent" />
+
+      <!-- Glowing orbs -->
+      <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-primary/8 rounded-full blur-[120px]" />
+      <div class="absolute bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-blue-400/5 rounded-full blur-[100px]" />
+      <div class="absolute top-[40%] right-[10%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-[80px] animate-pulse" style="animation-duration: 6s" />
+
+      <!-- Grid pattern -->
+      <div class="absolute inset-0 opacity-[0.02]" style="background-image: radial-gradient(circle, currentColor 1px, transparent 1px); background-size: 40px 40px;" />
     </div>
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-      <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-        <!-- Left: Content -->
+      <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <!-- Content -->
         <div class="text-center lg:text-left">
           <!-- Badge -->
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in" style="animation-delay: 0.1s">
-            <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-            </span>
-            Nouveau : Gestion des interventions disponible
+          <div class="hero-badge inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8">
+            <Shield class="h-4 w-4" />
+            <span>Conforme facturation électronique 2026</span>
           </div>
 
-          <!-- Title -->
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6 animate-slide-up" style="animation-delay: 0.2s">
-            Gérez vos
-            <span class="text-primary relative inline-block">
-              devis
-              <div class="absolute -bottom-1 left-0 w-full h-1 bg-primary/20 rounded-full" />
-            </span>,
-            <span class="text-primary relative inline-block">
-              factures
-              <div class="absolute -bottom-1 left-0 w-full h-1 bg-primary/20 rounded-full" />
+          <!-- Headline -->
+          <h1 ref="headlineRef" class="hero-headline text-4xl sm:text-5xl lg:text-6xl xl:text-[3.5rem] font-extrabold tracking-tight text-foreground mb-6 leading-[1.1]">
+            <span class="word inline-block">Gagnez&nbsp;</span>
+            <span class="word inline-block text-primary relative">
+              5h par semaine
+              <svg class="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 8" fill="none"><path d="M1 5.5Q50 1 100 4T199 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="opacity-30" /></svg>
             </span>
-            et
-            <span class="text-primary relative inline-block">
-              interventions
-              <div class="absolute -bottom-1 left-0 w-full h-1 bg-primary/20 rounded-full" />
-            </span>
-            en toute simplicité
+            <br class="hidden sm:block" />
+            <span class="word inline-block">sur votre&nbsp;</span>
+            <span class="word inline-block">administratif</span>
           </h1>
 
           <!-- Subtitle -->
-          <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed animate-slide-up" style="animation-delay: 0.3s">
-            ArtisanGestion simplifie la gestion quotidienne des artisans et PME. Gagnez du temps, organisez votre activité et suivez votre chiffre d'affaires en un seul endroit.
+          <p class="hero-subtitle text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed">
+            Rapports d'intervention générés par IA, devis et factures en 2 clics, conformité automatique — pour que vous puissiez vous concentrer sur votre métier d'artisan.
           </p>
 
           <!-- CTAs -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 animate-slide-up" style="animation-delay: 0.4s">
-            <Button 
-              size="lg" 
-              class="rounded-full px-8 py-6 text-lg font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:scale-105 active:scale-95"
+          <div class="hero-cta flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
+            <button
               @click="navigateToAuth"
+              class="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-2xl text-lg font-semibold shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
             >
-              Commencer gratuitement
-              <ArrowRight class="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg" 
-              class="rounded-full px-8 py-6 text-lg font-semibold border-2 hover:bg-muted transition-all hover:scale-105 active:scale-95"
-              @click="scrollToFeatures"
+              <span class="relative z-10">Créer mon compte gratuitement</span>
+              <ArrowRight class="relative z-10 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              <div class="absolute inset-0 bg-gradient-to-r from-primary to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </button>
+            <button
+              @click="scrollToVideo"
+              class="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-card border-2 border-border rounded-2xl text-lg font-semibold text-foreground hover:border-primary/30 hover:bg-muted transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <ArrowRight class="mr-2 h-5 w-5 rotate-90" />
-              Voir les fonctionnalités
-            </Button>
+              <Play class="h-5 w-5 text-primary" />
+              Voir la démo
+            </button>
           </div>
 
           <!-- Social proof -->
-          <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground animate-fade-in" style="animation-delay: 0.5s">
-            <div class="flex -space-x-2">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" />
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" style="transition-delay: 0.05s" />
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" style="transition-delay: 0.1s" />
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 border-2 border-background hover:translate-y-[-4px] transition-transform cursor-help" style="transition-delay: 0.15s" />
-              <div class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium border-2 border-background">
-                +500
-              </div>
+          <div class="hero-proof flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
+            <div class="flex -space-x-2.5">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-background ring-2 ring-background" />
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 border-2 border-background ring-2 ring-background" />
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-2 border-background ring-2 ring-background" />
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-violet-600 border-2 border-background ring-2 ring-background" />
+              <div class="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-semibold border-2 border-background ring-2 ring-background">+</div>
             </div>
-            <div class="flex items-center gap-4">
-              <div class="flex items-center gap-1 group cursor-default">
-                <CheckCircle2 class="h-4 w-4 text-success group-hover:scale-125 transition-transform" />
-                <span>Essai gratuit</span>
-              </div>
-              <div class="flex items-center gap-1 group cursor-default">
-                <CheckCircle2 class="h-4 w-4 text-success group-hover:scale-125 transition-transform" />
-                <span>Sans carte bancaire</span>
-              </div>
+            <div class="flex items-center gap-5">
+              <span class="flex items-center gap-1.5"><CheckCircle2 class="h-4 w-4 text-success" />Essai gratuit</span>
+              <span class="flex items-center gap-1.5"><CheckCircle2 class="h-4 w-4 text-success" />Sans carte bancaire</span>
             </div>
           </div>
         </div>
 
-        <!-- Right: Video Demo -->
-        <div class="relative group animate-reveal" style="animation-delay: 0.3s">
-          <!-- Background Glow -->
-          <div class="absolute -inset-4 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-3xl blur-2xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-500 animate-pulse-slow" />
-          
-          <div class="relative bg-card rounded-2xl shadow-2xl border border-border/50 overflow-hidden shadow-primary/20 hover:shadow-primary/40 transition-all duration-500 hover:scale-[1.02]">
-            <video 
-              src="/video.mov" 
-              autoplay 
-              loop 
-              muted 
+        <!-- Video Visual -->
+        <div class="hero-visual relative group hidden lg:block">
+          <!-- Glow -->
+          <div class="absolute -inset-6 bg-gradient-to-r from-primary/20 via-blue-400/10 to-primary/20 rounded-3xl blur-3xl opacity-40 group-hover:opacity-70 transition-opacity duration-1000" />
+
+          <!-- Browser frame -->
+          <div class="relative bg-card rounded-2xl shadow-2xl border border-border/50 overflow-hidden shadow-primary/10 hover:shadow-primary/20 transition-all duration-700 hover:scale-[1.01]">
+            <!-- Browser bar -->
+            <div class="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
+              <div class="flex gap-1.5">
+                <div class="w-3 h-3 rounded-full bg-red-400/80" />
+                <div class="w-3 h-3 rounded-full bg-yellow-400/80" />
+                <div class="w-3 h-3 rounded-full bg-green-400/80" />
+              </div>
+              <div class="flex-1 mx-4">
+                <div class="bg-background/80 rounded-lg px-3 py-1.5 text-xs text-muted-foreground flex items-center gap-2">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  artisangestion.com
+                </div>
+              </div>
+            </div>
+
+            <video
+              src="/ArtisanGestionPromo.mp4"
+              autoplay
+              loop
+              muted
               playsinline
               class="w-full h-auto aspect-video object-cover"
             >
               Votre navigateur ne supporte pas la lecture de vidéos.
             </video>
-            
-            <!-- Video Overlay for depth -->
-            <div class="absolute inset-0 pointer-events-none ring-1 ring-inset ring-white/20 rounded-2xl" />
-            
-            <!-- Reflection effect -->
-            <div class="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
+            <!-- Inner border overlay -->
+            <div class="absolute inset-0 pointer-events-none ring-1 ring-inset ring-white/10 rounded-2xl" />
           </div>
 
-          <!-- Bottom decoration -->
-          <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-float -z-10" />
-          <div class="absolute -top-6 -right-6 w-24 h-24 bg-secondary/20 rounded-full blur-2xl animate-float -z-10" style="animation-delay: -3s" />
+          <!-- Floating badges -->
+          <div class="absolute -top-4 -right-4 bg-card rounded-xl shadow-xl border border-border/50 p-3 animate-bounce-slow" style="animation-duration: 4s">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center">
+                <CheckCircle2 class="h-4 w-4 text-success" />
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-foreground">Rapport généré</div>
+                <div class="text-[10px] text-muted-foreground">par l'IA en 3s</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom floating -->
+          <div class="absolute -bottom-3 -left-3 bg-card rounded-xl shadow-xl border border-border/50 p-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <Shield class="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-foreground">Factur-X</div>
+                <div class="text-[10px] text-muted-foreground">Conforme 2026</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

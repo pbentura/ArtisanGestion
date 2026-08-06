@@ -1,99 +1,72 @@
 <script setup lang="ts">
-import { 
-  Mail,
-  MapPin,
-  Twitter,
-  Linkedin,
-  Github
-} from 'lucide-vue-next'
+import { Mail, MapPin } from 'lucide-vue-next'
 
-const footerLinks = {
-  product: {
+const currentYear = new Date().getFullYear()
+
+const footerSections = [
+  {
     title: 'Produit',
     links: [
       { label: 'Fonctionnalités', href: '#features' },
       { label: 'Tarifs', href: '#pricing' },
-      { label: 'Démo', href: '#demo' },
-      { label: 'Roadmap', href: '#' },
-      { label: 'Intégrations', href: '#' }
+      { label: 'Démo vidéo', href: '#video-section' },
+      { label: 'App Mobile', href: '/mobile' },
     ]
   },
-  resources: {
+  {
     title: 'Ressources',
     links: [
-      { label: 'Documentation', href: '#' },
       { label: 'Centre d\'aide', href: '#' },
       { label: 'Blog', href: '#' },
-      { label: 'Tutoriels', href: '#' },
-      { label: 'API', href: '#' }
+      { label: 'Documentation API', href: '#' },
     ]
   },
-  company: {
-    title: 'Entreprise',
-    links: [
-      { label: 'À propos', href: '#' },
-      { label: 'Carrières', href: '#' },
-      { label: 'Contact', href: '#' },
-      { label: 'Presse', href: '#' },
-      { label: 'Partenaires', href: '#' }
-    ]
-  },
-  legal: {
+  {
     title: 'Légal',
     links: [
-      { label: 'Mentions légales', href: '#' },
       { label: 'CGU', href: '/legal/terms' },
       { label: 'Confidentialité', href: '/legal/privacy' },
       { label: 'Cookies', href: '/legal/privacy#8' },
-      { label: 'RGPD', href: '/legal/privacy#7' }
+      { label: 'RGPD', href: '/legal/privacy#7' },
     ]
   }
-}
-
-const socialLinks = [
-  { icon: Twitter, href: '#', label: 'Twitter' },
-  { icon: Linkedin, href: '#', label: 'LinkedIn' },
-  { icon: Github, href: '#', label: 'GitHub' }
 ]
 </script>
 
 <template>
-  <footer class="bg-secondary text-secondary-foreground">
+  <footer class="bg-secondary text-secondary-foreground relative overflow-hidden">
+    <!-- Subtle top glow -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-      <!-- Main Footer -->
-      <div class="py-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-        <!-- Brand Column -->
+      <div class="py-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10">
+        <!-- Brand -->
         <div class="col-span-2">
-          <div class="flex items-center gap-3 mb-4">
-            <img src="/logo.svg" alt="Logo" class="w-10 h-10" />
+          <div class="flex items-center gap-3 mb-5">
+            <img src="/logo.svg" alt="Logo ArtisanGestion" class="w-10 h-10" />
             <span class="text-xl font-bold">Artisan<span class="text-primary">Gestion</span></span>
           </div>
-          <p class="text-secondary-foreground/70 text-sm mb-6 max-w-xs leading-relaxed">
-            La solution moderne de gestion pour artisans et PME. Simplifiez votre quotidien, concentrez-vous sur votre métier.
+          <p class="text-secondary-foreground/60 text-sm mb-6 max-w-xs leading-relaxed">
+            L'outil tout-en-un pour gérer votre activité d'artisan. Rapports, devis, factures — simplement.
           </p>
-          
-          <!-- Contact -->
-          <div class="space-y-2 text-sm">
-            <a href="mailto:pinhasbent@gmail.com" class="flex items-center gap-2 text-secondary-foreground/70 hover:text-primary transition-colors">
+          <div class="space-y-2.5 text-sm">
+            <a href="mailto:contact@artisangestion.fr" class="flex items-center gap-2.5 text-secondary-foreground/60 hover:text-primary transition-colors">
               <Mail class="h-4 w-4" />
-              pinhasbent@gmail.com
+              contact@artisangestion.fr
             </a>
-            <div class="flex items-center gap-2 text-secondary-foreground/70">
+            <div class="flex items-center gap-2.5 text-secondary-foreground/60">
               <MapPin class="h-4 w-4" />
               Paris, France
             </div>
           </div>
         </div>
 
-        <!-- Links Columns -->
-        <div v-for="(section, key) in footerLinks" :key="key">
-          <h4 class="font-semibold mb-4 text-sm">{{ section.title }}</h4>
-          <ul class="space-y-2">
+        <!-- Link columns -->
+        <div v-for="section in footerSections" :key="section.title">
+          <h4 class="font-semibold mb-4 text-sm text-secondary-foreground/90">{{ section.title }}</h4>
+          <ul class="space-y-2.5">
             <li v-for="link in section.links" :key="link.label">
-              <a 
-                :href="link.href" 
-                class="text-sm text-secondary-foreground/70 hover:text-primary transition-colors"
-              >
+              <a :href="link.href" class="text-sm text-secondary-foreground/60 hover:text-primary transition-colors">
                 {{ link.label }}
               </a>
             </li>
@@ -101,25 +74,15 @@ const socialLinks = [
         </div>
       </div>
 
-      <!-- Bottom Bar -->
+      <!-- Bottom -->
       <div class="border-t border-secondary-foreground/10 py-6">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p class="text-sm text-secondary-foreground/60">
-            © {{ new Date().getFullYear() }} ArtisanGestion. Tous droits réservés.
+          <p class="text-sm text-secondary-foreground/40">
+            © {{ currentYear }} ArtisanGestion. Tous droits réservés.
           </p>
-          
-          <!-- Social Links -->
-          <div class="flex items-center gap-4">
-            <a
-              v-for="social in socialLinks"
-              :key="social.label"
-              :href="social.href"
-              :aria-label="social.label"
-              class="w-9 h-9 rounded-lg bg-secondary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-            >
-              <component :is="social.icon" class="h-4 w-4" />
-            </a>
-          </div>
+          <p class="text-xs text-secondary-foreground/30">
+            Conçu avec ❤️ pour les artisans français
+          </p>
         </div>
       </div>
     </div>

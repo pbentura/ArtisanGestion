@@ -12,7 +12,7 @@ export const BrowserFrame: React.FC<{
   url?: string;
   width?: number;
   height?: number;
-}> = ({ children, delay = 0, url = "app.artisangestion.com", width = 1640, height = 920 }) => {
+}> = ({ children, delay = 0, url = "artisangestion.com", width = 1640, height = 920 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 

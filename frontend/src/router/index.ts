@@ -19,6 +19,15 @@ const routes = [
     }
   },
   {
+    path: '/mobile',
+    name: 'mobile-landing',
+    component: () => import('@/views/MobileLandingPage.vue'),
+    meta: { 
+      title: 'ArtisanGestion Mobile | L\'app tout-en-un pour les artisans',
+      description: 'Découvrez l\'application mobile ArtisanGestion. Facturez et créez vos rapports d\'intervention directement sur le chantier.'
+    }
+  },
+  {
     path: '/auth',
     name: 'auth',
     component: AuthPage,

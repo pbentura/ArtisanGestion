@@ -1,23 +1,29 @@
 <script setup lang="ts">
 import HeroSection from '@/components/landing/HeroSection.vue'
-import ProblemSolution from '@/components/landing/ProblemSolution.vue'
+// import StatsSection from '@/components/landing/StatsSection.vue'
 import Features from '@/components/landing/Features.vue'
-import DemoVisual from '@/components/landing/DemoVisual.vue'
-import Benefits from '@/components/landing/Benefits.vue'
+import VideoSection from '@/components/landing/VideoSection.vue'
+import AIRapportSection from '@/components/landing/AIRapportSection.vue'
+import CompareSection from '@/components/landing/CompareSection.vue'
+// import TestimonialsSection from '@/components/landing/TestimonialsSection.vue'
 import Pricing from '@/components/landing/Pricing.vue'
+// import FAQSection from '@/components/landing/FAQSection.vue'
 import CTAFinal from '@/components/landing/CTAFinal.vue'
 import Footer from '@/components/landing/Footer.vue'
 </script>
 
 <template>
-  <div>
+  <div class="overflow-x-hidden">
     <HeroSection />
-    <ProblemSolution />
-    <Features id="features" />
-    <DemoVisual id="demo" />
-    <Benefits />
-    <Pricing id="pricing" />
-    <CTAFinal id="cta" />
+    <!-- <StatsSection /> -->
+    <Features />
+    <AIRapportSection />
+    <VideoSection />
+    <CompareSection />
+    <!-- <TestimonialsSection /> -->
+    <Pricing />
+    <!-- <FAQSection /> -->
+    <CTAFinal />
     <Footer />
   </div>
 </template>
