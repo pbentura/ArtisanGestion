@@ -9,60 +9,40 @@ gsap.registerPlugin(ScrollTrigger)
 
 const router = useRouter()
 const sectionRef = ref<HTMLElement | null>(null)
+const isAnnual = ref(false)
 
 const plans = [
   {
-    name: 'Gratuit',
-    description: 'Pour découvrir et tester',
-    price: '0',
+    name: 'Indépendant',
+    description: 'Pour l\'artisan seul',
+    priceMonthly: '19',
+    priceAnnual: '15.50',
     features: [
-      'Jusqu\'à 3 clients',
-      '5 devis par mois',
-      '5 factures par mois',
-      '3 rapports IA par mois',
-      'Tableau de bord basique',
+      '1 Utilisateur',
+      'Clients, devis & factures illimités',
+      'Catalogue de prestations',
+      'Rapports d\'intervention simples',
       'Support par email',
     ],
-    cta: 'Commencer gratuitement',
+    cta: 'Essai gratuit 14 jours',
     popular: false,
     gradient: '',
   },
   {
-    name: 'Pro',
-    description: 'Pour les artisans indépendants',
-    price: '19',
+    name: 'Équipe',
+    description: 'Pour vous et vos collaborateurs',
+    priceMonthly: '39',
+    priceAnnual: '32.50',
     features: [
-      'Clients illimités',
-      'Devis & factures illimités',
-      'Rapports IA illimités',
-      'Factur-X conforme 2026',
-      'Dashboard complet & objectifs CA',
-      'App mobile native',
-      'Envoi par email intégré',
-      'Export des données',
-      'Support prioritaire',
+      'Jusqu\'à 3 utilisateurs',
+      'Rôles et permissions sur l\'app',
+      'Signature électronique des devis/rapports',
+      'Export comptable avancé (Factur-X)',
+      'Support prioritaire (Chat/Téléphone)',
     ],
     cta: 'Essai gratuit 14 jours',
     popular: true,
     gradient: 'from-primary to-blue-700',
-  },
-  {
-    name: 'Business',
-    description: 'Pour les petites équipes',
-    price: '49',
-    features: [
-      'Tout du plan Pro',
-      'Jusqu\'à 5 utilisateurs',
-      'Gestion des permissions',
-      'Personnalisation avancée',
-      'API d\'intégration',
-      'Support téléphonique',
-      'Formation incluse',
-      'SLA garanti 99.9%',
-    ],
-    cta: 'Nous contacter',
-    popular: false,
-    gradient: '',
   }
 ]
 
@@ -105,28 +85,58 @@ onMounted(() => {
         </p>
       </div>
 
+      <!-- Toggle -->
+      <div class="flex justify-center mb-12">
+        <div class="relative flex items-center p-1 bg-muted/50 rounded-full border border-border/50">
+          <button
+            @click="isAnnual = false"
+            class="relative w-36 py-2.5 text-sm font-medium rounded-full transition-colors z-10"
+            :class="!isAnnual ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+          >
+            Mensuel
+          </button>
+          <button
+            @click="isAnnual = true"
+            class="relative w-36 py-2.5 text-sm font-medium rounded-full transition-colors z-10 flex items-center justify-center gap-2"
+            :class="isAnnual ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+          >
+            Annuel
+            <span class="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">-18%</span>
+          </button>
+          <!-- Sliding indicator -->
+          <div
+            class="absolute left-1 top-1 bottom-1 w-36 bg-background shadow-sm rounded-full transition-transform duration-300 ease-in-out border border-border/50"
+            :class="isAnnual ? 'translate-x-full' : 'translate-x-0'"
+          />
+        </div>
+      </div>
+
       <!-- Cards -->
-      <div class="pricing-grid grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-start">
+      <div class="pricing-grid grid md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto items-start">
         <div
           v-for="(plan, i) in plans"
           :key="i"
-          class="pricing-card relative rounded-3xl overflow-hidden transition-all duration-500"
-          :class="[
-            plan.popular
-              ? 'bg-card border-2 border-primary/50 shadow-2xl shadow-primary/10 lg:scale-105 z-10'
-              : 'bg-card border border-border/50 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5'
-          ]"
+          class="pricing-card relative transition-all duration-500"
+          :class="plan.popular ? 'lg:scale-105 z-10' : ''"
         >
-          <!-- Popular badge -->
-          <div v-if="plan.popular" class="absolute -top-px left-0 right-0 h-1 bg-gradient-to-r" :class="plan.gradient" />
-          <div v-if="plan.popular" class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+          <div v-if="plan.popular" class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
             <span class="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg shadow-primary/30">
               <Sparkles class="h-3 w-3" />
               Recommandé
             </span>
           </div>
 
-          <div class="p-7 lg:p-8">
+          <div 
+            class="h-full rounded-3xl overflow-hidden transition-all duration-500"
+            :class="[
+              plan.popular
+                ? 'bg-card border-2 border-primary/50 shadow-2xl shadow-primary/10'
+                : 'bg-card border border-border/50 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5'
+            ]"
+          >
+            <div v-if="plan.popular" class="h-1 w-full bg-gradient-to-r" :class="plan.gradient" />
+
+            <div class="p-7 lg:p-8">
             <!-- Plan info -->
             <div class="mb-6" :class="plan.popular ? 'pt-4' : ''">
               <h3 class="text-xl font-bold text-foreground mb-1">{{ plan.name }}</h3>
@@ -136,10 +146,12 @@ onMounted(() => {
             <!-- Price -->
             <div class="mb-8">
               <div class="flex items-baseline gap-1">
-                <span class="text-5xl font-extrabold text-foreground">{{ plan.price }}€</span>
+                <span class="text-5xl font-extrabold text-foreground">{{ isAnnual ? plan.priceAnnual : plan.priceMonthly }}€</span>
                 <span class="text-muted-foreground text-sm">/mois</span>
               </div>
-              <p class="text-xs text-muted-foreground mt-1">HT, sans engagement</p>
+              <p class="text-xs text-muted-foreground mt-1">
+                {{ isAnnual ? 'HT, facturé annuellement' : 'HT, sans engagement' }}
+              </p>
             </div>
 
             <!-- Features -->
@@ -164,6 +176,7 @@ onMounted(() => {
               {{ plan.cta }}
               <ArrowRight class="h-4 w-4" />
             </button>
+          </div>
           </div>
         </div>
       </div>
