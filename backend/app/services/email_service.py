@@ -33,6 +33,7 @@ def _base_template(content: str) -> str:
                     <!-- Header with Gradient and Logo -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 40px 40px; text-align: center;">
+                            <img src="{settings.FRONTEND_URL}/logo.svg" alt="Logo ArtisanGestion" style="display: block; margin: 0 auto 16px auto; width: 64px; height: 64px;" />
                             <span style="display: block; margin: 0 auto; max-width: 100%; height: auto; font-size: 28px; color: #ffffff; font-weight: bold; letter-spacing: -0.5px;">ArtisanGestion</span>
                         </td>
                     </tr>
