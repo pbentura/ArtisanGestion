@@ -31,6 +31,15 @@ onMounted(async () => {
         status.value = 'success'
       }
       message.value = data.message
+
+      // Auto login si un token est fourni
+      if (data.access_token) {
+        localStorage.setItem('token', data.access_token)
+        // Redirection après 1.5s pour laisser le temps de lire le message
+        setTimeout(() => {
+          router.push('/app')
+        }, 1500)
+      }
     } else {
       status.value = 'error'
       message.value = data.detail || 'Le lien de vérification est invalide ou a expiré.'
@@ -65,11 +74,10 @@ function goToLogin() {
         </div>
         <h1>Email vérifié !</h1>
         <p class="subtitle">{{ message }}</p>
-        <p class="subtitle">Vous pouvez maintenant vous connecter et accéder à toutes les fonctionnalités.</p>
-        <Button class="cta-btn" @click="goToLogin">
-          <ArrowLeft :size="16" />
-          Se connecter
-        </Button>
+        <div class="icon-wrapper loading" style="margin-top: 24px; background: none; height: 32px; margin-bottom: 8px;">
+          <Loader2 class="icon spin" style="color: #3b82f6;" />
+        </div>
+        <p class="subtitle" style="font-weight: 500;">Connexion et redirection en cours...</p>
       </template>
 
       <!-- Already verified -->
@@ -79,10 +87,10 @@ function goToLogin() {
         </div>
         <h1>Déjà vérifié</h1>
         <p class="subtitle">{{ message }}</p>
-        <Button class="cta-btn" @click="goToLogin">
-          <ArrowLeft :size="16" />
-          Se connecter
-        </Button>
+        <div class="icon-wrapper loading" style="margin-top: 24px; background: none; height: 32px; margin-bottom: 8px;">
+          <Loader2 class="icon spin" style="color: #3b82f6;" />
+        </div>
+        <p class="subtitle" style="font-weight: 500;">Connexion et redirection en cours...</p>
       </template>
 
       <!-- Error -->

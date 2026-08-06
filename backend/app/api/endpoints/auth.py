@@ -290,7 +290,15 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
     
     if user.is_email_verified:
-        return {"message": "Votre adresse email est déjà vérifiée."}
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
+        return {
+            "message": "Votre adresse email est déjà vérifiée.",
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
     
     user.is_email_verified = True
     user.email_verification_token = None
@@ -300,7 +308,17 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     # Envoyer l'email de bienvenue maintenant que l'email est vérifié
     await send_welcome_email(user.email, user.prenom)
     
-    return {"message": "Votre adresse email a été vérifiée avec succès !"}
+    # Générer le token JWT pour auto-login
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "message": "Votre adresse email a été vérifiée avec succès !",
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
 
 
 @router.post("/resend-verification")
