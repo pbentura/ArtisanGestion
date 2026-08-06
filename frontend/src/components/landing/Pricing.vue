@@ -2,10 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Check, Sparkles, Zap, ArrowRight, CreditCard } from 'lucide-vue-next'
-
-gsap.registerPlugin(ScrollTrigger)
+import { useIntersectionObserver } from '@vueuse/core'
 
 const router = useRouter()
 const sectionRef = ref<HTMLElement | null>(null)
@@ -53,14 +51,23 @@ function handleCTA() {
 onMounted(() => {
   if (!sectionRef.value) return
 
-  gsap.from('.pricing-header', {
-    scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-    y: 30, opacity: 0, duration: 0.6
-  })
-  gsap.from('.pricing-card', {
-    scrollTrigger: { trigger: '.pricing-grid', start: 'top 85%', once: true },
-    y: 40, opacity: 0, duration: 0.6, stagger: 0.12, ease: 'power3.out'
-  })
+  // État initial (invisible)
+  gsap.set('.pricing-header', { y: 30, opacity: 0 })
+  gsap.set('.pricing-card', { y: 40, opacity: 0 })
+
+  // Utiliser l'IntersectionObserver natif via VueUse (beaucoup plus robuste au refresh)
+  const { stop } = useIntersectionObserver(
+    sectionRef,
+    ([{ isIntersecting }]) => {
+      if (isIntersecting) {
+        gsap.to('.pricing-header', { y: 0, opacity: 1, duration: 0.6 })
+        gsap.to('.pricing-card', { y: 0, opacity: 1, duration: 0.6, stagger: 0.12, ease: 'power3.out' })
+        
+        stop() // Ne jouer qu'une seule fois
+      }
+    },
+    { threshold: 0.15 } // Se déclenche quand 15% de la section est visible
+  )
 })
 </script>
 

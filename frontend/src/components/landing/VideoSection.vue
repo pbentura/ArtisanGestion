@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Play, Pause, Volume2, VolumeX } from 'lucide-vue-next'
@@ -36,13 +36,19 @@ function toggleMute() {
 onMounted(() => {
   if (!sectionRef.value) return
 
-  gsap.from('.video-header', {
-    scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-    y: 30, opacity: 0, duration: 0.6, ease: 'power3.out'
-  })
-  gsap.from('.video-frame', {
-    scrollTrigger: { trigger: '.video-frame', start: 'top 85%', once: true },
-    y: 50, opacity: 0, scale: 0.96, duration: 0.8, ease: 'power3.out'
+  nextTick(() => {
+    setTimeout(() => {
+      gsap.from('.video-header', {
+        scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
+        y: 30, opacity: 0, duration: 0.6, ease: 'power3.out'
+      })
+      gsap.from('.video-frame', {
+        scrollTrigger: { trigger: '.video-frame', start: 'top 85%', once: true },
+        y: 50, opacity: 0, scale: 0.96, duration: 0.8, ease: 'power3.out'
+      })
+
+      ScrollTrigger.refresh()
+    }, 150)
   })
 })
 </script>

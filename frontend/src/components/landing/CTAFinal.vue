@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -16,9 +16,15 @@ function navigateToAuth() {
 
 onMounted(() => {
   if (!sectionRef.value) return
-  gsap.from('.cta-content', {
-    scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-    y: 40, opacity: 0, duration: 0.8, ease: 'power3.out'
+  nextTick(() => {
+    setTimeout(() => {
+      gsap.from('.cta-content', {
+        scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
+        y: 40, opacity: 0, duration: 0.8, ease: 'power3.out'
+      })
+
+      ScrollTrigger.refresh()
+    }, 150)
   })
 })
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { X, Check, AlertTriangle, Clock, FileX, FolderOpen, Sparkles, FileCheck2, Smartphone, Shield, BarChart3 } from 'lucide-vue-next'
@@ -44,13 +44,19 @@ onMounted(() => {
   document.addEventListener('touchend', endDrag)
 
   if (!sectionRef.value) return
-  gsap.from('.compare-header', {
-    scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-    y: 30, opacity: 0, duration: 0.6
-  })
-  gsap.from('.compare-container', {
-    scrollTrigger: { trigger: '.compare-container', start: 'top 85%', once: true },
-    y: 40, opacity: 0, duration: 0.8, ease: 'power3.out'
+  nextTick(() => {
+    setTimeout(() => {
+      gsap.from('.compare-header', {
+        scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
+        y: 30, opacity: 0, duration: 0.6
+      })
+      gsap.from('.compare-container', {
+        scrollTrigger: { trigger: '.compare-container', start: 'top 85%', once: true },
+        y: 40, opacity: 0, duration: 0.8, ease: 'power3.out'
+      })
+
+      ScrollTrigger.refresh()
+    }, 150)
   })
 })
 </script>

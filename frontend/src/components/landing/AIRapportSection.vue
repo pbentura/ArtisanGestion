@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Sparkles, AlignLeft, AlignCenter, AlignJustify } from 'lucide-vue-next'
@@ -15,22 +15,27 @@ onMounted(() => {
     videoRef.value.playbackRate = 1.5
   }
 
-  if (sectionRef.value) {
-    gsap.from('.ai-rapport-header', {
-      scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-      y: 30, opacity: 0, duration: 0.6
-    })
+  if (!sectionRef.value) return
+  nextTick(() => {
+    setTimeout(() => {
+      gsap.from('.ai-rapport-header', {
+        scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
+        y: 30, opacity: 0, duration: 0.6
+      })
 
-    gsap.from('.ai-rapport-ui', {
-      scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
-      x: -40, opacity: 0, duration: 0.8, ease: 'power3.out'
-    })
+      gsap.from('.ai-rapport-ui', {
+        scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
+        x: -40, opacity: 0, duration: 0.8, ease: 'power3.out'
+      })
 
-    gsap.from('.ai-rapport-video', {
-      scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
-      x: 40, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.2
-    })
-  }
+      gsap.from('.ai-rapport-video', {
+        scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
+        x: 40, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.2
+      })
+
+      ScrollTrigger.refresh()
+    }, 150)
+  })
 })
 </script>
 
