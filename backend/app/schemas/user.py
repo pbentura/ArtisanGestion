@@ -26,3 +26,7 @@ class UserUpdate(BaseModel):
 
 class UserReadWithSocietes(UserRead):
     societes: List[SocieteRead] = []
+
+class UserRegisterResponse(BaseModel):
+    user: UserRead
+    waiting_token: str

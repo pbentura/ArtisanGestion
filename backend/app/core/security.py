@@ -52,6 +52,21 @@ def verify_email_token(token: str) -> Optional[str]:
     except JWTError:
         return None
 
+def create_waiting_token(email: str) -> str:
+    """Generate a JWT token used to listen to WebSocket while waiting for email verification."""
+    expire = datetime.utcnow() + timedelta(hours=2)
+    to_encode = {"sub": email, "purpose": "waiting_verify", "exp": expire}
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def verify_waiting_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("purpose") != "waiting_verify":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
 
 def create_password_reset_token(email: str) -> str:
     """Generate a JWT token for password reset."""

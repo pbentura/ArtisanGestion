@@ -62,6 +62,8 @@ const forgotLoading = ref(false)
 const forgotMessage = ref('')
 const forgotError = ref('')
 
+let waitingSocket: WebSocket | null = null
+
 onMounted(() => {
   if (localStorage.getItem('token')) {
     router.push('/app')
@@ -233,9 +235,45 @@ async function handleSignup() {
       throw new Error(errorText)
     }
 
+    const data = await res.json()
+
     successMessage.value = "Votre compte a bien été créé ! Un email de vérification vous a été envoyé. Vérifiez votre boîte mail (et vos spams) pour activer votre compte."
     activeTab.value = 'login'
     loginForm.value.email = signupForm.value.email
+    
+    // Connect WebSocket to listen for verification from another device
+    if (data.waiting_token) {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      let wsUrl = ''
+      if (API_BASE_URL.startsWith('http')) {
+        const url = new URL(API_BASE_URL)
+        wsUrl = `${wsProtocol}//${url.host}/api/ws?token=${data.waiting_token}`
+      } else {
+        wsUrl = `${wsProtocol}//${window.location.host}/api/ws?token=${data.waiting_token}`
+      }
+      
+      if (waitingSocket) {
+        waitingSocket.close()
+      }
+      
+      waitingSocket = new WebSocket(wsUrl)
+      waitingSocket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'EMAIL_VERIFIED') {
+             // Auto login since we still have the password in memory!
+             loginForm.value.password = signupForm.value.password
+             handleLogin()
+             
+             if (waitingSocket) {
+               waitingSocket.close()
+               waitingSocket = null
+             }
+          }
+        } catch (e) {}
+      }
+    }
+    
     loginForm.value.password = ''
   } catch (error: any) {
     errorMessage.value = error.message
@@ -350,6 +388,10 @@ async function handleGoogleAuth() {
 onUnmounted(() => {
   if (authMessageListener) {
     window.removeEventListener('message', authMessageListener)
+  }
+  if (waitingSocket) {
+    waitingSocket.close()
+    waitingSocket = null
   }
 })
 </script>

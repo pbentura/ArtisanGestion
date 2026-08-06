@@ -19,9 +19,9 @@ async def get_my_societe(
     Récupérer la société de l'utilisateur connecté.
     """
     result = await db.execute(
-        select(Societe).where(Societe.id_user == current_user.id)
+        select(Societe).where(Societe.id_user == current_user.id).order_by(Societe.id.desc())
     )
-    societe = result.scalar_one_or_none()
+    societe = result.scalars().first()
     
     if not societe:
         raise HTTPException(
@@ -41,9 +41,9 @@ async def update_my_societe(
     Mettre à jour la société de l'utilisateur connecté.
     """
     result = await db.execute(
-        select(Societe).where(Societe.id_user == current_user.id)
+        select(Societe).where(Societe.id_user == current_user.id).order_by(Societe.id.desc())
     )
-    societe = result.scalar_one_or_none()
+    societe = result.scalars().first()
     
     if not societe:
         raise HTTPException(
@@ -57,6 +57,12 @@ async def update_my_societe(
     
     await db.commit()
     await db.refresh(societe)
+    
+    from app.core.websockets import manager
+    await manager.broadcast_to_user(current_user.id, {
+        "type": "SYNC_SOCIETE",
+    })
+    
     return societe
 
 @router.post("", response_model=SocieteRead, status_code=status.HTTP_201_CREATED)
@@ -68,6 +74,26 @@ async def create_societe(
     """
     Créer une nouvelle société pour l'utilisateur connecté.
     """
+    # Check if a societe already exists for this user to avoid duplicates
+    result = await db.execute(
+        select(Societe).where(Societe.id_user == current_user.id).order_by(Societe.id.desc())
+    )
+    existing_societe = result.scalars().first()
+    
+    if existing_societe:
+        # Upsert: update existing societe instead of creating a new one
+        for field, value in societe_in.model_dump().items():
+            setattr(existing_societe, field, value)
+        await db.commit()
+        await db.refresh(existing_societe)
+        
+        from app.core.websockets import manager
+        await manager.broadcast_to_user(current_user.id, {
+            "type": "SYNC_SOCIETE",
+        })
+        
+        return existing_societe
+
     new_societe = Societe(
         id_user=current_user.id,
         **societe_in.model_dump()
@@ -75,4 +101,10 @@ async def create_societe(
     db.add(new_societe)
     await db.commit()
     await db.refresh(new_societe)
+    
+    from app.core.websockets import manager
+    await manager.broadcast_to_user(current_user.id, {
+        "type": "SYNC_SOCIETE",
+    })
+    
     return new_societe

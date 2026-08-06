@@ -17,10 +17,11 @@ from app.core.security import (
     verify_email_token,
     create_password_reset_token,
     verify_password_reset_token,
+    create_waiting_token,
 )
 from app.models.user import User
 from app.schemas.token import Token
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.user import UserCreate, UserRead, UserRegisterResponse
 from app.services.email_service import (
     send_welcome_email,
     send_verification_email,
@@ -197,7 +198,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
 
 # ── Registration ──
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserRegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Créer un nouvel utilisateur et envoyer les emails de bienvenue et de vérification.
@@ -230,7 +231,12 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> A
     # Send only verification email initially
     await send_verification_email(user_in.email, user_in.prenom, verification_token)
     
-    return new_user
+    waiting_token = create_waiting_token(user_in.email)
+    
+    return {
+        "user": new_user,
+        "waiting_token": waiting_token
+    }
 
 
 # ── Login ──
@@ -313,6 +319,11 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+    
+    from app.core.websockets import manager
+    await manager.broadcast_to_user(user.id, {
+        "type": "EMAIL_VERIFIED",
+    })
     
     return {
         "message": "Votre adresse email a été vérifiée avec succès !",

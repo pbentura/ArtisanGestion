@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch } from '@/lib/api'
+import { useWebSocket } from '@/composables/useWebSocket'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +13,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const { wsEvents } = useWebSocket()
 
 const steps = [
   { id: 1, title: 'Identité', subtitle: 'Parlons de votre entreprise', icon: Building2 },
@@ -88,21 +90,50 @@ watch(
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null
 
+let isUpdatingFromWS = false
+
 onMounted(async () => {
   try {
     const res = await apiFetch('users/me')
     if (res.ok) {
       const data = await res.json()
       if (data.onboarding_draft) {
+        isUpdatingFromWS = true
         form.value = { ...form.value, ...data.onboarding_draft }
+        setTimeout(() => { isUpdatingFromWS = false }, 100)
       }
     }
   } catch (e) {
     console.error('Failed to fetch draft from API.', e)
   }
+
+  // Écoute de la synchronisation du brouillon
+  wsEvents.on('SYNC_DRAFT', (newDraft: any) => {
+    if (newDraft) {
+      isUpdatingFromWS = true
+      form.value = { ...form.value, ...newDraft }
+      // Désactiver le flag après que le watcher ait pu ignorer cette modification
+      setTimeout(() => { isUpdatingFromWS = false }, 100)
+    }
+  })
+
+  // Écoute de la validation finale depuis un autre appareil
+  wsEvents.on('SYNC_SOCIETE', () => {
+    // Si la société a été créée sur un autre appareil, on redirige vers l'app
+    router.push('/app')
+  })
+})
+
+import { onUnmounted } from 'vue'
+
+onUnmounted(() => {
+  wsEvents.off('SYNC_DRAFT')
+  wsEvents.off('SYNC_SOCIETE')
 })
 
 watch(form, (newVal) => {
+  if (isUpdatingFromWS) return // Ne pas renvoyer les données si on vient de les recevoir via WS
+
   if (saveTimeout) clearTimeout(saveTimeout)
   saveTimeout = setTimeout(async () => {
     try {

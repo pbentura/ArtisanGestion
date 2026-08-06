@@ -54,6 +54,13 @@ async def update_user_me(
         select(User).options(selectinload(User.societes)).where(User.id == current_user.id)
     )
     user = result.scalars().first()
+    
+    from app.core.websockets import manager
+    await manager.broadcast_to_user(current_user.id, {
+        "type": "SYNC_DRAFT",
+        "data": user.onboarding_draft
+    })
+    
     return user
 
 @router.delete("/me")
