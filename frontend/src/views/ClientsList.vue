@@ -5,7 +5,6 @@ import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { apiFetch } from '@/lib/api'
 import { dataStore } from '@/lib/store'
-import { computed } from 'vue'
 
 interface Client {
   id: number
