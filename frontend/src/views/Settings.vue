@@ -92,7 +92,8 @@ const user = ref({
   prenom: '',
   email: '',
   role: '',
-  trial_days_remaining: 0
+  trial_days_remaining: 0,
+  is_owner: true
 })
 
 const form = ref({
@@ -207,7 +208,7 @@ onMounted(() => {
           <TabsTrigger value="preferences" class="rounded-lg py-2 px-4 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <Settings class="w-4 h-4 mr-2" /> Préférences
           </TabsTrigger>
-          <TabsTrigger value="abonnement" class="rounded-lg py-2 px-4 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger v-if="user.is_owner" value="abonnement" class="rounded-lg py-2 px-4 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <CreditCard class="w-4 h-4 mr-2" /> Abonnement
           </TabsTrigger>
           <TabsTrigger value="facturation" class="rounded-lg py-2 px-4 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
@@ -356,7 +357,7 @@ onMounted(() => {
       </TabsContent>
 
       <!-- Abonnement Tab -->
-      <TabsContent value="abonnement">
+      <TabsContent v-if="user.is_owner" value="abonnement">
         <div class="space-y-6">
           <div class="pricing-header text-center mb-8 mt-4">
             <h2 class="text-2xl font-bold text-foreground mb-4">

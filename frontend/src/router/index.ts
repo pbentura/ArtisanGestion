@@ -4,6 +4,7 @@ import AuthPage from '@/views/AuthPage.vue'
 import NotFound from '@/views/NotFound.vue'
 import PrivacyPolicy from '@/views/PrivacyPolicy.vue'
 import TermsOfService from '@/views/TermsOfService.vue'
+import MentionsLegales from '@/views/MentionsLegales.vue'
 
 import { API_BASE_URL } from '@/lib/api'
 import { Capacitor } from '@capacitor/core'
@@ -215,6 +216,12 @@ const routes = [
     name: 'terms',
     component: TermsOfService,
     meta: { title: 'Conditions Générales d\'Utilisation' }
+  },
+  {
+    path: '/legal/mentions-legales',
+    name: 'mentions-legales',
+    component: MentionsLegales,
+    meta: { title: 'Mentions Légales' }
   },
   // 404 catch-all
   {

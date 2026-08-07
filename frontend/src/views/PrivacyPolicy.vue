@@ -12,7 +12,7 @@ const lastUpdated = '7 avril 2026'
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
-          <span class="font-bold text-lg">Artisan<span class="text-primary">Gestion</span></span>
+          <span class="font-bold text-lg">Ventura</span>
         </div>
         <button
           @click="router.push('/')"
@@ -37,7 +37,7 @@ const lastUpdated = '7 avril 2026'
           </div>
         </div>
         <p class="text-muted-foreground text-lg leading-relaxed max-w-3xl">
-          Chez ArtisanGestion, la protection de vos données personnelles est une priorité. Ce document vous explique quelles données nous collectons, pourquoi, et quels sont vos droits conformément au Règlement Général sur la Protection des Données (RGPD – Règlement UE 2016/679).
+          Chez Ventura, la protection de vos données personnelles est une priorité. Ce document vous explique quelles données nous collectons, pourquoi, et quels sont vos droits conformément au Règlement Général sur la Protection des Données (RGPD – Règlement UE 2016/679).
         </p>
       </div>
     </div>
@@ -55,9 +55,9 @@ const lastUpdated = '7 avril 2026'
           <div class="section-body">
             <p>Le responsable du traitement des données personnelles collectées via la plateforme ArtisanGestion est :</p>
             <div class="info-box">
-              <p><strong>ArtisanGestion SAS</strong><br />
-              Siège social : Paris, France<br />
-              Email de contact : <a href="mailto:privacy@artisangestion.app" class="text-primary hover:underline">privacy@artisangestion.app</a>
+              <p><strong>Pinhas BENTURA (Ventura)</strong><br />
+              Siège social : 19 BOULEVARD JACQUES COPEAU, 95200 SARCELLES<br />
+              Email de contact : <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline">pinhasbent@gmail.com</a>
               </p>
             </div>
           </div>
@@ -70,7 +70,7 @@ const lastUpdated = '7 avril 2026'
             <h2 class="section-title">2. Données collectées</h2>
           </div>
           <div class="section-body space-y-6">
-            <p>Nous collectons les catégories de données suivantes dans le cadre de l'utilisation de la plateforme ArtisanGestion :</p>
+            <p>Nous collectons les catégories de données suivantes dans le cadre de l'utilisation de la plateforme Ventura :</p>
 
             <div class="data-category">
               <h3 class="data-category-title">2.1 Données de compte utilisateur</h3>
@@ -269,7 +269,7 @@ const lastUpdated = '7 avril 2026'
               </div>
             </div>
             <div class="info-box mt-6">
-              <p>Pour exercer vos droits, contactez-nous à : <a href="mailto:privacy@artisangestion.app" class="text-primary hover:underline font-medium">privacy@artisangestion.app</a>. Nous répondrons dans un délai maximum de <strong>30 jours</strong>. Vous avez également le droit d'introduire une réclamation auprès de la <strong>CNIL</strong> (<a href="https://www.cnil.fr" target="_blank" class="text-primary hover:underline">www.cnil.fr</a>).</p>
+              <p>Pour exercer vos droits, contactez-nous à : <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline font-medium">pinhasbent@gmail.com</a>. Nous répondrons dans un délai maximum de <strong>30 jours</strong>. Vous avez également le droit d'introduire une réclamation auprès de la <strong>CNIL</strong> (<a href="https://www.cnil.fr" target="_blank" class="text-primary hover:underline">www.cnil.fr</a>).</p>
             </div>
           </div>
         </section>
@@ -281,7 +281,7 @@ const lastUpdated = '7 avril 2026'
             <h2 class="section-title">8. Cookies et stockage local</h2>
           </div>
           <div class="section-body space-y-4">
-            <p>ArtisanGestion utilise le <strong>stockage local du navigateur (localStorage)</strong>, et non des cookies de tracking, pour :</p>
+            <p>Ventura utilise le <strong>stockage local du navigateur (localStorage)</strong>, et non des cookies de tracking, pour :</p>
             <ul class="data-list">
               <li>Conserver votre token d'authentification JWT afin de maintenir votre session active</li>
             </ul>
@@ -309,8 +309,8 @@ const lastUpdated = '7 avril 2026'
           <div class="section-body">
             <div class="info-box">
               <p>Pour toute question relative à cette politique ou à vos données personnelles :<br />
-              📧 <a href="mailto:privacy@artisangestion.app" class="text-primary hover:underline font-medium">privacy@artisangestion.app</a><br />
-              📍 ArtisanGestion SAS, Paris, France
+              📧 <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline font-medium">pinhasbent@gmail.com</a><br />
+              📍 Pinhas BENTURA (Ventura), 19 BOULEVARD JACQUES COPEAU, 95200 SARCELLES
               </p>
             </div>
           </div>
@@ -320,7 +320,7 @@ const lastUpdated = '7 avril 2026'
 
       <!-- Footer nav -->
       <div class="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <p>© {{ new Date().getFullYear() }} ArtisanGestion. Tous droits réservés.</p>
+        <p>© {{ new Date().getFullYear() }} Ventura. Tous droits réservés.</p>
         <div class="flex items-center gap-6">
           <router-link to="/legal/terms" class="hover:text-primary transition-colors">Conditions d'utilisation</router-link>
           <router-link to="/" class="hover:text-primary transition-colors">Retour à l'accueil</router-link>

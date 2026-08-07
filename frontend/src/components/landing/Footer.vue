@@ -24,6 +24,7 @@ const footerSections = [
   {
     title: 'Légal',
     links: [
+      { label: 'Mentions Légales', href: '/legal/mentions-legales' },
       { label: 'CGU', href: '/legal/terms' },
       { label: 'Confidentialité', href: '/legal/privacy' },
       { label: 'Cookies', href: '/legal/privacy#8' },
@@ -44,19 +45,19 @@ const footerSections = [
         <div class="col-span-2">
           <div class="flex items-center gap-3 mb-5">
             <img src="/logo.svg" alt="Logo ArtisanGestion" class="w-10 h-10" />
-            <span class="text-xl font-bold">Artisan<span class="text-primary">Gestion</span></span>
+            <span class="text-xl font-bold">Ventura</span>
           </div>
           <p class="text-secondary-foreground/60 text-sm mb-6 max-w-xs leading-relaxed">
-            L'outil tout-en-un pour gérer votre activité d'artisan. Rapports, devis, factures — simplement.
+            L'outil tout-en-un pour gérer votre activité d'artisan et PME. Rapports, devis, factures — simplement.
           </p>
           <div class="space-y-2.5 text-sm">
             <a href="mailto:contact@artisangestion.fr" class="flex items-center gap-2.5 text-secondary-foreground/60 hover:text-primary transition-colors">
               <Mail class="h-4 w-4" />
-              contact@artisangestion.fr
+              pinhasbent@gmail.com
             </a>
             <div class="flex items-center gap-2.5 text-secondary-foreground/60">
               <MapPin class="h-4 w-4" />
-              Paris, France
+              19 Bd Jacques Copeau, 95200 Sarcelles
             </div>
           </div>
         </div>
@@ -78,7 +79,7 @@ const footerSections = [
       <div class="border-t border-secondary-foreground/10 py-6">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p class="text-sm text-secondary-foreground/40">
-            © {{ currentYear }} ArtisanGestion. Tous droits réservés.
+            © {{ currentYear }} Ventura. Tous droits réservés.
           </p>
           <p class="text-xs text-secondary-foreground/30">
             Conçu avec ❤️ pour les artisans français
