@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser, Link as LinkIcon, ExternalLink, Unlink } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import { useMobile } from '@/composables/useMobile'
@@ -49,6 +49,7 @@ const swipeStyle = computed(() => {
 })
 
 const isSaving = ref(false)
+const trialEnded = computed(() => dataStore.user.data?.trial_days_remaining === 0)
 const isGeneratingPDF = ref(false)
 const isLoading = ref(false)
 const showPDFModal = ref(false)
@@ -963,7 +964,7 @@ async function unlinkRapport() {
             <!-- Toujours visible : Sauvegarder (si brouillon) -->
             <button
               v-if="devis.statut === 'brouillon'"
-              @click="saveDevis"
+              @click="trialEnded ? uiStore.openSubscriptionModal() : saveDevis()"
               :disabled="isSaving || isGeneratingPDF"
               class="inline-flex items-center gap-2 px-3 py-2 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
               title="Sauvegarder Brouillon"
@@ -975,7 +976,7 @@ async function unlinkRapport() {
 
             <!-- Toujours visible : Sauvegarder & PDF -->
             <button
-              @click="saveAndGeneratePDF"
+              @click="trialEnded ? uiStore.openSubscriptionModal() : saveAndGeneratePDF()"
               :disabled="isSaving || isGeneratingPDF"
               class="btn-primary"
             >
@@ -992,7 +993,7 @@ async function unlinkRapport() {
                 <template v-else><CheckCircle2 class="w-4 h-4" /></template>
                 <span>{{ devis.statut === 'envoyé' ? 'Brouillon' : 'Envoyer' }}</span>
               </button>
-              <button @click="router.push(`/app/factures/new?fromDevis=${devisId}`)" class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium">
+              <button @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devisId}`)" class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium">
                 <Receipt class="w-5 h-5" />
                 <span>Facturer</span>
               </button>
@@ -1024,7 +1025,7 @@ async function unlinkRapport() {
           </button>
 
           <button
-            @click="router.push(`/app/factures/new?fromDevis=${devisId}`)"
+            @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devisId}`)"
             class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium whitespace-nowrap"
           >
             <Receipt class="w-4 h-4" />
@@ -1352,7 +1353,7 @@ async function unlinkRapport() {
         <!-- Bouton Sauvegarder (Bas de page) -->
         <div class="flex justify-end mt-8">
           <button
-            @click="saveDevis"
+            @click="trialEnded ? uiStore.openSubscriptionModal() : saveDevis()"
             :disabled="isSaving || isGeneratingPDF"
             class="btn-primary w-full sm:w-auto"
           >
@@ -1425,7 +1426,7 @@ async function unlinkRapport() {
                 Ceci est un aperçu interactif. Pour obtenir le fichier final :
               </p>
               <button 
-                @click="saveAndGeneratePDF"
+                @click="trialEnded ? uiStore.openSubscriptionModal() : saveAndGeneratePDF()"
                 class="btn-primary w-full"
                 :disabled="!isValid || isGeneratingPDF"
               >

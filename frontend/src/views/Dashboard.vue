@@ -9,7 +9,7 @@ import {
   Wallet, BarChart3, Target, ClipboardList,
   Camera, Calendar, RefreshCw
 } from 'lucide-vue-next'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 
 const router = useRouter()
 const loading = computed(() => dataStore.dashboard.loading)
@@ -41,6 +41,7 @@ interface DashboardData {
 }
 
 const data = computed<DashboardData | null>(() => dataStore.dashboard.data)
+const trialEnded = computed(() => dataStore.user.data?.trial_days_remaining === 0)
 const { isMobileView } = useMobile()
 
 function formatMoney(value: number): string {
@@ -160,13 +161,13 @@ onMounted(fetchDashboard)
           </p>
         </div>
         <div class="shortcuts">
-          <button @click="router.push('/app/devis/new')" class="btn-primary ">
+          <button @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')" class="btn-primary" title="Nouveau Devis">
             <Plus class="w-4 h-4" /> Nouveau Devis
           </button>
-          <button @click="router.push('/app/factures/new')" class="btn-primary ">
+          <button @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/factures/new')" class="btn-primary" title="Nouvelle Facture">
             <Plus class="w-4 h-4" /> Nouvelle Facture
           </button>
-          <button @click="router.push('/app/clients')" class="btn-primary ">
+          <button @click="router.push('/app/clients')" class="btn-primary">
             <Users class="w-4 h-4" /> Ajouter Client
           </button>
         </div>

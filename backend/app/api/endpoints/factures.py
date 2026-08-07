@@ -52,7 +52,7 @@ async def read_factures(
 async def create_facture(
     facture_in: FactureCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(deps.check_trial_active),
 ):
     """
     Crée une nouvelle facture pour l'utilisateur connecté.
@@ -105,7 +105,7 @@ async def create_facture_from_devis(
     devis_id: int,
     facture_in: FactureCreateFromDevis,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(deps.check_trial_active),
 ):
     """
     Crée une facture à partir d'un devis existant.
@@ -178,7 +178,7 @@ async def create_facture_from_devis(
 async def create_avoir_from_facture(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(deps.check_trial_active),
 ):
     """
     Crée un avoir à partir d'une facture existante.
@@ -376,6 +376,16 @@ async def update_facture(
 
     # Une facture validée ne peut plus être modifiée (sauf le champ est_payee)
     update_data = facture_in.model_dump(exclude_unset=True)
+
+    # Trial restriction: if trial ended, only allow est_payee updates
+    if deps.get_trial_days_remaining(current_user) == 0:
+        forbidden_fields = set(update_data.keys()) - {"est_payee"}
+        if forbidden_fields:
+            raise HTTPException(
+                status_code=403,
+                detail="Votre période d'essai est terminée. Seul le changement de statut de paiement est autorisé."
+            )
+
     if db_facture.statut == "validée":
         allowed_fields = {"est_payee"}
         forbidden_fields = set(update_data.keys()) - allowed_fields

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 import { marked } from 'marked'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye, Link as LinkIcon, ExternalLink, Unlink, ClipboardList, AlignLeft, AlignCenter, AlignJustify } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
@@ -50,6 +50,7 @@ const swipeStyle = computed(() => {
 })
 
 const isSaving = ref(false)
+const trialEnded = computed(() => dataStore.user.data?.trial_days_remaining === 0)
 const isGeneratingPDF = ref(false)
 const isLoading = ref(false)
 
@@ -1112,7 +1113,7 @@ async function generateWithAI() {
           <span class="hidden md:inline">Aperçu PDF</span>
         </button>
         <button
-          @click="saveRapport"
+          @click="trialEnded ? uiStore.openSubscriptionModal() : saveRapport()"
           :disabled="isSaving || isGeneratingPDF"
           class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
           title="Sauvegarder Brouillon"
@@ -1122,7 +1123,7 @@ async function generateWithAI() {
           <span class="hidden md:inline">Brouillon</span>
         </button>
         <button
-          @click="saveAndGeneratePDF"
+          @click="trialEnded ? uiStore.openSubscriptionModal() : saveAndGeneratePDF()"
           :disabled="isSaving || isGeneratingPDF"
           class="btn-primary"
         >
@@ -1453,7 +1454,7 @@ OBSERVATIONS ET RECOMMANDATIONS :
       <!-- Bouton Sauvegarder (Bas de page) -->
       <div class="flex justify-end mt-8">
         <button
-          @click="saveRapport"
+          @click="trialEnded ? uiStore.openSubscriptionModal() : saveRapport()"
           :disabled="isSaving || isGeneratingPDF"
           class="btn-primary w-full sm:w-auto"
         >

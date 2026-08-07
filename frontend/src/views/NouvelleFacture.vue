@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2, CreditCard, Undo2, Share2 } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
@@ -48,6 +48,7 @@ const swipeStyle = computed(() => {
 })
 
 const isSaving = ref(false)
+const trialEnded = computed(() => dataStore.user.data?.trial_days_remaining === 0)
 const isGeneratingPDF = ref(false)
 const isLoading = ref(false)
 const showPDFModal = ref(false)
@@ -952,7 +953,7 @@ async function downloadFacturX() {
             <!-- Toujours visible : Sauvegarder (si non verrouillé) -->
             <button
               v-if="!isLocked"
-              @click="saveFacture"
+              @click="trialEnded ? uiStore.openSubscriptionModal() : saveFacture()"
               :disabled="isSaving || isGeneratingPDF"
               class="inline-flex items-center gap-2 px-3 py-2 bg-background text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
               title="Sauvegarder Brouillon"
@@ -964,7 +965,7 @@ async function downloadFacturX() {
 
             <!-- Toujours visible : Sauvegarder & PDF -->
             <button
-              @click="saveAndGeneratePDF"
+              @click="trialEnded ? uiStore.openSubscriptionModal() : saveAndGeneratePDF()"
               :disabled="isSaving || isGeneratingPDF"
               class="btn-primary"
             >
@@ -1318,7 +1319,7 @@ async function downloadFacturX() {
         <!-- Bouton Sauvegarder (Bas de page) -->
         <div v-if="!isLocked" class="flex justify-end mt-8">
           <button
-            @click="saveFacture"
+            @click="trialEnded ? uiStore.openSubscriptionModal() : saveFacture()"
             :disabled="isSaving || isGeneratingPDF"
             class="btn-primary w-full sm:w-auto"
           >
@@ -1391,7 +1392,7 @@ async function downloadFacturX() {
                 Ceci est un aperçu interactif. Pour obtenir le fichier final :
               </p>
               <button 
-                @click="saveAndGeneratePDF"
+                @click="trialEnded ? uiStore.openSubscriptionModal() : saveAndGeneratePDF()"
                 class="btn-primary w-full"
                 :disabled="!isValid || isGeneratingPDF"
               >

@@ -89,7 +89,8 @@ const user = ref({
   nom: '',
   prenom: '',
   email: '',
-  role: ''
+  role: '',
+  trial_days_remaining: 0
 })
 
 const form = ref({
@@ -359,6 +360,18 @@ onMounted(() => {
             <h2 class="text-2xl font-bold text-foreground mb-4">
               Gérer mon abonnement
             </h2>
+            <div v-if="user.role === 'ADMIN'" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-full text-sm font-semibold mb-4 border border-purple-200">
+              <CheckCircle2 class="w-4 h-4" />
+              Plan Max Actif (Administrateur)
+            </div>
+            <div v-else-if="user.trial_days_remaining > 0" class="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold mb-4 border border-green-200">
+              <CheckCircle2 class="w-4 h-4" />
+              Il vous reste {{ user.trial_days_remaining }} jours d'essai gratuit
+            </div>
+            <div v-else class="inline-flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-full text-sm font-semibold mb-4 border border-destructive/20">
+              <AlertTriangle class="w-4 h-4" />
+              Votre période d'essai est terminée. Passez à un plan supérieur pour continuer à créer des documents.
+            </div>
             <p class="text-sm text-muted-foreground max-w-xl mx-auto">
               Choisissez le plan qui correspond le mieux à vos besoins actuels.
             </p>

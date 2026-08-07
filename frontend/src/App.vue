@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { App as CapApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import LandingNavbar from '@/components/landing/LandingNavbar.vue'
+import SubscriptionModal from '@/components/SubscriptionModal.vue'
 
 const router = useRouter()
 
@@ -40,5 +41,8 @@ onMounted(() => {
     <main>
       <RouterView />
     </main>
+
+    <!-- Global Modals -->
+    <SubscriptionModal />
   </div>
 </template>

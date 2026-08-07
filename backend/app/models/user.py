@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -12,6 +13,7 @@ class User(Base):
     mdp = Column(String, nullable=True)
     role = Column(String, default="USER", nullable=True)
     onboarding_draft = Column(JSON, nullable=True)
+    date_inscription = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Email verification
     is_email_verified = Column(Boolean, default=False, nullable=False, server_default="false")

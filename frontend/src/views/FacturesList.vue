@@ -9,7 +9,7 @@ import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import EmailModal from '@/components/EmailModal.vue'
 
 import { apiFetch } from '@/lib/api'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 
 interface Client {
   nom: string
@@ -34,6 +34,7 @@ interface Facture {
 const router = useRouter()
 const { sharePDF, triggerHaptic, isNative, isMobileView } = useMobile()
 const facturesList = computed(() => dataStore.factures.data)
+const trialEnded = computed(() => dataStore.user.data?.trial_days_remaining === 0)
 const loading = computed(() => dataStore.factures.loading)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
@@ -360,8 +361,9 @@ onMounted(fetchFactures)
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos factures et créez-en de nouvelles</p>
       </div>
       <button
-        @click="router.push('/app/factures/new')"
-        class="btn-primary shrink-0"
+        @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/factures/new')"
+        class="btn-primary"
+        title="Nouvelle facture"
       >
         <Plus class="w-5 h-5" />
         Nouvelle facture
@@ -385,8 +387,9 @@ onMounted(fetchFactures)
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucune facture</h3>
       <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de facture.</p>
       <button
-        @click="router.push('/app/factures/new')"
-        class="btn-primary"
+        @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/factures/new')"
+        class="btn-primary w-full sm:w-auto"
+        title="Nouvelle facture"
       >
         <Plus class="w-4 h-4" />
         Créer ma première facture
@@ -600,8 +603,8 @@ onMounted(fetchFactures)
 
             <button
               v-if="facture.statut === 'validée'"
-              @click.stop="openEmailModal(facture)"
-              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200"
+              @click.stop="trialEnded ? uiStore.openSubscriptionModal() : openEmailModal(facture)"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
               title="Envoyer par e-mail"
             >
               <Mail class="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -737,13 +740,13 @@ onMounted(fetchFactures)
           <span class="font-medium">Partager la facture (PDF)</span>
         </button>
 
-        <button
+        <button 
           v-if="selectedFacture.statut === 'validée'"
-          @click="openEmailModal(selectedFacture); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-blue-600 bg-blue-50 transition-colors text-left"
+          @click="trialEnded ? uiStore.openSubscriptionModal() : openEmailModal(selectedFacture); closeBottomSheet()"
+          class="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-muted transition-colors"
         >
-          <Mail class="w-5 h-5" />
-          <span class="font-medium">Envoyer par e-mail</span>
+          <Mail class="w-5 h-5 text-foreground" />
+          <span class="font-medium">Envoyer par e-mail <span v-if="trialEnded" class="text-xs text-red-500">(Essai terminé)</span></span>
         </button>
 
         <button

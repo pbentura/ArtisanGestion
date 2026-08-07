@@ -9,7 +9,7 @@ import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import EmailModal from '@/components/EmailModal.vue'
 
 import { apiFetch } from '@/lib/api'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 
 interface Client {
   nom: string
@@ -29,6 +29,7 @@ interface Devis {
 const router = useRouter()
 const { isNative, isMobileView } = useMobile()
 const devisList = computed(() => dataStore.devis.data)
+const trialEnded = computed(() => dataStore.user.data?.trial_days_remaining === 0)
 const loading = computed(() => dataStore.devis.loading)
 const showDeleteConfirm = ref(false)
 const idToDelete = ref<number | null>(null)
@@ -201,8 +202,9 @@ onMounted(fetchDevis)
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos devis et créez-en de nouveaux</p>
       </div>
       <button
-        @click="router.push('/app/devis/new')"
-        class="btn-primary shrink-0"
+        @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')"
+        class="btn-primary"
+        title="Nouveau devis"
       >
         <Plus class="w-5 h-5" />
         Nouveau devis
@@ -226,8 +228,9 @@ onMounted(fetchDevis)
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucun devis</h3>
       <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de devis.</p>
       <button
-        @click="router.push('/app/devis/new')"
-        class="btn-primary"
+        @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')"
+        class="btn-primary w-full sm:w-auto"
+        title="Nouveau devis"
       >
         <Plus class="w-4 h-4" />
         Créer mon premier devis
@@ -331,7 +334,7 @@ onMounted(fetchDevis)
             </button>
 
             <button
-              @click.stop="router.push(`/app/factures/new?fromDevis=${devis.id}`)"
+              @click.stop="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devis.id}`)"
               class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200"
               title="Facturer ce devis"
             >
@@ -340,7 +343,7 @@ onMounted(fetchDevis)
             </button>
 
             <button
-              @click.stop="openEmailModal(devis)"
+              @click.stop="trialEnded ? uiStore.openSubscriptionModal() : openEmailModal(devis)"
               class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
               title="Envoyer par e-mail"
             >
@@ -435,12 +438,12 @@ onMounted(fetchDevis)
           <span class="font-medium">{{ selectedDevis.statut === 'envoyé' ? 'Marquer comme brouillon' : 'Marquer comme envoyé' }}</span>
         </button>
 
-        <button
-          @click="router.push(`/app/factures/new?fromDevis=${selectedDevis.id}`); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-emerald-600 bg-emerald-50 transition-colors text-left"
+        <button 
+          @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${selectedDevis.id}`); closeBottomSheet()"
+          class="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-muted transition-colors"
         >
-          <Receipt class="w-5 h-5" />
-          <span class="font-medium">Transformer en facture</span>
+          <Receipt class="w-5 h-5 text-foreground" />
+          <span class="font-medium">Transformer en facture <span v-if="trialEnded" class="text-xs text-red-500">(Essai terminé)</span></span>
         </button>
 
         <button
@@ -451,12 +454,12 @@ onMounted(fetchDevis)
           <span class="font-medium">Partager le devis</span>
         </button>
 
-        <button
-          @click="openEmailModal(selectedDevis); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-blue-600 bg-blue-50 transition-colors text-left"
+        <button 
+          @click="trialEnded ? uiStore.openSubscriptionModal() : openEmailModal(selectedDevis); closeBottomSheet()"
+          class="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-muted transition-colors"
         >
-          <Mail class="w-5 h-5" />
-          <span class="font-medium">Envoyer par e-mail</span>
+          <Mail class="w-5 h-5 text-foreground" />
+          <span class="font-medium">Envoyer par e-mail <span v-if="trialEnded" class="text-xs text-red-500">(Essai terminé)</span></span>
         </button>
 
         <button

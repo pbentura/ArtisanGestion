@@ -36,7 +36,7 @@ async def read_rapports(
 async def create_rapport(
     rapport_in: RapportCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.check_trial_active)
 ):
     """
     Crée un nouveau rapport pour l'utilisateur connecté.
@@ -87,7 +87,7 @@ async def update_rapport(
     rapport_id: int,
     rapport_in: RapportUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.check_trial_active)
 ):
     """
     Met à jour un rapport existant.

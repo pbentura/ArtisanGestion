@@ -132,7 +132,7 @@ async def generate_and_send_document(
 @router.post("/send-document")
 async def send_document(
     request: DocumentEmailRequest,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.check_trial_active)
 ):
     """
     Envoie un document (devis, facture, rapport) par email au client de façon synchrone.

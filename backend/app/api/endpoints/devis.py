@@ -37,7 +37,7 @@ async def read_devis(
 async def create_devis(
     devis_in: DevisCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.check_trial_active)
 ):
     """
     Crée un nouveau devis pour l'utilisateur connecté.
@@ -148,6 +148,16 @@ async def update_devis(
         db_devis.client = new_client
 
     update_data = devis_in.model_dump(exclude_unset=True)
+    
+    # Trial restriction: if trial ended, only allow statut updates
+    if deps.get_trial_days_remaining(current_user) == 0:
+        forbidden_fields = set(update_data.keys()) - {"statut"}
+        if forbidden_fields:
+            raise HTTPException(
+                status_code=403,
+                detail="Votre période d'essai est terminée. Seul le changement de statut est autorisé."
+            )
+
     for field, value in update_data.items():
         setattr(db_devis, field, value)
     

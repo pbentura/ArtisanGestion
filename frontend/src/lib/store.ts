@@ -7,6 +7,16 @@ interface CollectionState<T> {
   lastFetched: number | null
 }
 
+export const uiStore = reactive({
+  showSubscriptionModal: false,
+  openSubscriptionModal() {
+    this.showSubscriptionModal = true
+  },
+  closeSubscriptionModal() {
+    this.showSubscriptionModal = false
+  }
+})
+
 export const dataStore = reactive({
   rapports: {
     data: [] as any[],
