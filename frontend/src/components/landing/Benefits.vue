@@ -20,7 +20,7 @@ const benefits = [
   {
     icon: FolderKanban,
     title: 'Organisation centralisée',
-    description: 'Finis les dossiers éparpillés. Toutes vos informations clients, devis et factures au même endroit.',
+    description: 'Finis les dossiers éparpillés. Toutes vos informations clients, rapports, devis et factures au même endroit.',
     stat: '100%',
     statLabel: 'centralisé',
     color: 'from-blue-500 to-cyan-500'
