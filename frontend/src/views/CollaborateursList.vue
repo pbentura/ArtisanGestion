@@ -63,6 +63,10 @@ async function loadData() {
   }
 }
 
+const getFrontendUrl = () => {
+  return import.meta.env.VITE_FRONTEND_URL || (import.meta.env.DEV ? 'http://localhost:5173' : 'https://artisangestion.com')
+}
+
 async function createInvitation() {
   isCreatingInvite.value = true
   try {
@@ -72,7 +76,7 @@ async function createInvitation() {
     })
     if (res.ok) {
       const data = await res.json()
-      generatedLink.value = `${window.location.origin}/join/${data.token}`
+      generatedLink.value = `${getFrontendUrl()}/join/${data.token}`
       await loadData()
     }
   } catch (e) {
@@ -103,7 +107,7 @@ async function cancelInvitation(id: number) {
 
 async function copyInvitationLink(token: string) {
   try {
-    await navigator.clipboard.writeText(`${window.location.origin}/join/${token}`)
+    await navigator.clipboard.writeText(`${getFrontendUrl()}/join/${token}`)
   } catch (e) {
     console.error(e)
   }

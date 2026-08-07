@@ -18,7 +18,7 @@ async def read_rapports(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Récupère la liste des rapports de l'utilisateur connecté.
@@ -26,7 +26,7 @@ async def read_rapports(
     result = await db.execute(
         select(Rapport)
         .options(joinedload(Rapport.client), joinedload(Rapport.devis))
-        .where(Rapport.id_user == current_user.id)
+        .where(Rapport.id_societe == societe_id)
         .offset(skip)
         .limit(limit)
     )
@@ -37,6 +37,7 @@ async def create_rapport(
     rapport_in: RapportCreate,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.require_permission("can_create_rapports")),
+    societe_id: int = Depends(deps.get_user_societe_id),
     _: User = Depends(deps.check_trial_active)
 ):
     """
@@ -46,13 +47,13 @@ async def create_rapport(
     if rapport_in.id_client is not None:
         # Verify that the client belongs to the current user
         client_result = await db.execute(
-            select(Client).where(Client.id == rapport_in.id_client, Client.id_user == current_user.id)
+            select(Client).where(Client.id == rapport_in.id_client, Client.id_societe == societe_id)
         )
         client_obj = client_result.scalars().first()
         if not client_obj:
             raise HTTPException(status_code=400, detail="Client invalide ou non autorisé")
             
-    db_rapport = Rapport(**rapport_in.model_dump(), id_user=current_user.id)
+    db_rapport = Rapport(**rapport_in.model_dump(), id_user=current_user.id, id_societe=societe_id)
     db.add(db_rapport)
     await db.commit()
     
@@ -68,7 +69,7 @@ async def create_rapport(
 async def read_rapport(
     rapport_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Récupère un rapport spécifique.
@@ -76,7 +77,7 @@ async def read_rapport(
     result = await db.execute(
         select(Rapport)
         .options(joinedload(Rapport.client), joinedload(Rapport.devis))
-        .where(Rapport.id == rapport_id, Rapport.id_user == current_user.id)
+        .where(Rapport.id == rapport_id, Rapport.id_societe == societe_id)
     )
     rapport = result.scalars().first()
     if not rapport:
@@ -89,6 +90,7 @@ async def update_rapport(
     rapport_in: RapportUpdate,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.require_permission("can_create_rapports")),
+    societe_id: int = Depends(deps.get_user_societe_id),
     _: User = Depends(deps.check_trial_active)
 ):
     """
@@ -97,7 +99,7 @@ async def update_rapport(
     result = await db.execute(
         select(Rapport)
         .options(joinedload(Rapport.client))
-        .where(Rapport.id == rapport_id, Rapport.id_user == current_user.id)
+        .where(Rapport.id == rapport_id, Rapport.id_societe == societe_id)
     )
     db_rapport = result.scalars().first()
     
@@ -106,7 +108,7 @@ async def update_rapport(
         
     if rapport_in.id_client is not None and rapport_in.id_client != db_rapport.id_client:
         client_result = await db.execute(
-            select(Client).where(Client.id == rapport_in.id_client, Client.id_user == current_user.id)
+            select(Client).where(Client.id == rapport_in.id_client, Client.id_societe == societe_id)
         )
         new_client = client_result.scalars().first()
         if not new_client:
@@ -120,7 +122,7 @@ async def update_rapport(
     # Bidirectional link: if id_devis is updated, update the Devis to point to this rapport
     if "id_devis" in update_data and update_data["id_devis"] is not None:
         devis_result = await db.execute(
-            select(Devis).where(Devis.id == update_data["id_devis"], Devis.id_user == current_user.id)
+            select(Devis).where(Devis.id == update_data["id_devis"], Devis.id_societe == societe_id)
         )
         db_devis = devis_result.scalars().first()
         if db_devis:
@@ -148,13 +150,13 @@ async def update_rapport(
 async def delete_rapport(
     rapport_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Supprime un rapport.
     """
     result = await db.execute(
-        select(Rapport).where(Rapport.id == rapport_id, Rapport.id_user == current_user.id)
+        select(Rapport).where(Rapport.id == rapport_id, Rapport.id_societe == societe_id)
     )
     db_rapport = result.scalars().first()
     

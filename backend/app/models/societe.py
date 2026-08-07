@@ -31,3 +31,9 @@ class Societe(Base):
 
     # Relations équipe
     invitations = relationship("Invitation", back_populates="societe", cascade="all, delete-orphan")
+
+    # Relations données d'entreprise
+    clients = relationship("Client", back_populates="societe", cascade="all, delete-orphan")
+    devis = relationship("Devis", back_populates="societe", cascade="all, delete-orphan")
+    factures = relationship("Facture", back_populates="societe", cascade="all, delete-orphan")
+    rapports = relationship("Rapport", back_populates="societe", cascade="all, delete-orphan")

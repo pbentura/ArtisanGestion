@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Loader2, Building2, CheckCircle2, AlertTriangle, UserPlus } from 'lucide-vue-next'
+import { Loader2, Building2, CheckCircle2, AlertTriangle, UserPlus, Eye, EyeOff } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -12,6 +12,8 @@ const isSubmitting = ref(false)
 const invitation = ref<any>(null)
 const error = ref('')
 const success = ref(false)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const form = ref({
   nom: '',
@@ -21,7 +23,7 @@ const form = ref({
   confirmMdp: '',
 })
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import { API_BASE_URL } from '@/lib/api'
 
 async function loadInvitation() {
   isLoading.value = true
@@ -159,12 +161,24 @@ onMounted(loadInvitation)
 
           <div>
             <label class="block text-sm font-medium text-foreground mb-1">Mot de passe</label>
-            <input v-model="form.mdp" type="password" placeholder="••••••••" class="w-full px-3 py-2.5 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm" />
+            <div class="relative">
+              <input v-model="form.mdp" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" class="w-full px-3 py-2.5 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm pr-10" />
+              <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1">
+                <EyeOff v-if="showPassword" class="w-4 h-4" />
+                <Eye v-else class="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <div>
             <label class="block text-sm font-medium text-foreground mb-1">Confirmer le mot de passe</label>
-            <input v-model="form.confirmMdp" type="password" placeholder="••••••••" class="w-full px-3 py-2.5 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm" />
+            <div class="relative">
+              <input v-model="form.confirmMdp" :type="showConfirmPassword ? 'text' : 'password'" placeholder="••••••••" class="w-full px-3 py-2.5 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm pr-10" />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1">
+                <EyeOff v-if="showConfirmPassword" class="w-4 h-4" />
+                <Eye v-else class="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <button type="submit" :disabled="isSubmitting" class="w-full btn-primary flex items-center justify-center gap-2 py-3">

@@ -27,6 +27,9 @@ class Devis(Base):
 
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="devis")
+    
+    id_societe = Column(Integer, ForeignKey("societe.id"), nullable=True)
+    societe = relationship("Societe", back_populates="devis")
 
     id_rapport = Column(Integer, ForeignKey("rapports.id", ondelete="SET NULL"), nullable=True)
     rapport = relationship("Rapport", foreign_keys=[id_rapport])

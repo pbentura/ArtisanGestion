@@ -107,14 +107,19 @@ def require_permission(permission: str):
     return check
 
 
-async def get_user_societe_id(current_user: User = Depends(get_current_user)) -> int:
+async def get_user_societe_id(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> int:
     """Retourne l'id_societe de l'utilisateur (propriétaire ou collaborateur)."""
     # Collaborateur : id_societe direct
     if current_user.id_societe:
         return current_user.id_societe
-    # Propriétaire : première société
-    if hasattr(current_user, 'societes') and current_user.societes:
-        return current_user.societes[0].id
+    # Propriétaire : chercher la société
+    result = await db.execute(select(Societe).where(Societe.id_user == current_user.id))
+    societe = result.scalars().first()
+    if societe:
+        return societe.id
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Aucune entreprise associée à cet utilisateur."

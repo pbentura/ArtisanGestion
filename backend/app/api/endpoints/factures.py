@@ -33,7 +33,7 @@ async def read_factures(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """
     Récupère la liste des factures de l'utilisateur connecté.
@@ -41,7 +41,7 @@ async def read_factures(
     result = await db.execute(
         select(Facture)
         .options(joinedload(Facture.client), joinedload(Facture.lignes))
-        .where(Facture.id_user == current_user.id)
+        .where(Facture.id_societe == societe_id)
         .offset(skip)
         .limit(limit)
     )
@@ -53,6 +53,7 @@ async def create_facture(
     facture_in: FactureCreate,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.require_permission("can_create_factures")),
+    societe_id: int = Depends(deps.get_user_societe_id),
     _: User = Depends(deps.check_trial_active)
 ):
     """
@@ -61,7 +62,7 @@ async def create_facture(
     # Vérifier le client
     client_result = await db.execute(
         select(Client).where(
-            Client.id == facture_in.id_client, Client.id_user == current_user.id
+            Client.id == facture_in.id_client, Client.id_societe == societe_id
         )
     )
     client_obj = client_result.scalars().first()
@@ -76,7 +77,7 @@ async def create_facture(
             days=facture_data.get("nb_jours_echeance", 30)
         )
 
-    db_facture = Facture(**facture_data, id_user=current_user.id)
+    db_facture = Facture(**facture_data, id_user=current_user.id, id_societe=societe_id)
 
     if facture_in.lignes:
         for ligne_in in facture_in.lignes:
@@ -107,6 +108,7 @@ async def create_facture_from_devis(
     facture_in: FactureCreateFromDevis,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.check_trial_active),
+    societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """
     Crée une facture à partir d'un devis existant.
@@ -116,7 +118,7 @@ async def create_facture_from_devis(
     result = await db.execute(
         select(Devis)
         .options(joinedload(Devis.lignes), joinedload(Devis.client))
-        .where(Devis.id == devis_id, Devis.id_user == current_user.id)
+        .where(Devis.id == devis_id, Devis.id_societe == societe_id)
     )
     db_devis = result.unique().scalars().first()
     if not db_devis:
@@ -144,6 +146,7 @@ async def create_facture_from_devis(
         conditions_particulieres=facture_in.conditions_particulieres or db_devis.conditions_particulieres,
         id_client=db_devis.id_client,
         id_user=current_user.id,
+        id_societe=societe_id,
         id_devis=db_devis.id,
     )
 
@@ -180,6 +183,7 @@ async def create_avoir_from_facture(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.check_trial_active),
+    societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """
     Crée un avoir à partir d'une facture existante.
@@ -188,7 +192,7 @@ async def create_avoir_from_facture(
     result = await db.execute(
         select(Facture)
         .options(joinedload(Facture.client), joinedload(Facture.lignes))
-        .where(Facture.id == facture_id, Facture.id_user == current_user.id)
+        .where(Facture.id == facture_id, Facture.id_societe == societe_id)
     )
     db_facture_source = result.unique().scalars().first()
     
@@ -221,6 +225,7 @@ async def create_avoir_from_facture(
         conditions_particulieres=db_facture_source.conditions_particulieres,
         id_client=db_facture_source.id_client,
         id_user=current_user.id,
+        id_societe=societe_id,
     )
 
     # Un avoir peut être créé comme validé directement selon le besoin, 
@@ -255,6 +260,7 @@ async def download_facturx(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
+    societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """
     Génère et télécharge un PDF Factur-X (PDF/A-3 + XML CII embarqué)
@@ -264,7 +270,7 @@ async def download_facturx(
     result = await db.execute(
         select(Facture)
         .options(joinedload(Facture.client), joinedload(Facture.lignes))
-        .where(Facture.id == facture_id, Facture.id_user == current_user.id)
+        .where(Facture.id == facture_id, Facture.id_societe == societe_id)
     )
     db_facture = result.unique().scalars().first()
 
@@ -339,7 +345,7 @@ async def download_facturx(
 async def read_une_facture(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """
     Récupère une facture spécifique.
@@ -347,7 +353,7 @@ async def read_une_facture(
     result = await db.execute(
         select(Facture)
         .options(joinedload(Facture.client), joinedload(Facture.lignes))
-        .where(Facture.id == facture_id, Facture.id_user == current_user.id)
+        .where(Facture.id == facture_id, Facture.id_societe == societe_id)
     )
     facture = result.unique().scalars().first()
     if not facture:
@@ -360,7 +366,8 @@ async def update_facture(
     facture_id: int,
     facture_in: FactureUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.require_permission("can_create_factures"))
+    current_user: User = Depends(deps.require_permission("can_create_factures")),
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Met à jour une facture existante (infos générales uniquement).
@@ -368,7 +375,7 @@ async def update_facture(
     result = await db.execute(
         select(Facture)
         .options(joinedload(Facture.client), joinedload(Facture.lignes))
-        .where(Facture.id == facture_id, Facture.id_user == current_user.id)
+        .where(Facture.id == facture_id, Facture.id_societe == societe_id)
     )
     db_facture = result.unique().scalars().first()
 
@@ -399,7 +406,7 @@ async def update_facture(
     if facture_in.id_client is not None and facture_in.id_client != db_facture.id_client:
         client_result = await db.execute(
             select(Client).where(
-                Client.id == facture_in.id_client, Client.id_user == current_user.id
+                Client.id == facture_in.id_client, Client.id_societe == societe_id
             )
         )
         new_client = client_result.scalars().first()
@@ -429,14 +436,14 @@ async def update_facture(
 async def delete_facture(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """
     Supprime une facture.
     """
     result = await db.execute(
         select(Facture).where(
-            Facture.id == facture_id, Facture.id_user == current_user.id
+            Facture.id == facture_id, Facture.id_societe == societe_id
         )
     )
     db_facture = result.scalars().first()

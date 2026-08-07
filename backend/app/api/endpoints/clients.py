@@ -16,13 +16,13 @@ async def read_clients(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
-    Récupère la liste des clients de l'utilisateur connecté.
+    Récupère la liste des clients de l'entreprise.
     """
     result = await db.execute(
-        select(Client).where(Client.id_user == current_user.id).offset(skip).limit(limit)
+        select(Client).where(Client.id_societe == societe_id).offset(skip).limit(limit)
     )
     return result.scalars().all()
 
@@ -31,12 +31,13 @@ async def create_client(
     client_in: ClientCreate,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.require_permission("can_create_clients")),
+    societe_id: int = Depends(deps.get_user_societe_id),
     _: User = Depends(deps.check_trial_active)
 ):
     """
-    Crée un nouveau client pour l'utilisateur connecté.
+    Crée un nouveau client pour l'entreprise.
     """
-    db_client = Client(**client_in.model_dump(), id_user=current_user.id)
+    db_client = Client(**client_in.model_dump(), id_user=current_user.id, id_societe=societe_id)
     db.add(db_client)
     await db.commit()
     await db.refresh(db_client)
@@ -46,13 +47,13 @@ async def create_client(
 async def read_client(
     client_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Récupère un client spécifique.
     """
     result = await db.execute(
-        select(Client).where(Client.id == client_id, Client.id_user == current_user.id)
+        select(Client).where(Client.id == client_id, Client.id_societe == societe_id)
     )
     client = result.scalars().first()
     if not client:
@@ -65,13 +66,14 @@ async def update_client(
     client_in: ClientUpdate,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.require_permission("can_create_clients")),
+    societe_id: int = Depends(deps.get_user_societe_id),
     _: User = Depends(deps.check_trial_active)
 ):
     """
     Met à jour un client existant.
     """
     result = await db.execute(
-        select(Client).where(Client.id == client_id, Client.id_user == current_user.id)
+        select(Client).where(Client.id == client_id, Client.id_societe == societe_id)
     )
     db_client = result.scalars().first()
     
@@ -90,13 +92,13 @@ async def update_client(
 async def delete_client(
     client_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Supprime un client.
     """
     result = await db.execute(
-        select(Client).where(Client.id == client_id, Client.id_user == current_user.id)
+        select(Client).where(Client.id == client_id, Client.id_societe == societe_id)
     )
     db_client = result.scalars().first()
     

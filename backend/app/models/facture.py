@@ -30,6 +30,9 @@ class Facture(Base):
 
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="factures")
+    
+    id_societe = Column(Integer, ForeignKey("societe.id"), nullable=True)
+    societe = relationship("Societe", back_populates="factures")
 
     id_devis = Column(Integer, ForeignKey("devis.id", ondelete="SET NULL"), nullable=True)
     devis = relationship("Devis", back_populates="factures")

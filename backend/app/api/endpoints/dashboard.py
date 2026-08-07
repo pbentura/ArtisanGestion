@@ -24,7 +24,7 @@ router = APIRouter()
 @router.get("")
 async def get_dashboard(
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    societe_id: int = Depends(deps.get_user_societe_id),
 ):
     try:
         today = date.today()
@@ -39,7 +39,7 @@ async def get_dashboard(
                 func.coalesce(func.sum(Facture.sous_total_ht), 0).label("ca_ht"),
                 func.coalesce(func.sum(Facture.total_ttc), 0).label("ca_ttc"),
             ).where(
-                Facture.id_user == current_user.id,
+                Facture.id_societe == societe_id,
                 Facture.statut == "validée",
                 Facture.date_facture >= first_day_current_month,
                 Facture.date_facture <= today,
@@ -53,7 +53,7 @@ async def get_dashboard(
                 func.coalesce(func.sum(Facture.sous_total_ht), 0).label("ca_ht"),
                 func.coalesce(func.sum(Facture.total_ttc), 0).label("ca_ttc"),
             ).where(
-                Facture.id_user == current_user.id,
+                Facture.id_societe == societe_id,
                 Facture.statut == "validée",
                 Facture.date_facture >= first_day_previous_month,
                 Facture.date_facture <= last_day_previous_month,
@@ -66,7 +66,7 @@ async def get_dashboard(
             select(
                 func.coalesce(func.sum(Facture.total_ttc), 0)
             ).where(
-                Facture.id_user == current_user.id,
+                Facture.id_societe == societe_id,
                 Facture.est_payee == False,
             )
         )
@@ -78,7 +78,7 @@ async def get_dashboard(
                 func.count(Facture.id),
                 func.coalesce(func.sum(Facture.total_ttc), 0),
             ).where(
-                Facture.id_user == current_user.id,
+                Facture.id_societe == societe_id,
                 Facture.est_payee == False,
                 Facture.date_echeance < today,
             )
@@ -90,12 +90,12 @@ async def get_dashboard(
             select(
                 func.coalesce(func.sum(Devis.total_ttc), 0)
             ).where(
-                Devis.id_user == current_user.id,
+                Devis.id_societe == societe_id,
                 Devis.statut.in_(["brouillon", "envoyé"]),
                 ~Devis.id.in_(
                     select(Facture.id_devis).where(
                         Facture.id_devis.isnot(None),
-                        Facture.id_user == current_user.id,
+                        Facture.id_societe == societe_id,
                     )
                 ),
             )
@@ -109,7 +109,7 @@ async def get_dashboard(
                 func.count(case((Rapport.statut == "en cours", 1))),
                 func.count(case((Rapport.statut == "terminé", 1))),
             ).where(
-                Rapport.id_user == current_user.id,
+                Rapport.id_societe == societe_id,
                 Rapport.created_at >= thirty_days_ago,
             )
         )
@@ -119,7 +119,7 @@ async def get_dashboard(
         derniers_rapports_result = await db.execute(
             select(Rapport)
             .options(joinedload(Rapport.client))
-            .where(Rapport.id_user == current_user.id)
+            .where(Rapport.id_societe == societe_id)
             .order_by(Rapport.created_at.desc())
             .limit(5)
         )
@@ -133,7 +133,7 @@ async def get_dashboard(
                 func.coalesce(func.sum(Facture.total_ttc), 0).label("ca_ttc"),
             )
             .join(Facture, and_(Facture.id_client == Client.id, Facture.statut == "validée"))
-            .where(Client.id_user == current_user.id)
+            .where(Client.id_societe == societe_id)
             .group_by(Client.id, Client.nom)
             .order_by(func.sum(Facture.total_ttc).desc())
             .limit(5)
@@ -142,13 +142,13 @@ async def get_dashboard(
 
         # ── 9. Taux de conversion ──
         total_devis_result = await db.execute(
-            select(func.count(Devis.id)).where(Devis.id_user == current_user.id)
+            select(func.count(Devis.id)).where(Devis.id_societe == societe_id)
         )
         total_devis = total_devis_result.scalar() or 0
 
         devis_convertis_result = await db.execute(
             select(func.count(func.distinct(Facture.id_devis))).where(
-                Facture.id_user == current_user.id,
+                Facture.id_societe == societe_id,
                 Facture.id_devis.isnot(None),
             )
         )
@@ -161,7 +161,7 @@ async def get_dashboard(
             select(Facture)
             .options(joinedload(Facture.client))
             .where(
-                Facture.id_user == current_user.id,
+                Facture.id_societe == societe_id,
                 Facture.est_payee == False,
                 Facture.date_echeance < today,
             )
@@ -177,7 +177,7 @@ async def get_dashboard(
             select(Devis)
             .options(joinedload(Devis.client))
             .where(
-                Devis.id_user == current_user.id,
+                Devis.id_societe == societe_id,
                 Devis.statut.in_(["brouillon", "envoyé"]),
             )
             .order_by(Devis.date_devis.asc())
@@ -204,7 +204,7 @@ async def get_dashboard(
                     func.coalesce(func.sum(Facture.sous_total_ht), 0),
                     func.coalesce(func.sum(Facture.total_ttc), 0),
                 ).where(
-                    Facture.id_user == current_user.id,
+                    Facture.id_societe == societe_id,
                     Facture.statut == "validée",
                     Facture.date_facture >= month_start,
                     Facture.date_facture <= month_end,
@@ -223,7 +223,7 @@ async def get_dashboard(
             select(Facture)
             .options(joinedload(Facture.client))
             .where(
-                Facture.id_user == current_user.id,
+                Facture.id_societe == societe_id,
                 Facture.est_payee == False,
             )
             .order_by(Facture.date_echeance.asc())

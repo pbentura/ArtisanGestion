@@ -19,7 +19,7 @@ async def read_devis(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Récupère la liste des devis de l'utilisateur connecté.
@@ -27,7 +27,7 @@ async def read_devis(
     result = await db.execute(
         select(Devis)
         .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
-        .where(Devis.id_user == current_user.id)
+        .where(Devis.id_societe == societe_id)
         .offset(skip)
         .limit(limit)
     )
@@ -38,20 +38,21 @@ async def create_devis(
     devis_in: DevisCreate,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.require_permission("can_create_devis")),
+    societe_id: int = Depends(deps.get_user_societe_id),
     _: User = Depends(deps.check_trial_active)
 ):
     """
     Crée un nouveau devis pour l'utilisateur connecté.
     """
     client_result = await db.execute(
-        select(Client).where(Client.id == devis_in.id_client, Client.id_user == current_user.id)
+        select(Client).where(Client.id == devis_in.id_client, Client.id_societe == societe_id)
     )
     client_obj = client_result.scalars().first()
     if not client_obj:
         raise HTTPException(status_code=400, detail="Client invalide ou non autorisé")
         
     devis_data = devis_in.model_dump(exclude={"lignes"})
-    db_devis = Devis(**devis_data, id_user=current_user.id)
+    db_devis = Devis(**devis_data, id_user=current_user.id, id_societe=societe_id)
     
     if devis_in.lignes:
         for ligne_in in devis_in.lignes:
@@ -76,7 +77,7 @@ from app.schemas.ligne_devis import LigneDevis as LigneDevisSchema
 @router.get("/lignes/descriptions", response_model=List[LigneDevisSchema])
 async def get_lignes_descriptions(
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Récupère la liste des lignes complètes uniques (groupées par description) 
@@ -85,7 +86,7 @@ async def get_lignes_descriptions(
     result = await db.execute(
         select(LigneDevis)
         .join(Devis, LigneDevis.id_devis == Devis.id)
-        .where(Devis.id_user == current_user.id)
+        .where(Devis.id_societe == societe_id)
         .order_by(LigneDevis.id.desc())
     )
     lignes = result.scalars().all()
@@ -104,7 +105,7 @@ async def get_lignes_descriptions(
 async def read_un_devis(
     devis_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Récupère un devis spécifique.
@@ -112,7 +113,7 @@ async def read_un_devis(
     result = await db.execute(
         select(Devis)
         .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
-        .where(Devis.id == devis_id, Devis.id_user == current_user.id)
+        .where(Devis.id == devis_id, Devis.id_societe == societe_id)
     )
     devis = result.unique().scalars().first()
     if not devis:
@@ -124,7 +125,8 @@ async def update_devis(
     devis_id: int,
     devis_in: DevisUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.require_permission("can_create_devis"))
+    current_user: User = Depends(deps.require_permission("can_create_devis")),
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Met à jour un devis existant (infos générales uniquement).
@@ -132,7 +134,7 @@ async def update_devis(
     result = await db.execute(
         select(Devis)
         .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
-        .where(Devis.id == devis_id, Devis.id_user == current_user.id)
+        .where(Devis.id == devis_id, Devis.id_societe == societe_id)
     )
     db_devis = result.unique().scalars().first()
     
@@ -141,7 +143,7 @@ async def update_devis(
         
     if devis_in.id_client is not None and devis_in.id_client != db_devis.id_client:
         client_result = await db.execute(
-            select(Client).where(Client.id == devis_in.id_client, Client.id_user == current_user.id)
+            select(Client).where(Client.id == devis_in.id_client, Client.id_societe == societe_id)
         )
         new_client = client_result.scalars().first()
         if not new_client:
@@ -165,7 +167,7 @@ async def update_devis(
     # Bidirectional link: if id_rapport is updated, update the Rapport to point to this devis
     if "id_rapport" in update_data and update_data["id_rapport"] is not None:
         rapport_result = await db.execute(
-            select(Rapport).where(Rapport.id == update_data["id_rapport"], Rapport.id_user == current_user.id)
+            select(Rapport).where(Rapport.id == update_data["id_rapport"], Rapport.id_societe == societe_id)
         )
         db_rapport = rapport_result.scalars().first()
         if db_rapport:
@@ -193,13 +195,13 @@ async def update_devis(
 async def delete_devis(
     devis_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
     Supprime un devis.
     """
     result = await db.execute(
-        select(Devis).where(Devis.id == devis_id, Devis.id_user == current_user.id)
+        select(Devis).where(Devis.id == devis_id, Devis.id_societe == societe_id)
     )
     db_devis = result.scalars().first()
     

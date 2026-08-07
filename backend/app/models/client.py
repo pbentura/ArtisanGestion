@@ -16,6 +16,9 @@ class Client(Base):
     tva_intracommunautaire = Column(String, nullable=True)
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="clients")
+    
+    id_societe = Column(Integer, ForeignKey("societe.id"), nullable=True)
+    societe = relationship("Societe", back_populates="clients")
     rapports = relationship("Rapport", back_populates="client", cascade="all, delete-orphan")
     devis = relationship("Devis", back_populates="client", cascade="all, delete-orphan")
     factures = relationship("Facture", back_populates="client", cascade="all, delete-orphan")
