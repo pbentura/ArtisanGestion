@@ -72,6 +72,58 @@ async def delete_user_me(
     """
     Supprimer l'utilisateur actuellement connecté et toutes ses données associées.
     """
-    await db.delete(current_user)
+    from sqlalchemy import delete, update, select
+    from app.models.societe import Societe
+    from app.models.invitation import Invitation
+    from app.models.client import Client
+    from app.models.devis import Devis
+    from app.models.facture import Facture
+    from app.models.rapport import Rapport
+    from app.models.ligne_facture import LigneFacture
+    from app.models.ligne_devis import LigneDevis
+
+    uid = current_user.id
+
+    # 1. Détacher id_societe pour éviter les contraintes de clés étrangères circulaires
+    result = await db.execute(select(Societe.id).where(Societe.id_user == uid))
+    societes_ids = result.scalars().all()
+    
+    if societes_ids:
+        # Détacher tous les membres de ces sociétés
+        await db.execute(
+            update(User).where(User.id_societe.in_(societes_ids)).values(id_societe=None)
+        )
+        # Supprimer les invitations pour ces sociétés
+        await db.execute(
+            delete(Invitation).where(Invitation.id_societe.in_(societes_ids))
+        )
+        
+    # Détacher l'utilisateur courant
+    await db.execute(update(User).where(User.id == uid).values(id_societe=None))
+    
+    # 2. Supprimer les invitations envoyées par l'utilisateur
+    await db.execute(delete(Invitation).where(Invitation.invited_by == uid))
+    
+    # 3. Récupérer les ids pour supprimer les lignes
+    factures_result = await db.execute(select(Facture.id).where(Facture.id_user == uid))
+    factures_ids = factures_result.scalars().all()
+    if factures_ids:
+        await db.execute(delete(LigneFacture).where(LigneFacture.id_facture.in_(factures_ids)))
+        
+    devis_result = await db.execute(select(Devis.id).where(Devis.id_user == uid))
+    devis_ids = devis_result.scalars().all()
+    if devis_ids:
+        await db.execute(delete(LigneDevis).where(LigneDevis.id_devis.in_(devis_ids)))
+
+    # 4. Supprimer les entités dépendantes dans l'ordre (pour éviter les FK errors)
+    await db.execute(delete(Facture).where(Facture.id_user == uid))
+    await db.execute(delete(Devis).where(Devis.id_user == uid))
+    await db.execute(delete(Rapport).where(Rapport.id_user == uid))
+    await db.execute(delete(Client).where(Client.id_user == uid))
+    await db.execute(delete(Societe).where(Societe.id_user == uid))
+    
+    # 5. Supprimer l'utilisateur lui-même
+    await db.execute(delete(User).where(User.id == uid))
+    
     await db.commit()
     return {"status": "success", "message": "Compte supprimé avec succès"}
