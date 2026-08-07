@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt, MoreVertical, Share2 } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt, MoreVertical, Share2, Mail } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
+import EmailModal from '@/components/EmailModal.vue'
 
 import { apiFetch } from '@/lib/api'
 import { dataStore } from '@/lib/store'
 
 interface Client {
   nom: string
+  email?: string
 }
 
 interface Devis {
@@ -38,6 +40,18 @@ const statusFilter = ref('tous') // tous, brouillon, envoyé
 const activeTab = ref('devis')
 const isBottomSheetOpen = ref(false)
 const selectedDevis = ref<Devis | null>(null)
+
+const showEmailModal = ref(false)
+const emailDocumentId = ref<number | null>(null)
+const emailDocumentRef = ref('')
+const emailClientEmail = ref('')
+
+function openEmailModal(devis: Devis) {
+  emailDocumentId.value = devis.id
+  emailDocumentRef.value = devis.numero_devis
+  emailClientEmail.value = devis.client?.email || ''
+  showEmailModal.value = true
+}
 
 function openBottomSheet(devis: Devis) {
   selectedDevis.value = devis
@@ -326,6 +340,15 @@ onMounted(fetchDevis)
             </button>
 
             <button
+              @click.stop="openEmailModal(devis)"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+              title="Envoyer par e-mail"
+            >
+              <Mail class="w-4 h-4" />
+              <span class="text-xs font-semibold">E-mail</span>
+            </button>
+
+            <button
               @click.stop="router.push(`/app/devis/${devis.id}/pdf`)"
               class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20"
               title="Télécharger PDF"
@@ -429,6 +452,14 @@ onMounted(fetchDevis)
         </button>
 
         <button
+          @click="openEmailModal(selectedDevis); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-blue-600 bg-blue-50 transition-colors text-left"
+        >
+          <Mail class="w-5 h-5" />
+          <span class="font-medium">Envoyer par e-mail</span>
+        </button>
+
+        <button
           @click="router.push(`/app/devis/${selectedDevis.id}/pdf`); closeBottomSheet()"
           class="flex items-center gap-3 p-4 rounded-xl text-primary bg-primary/10 transition-colors text-left"
         >
@@ -445,5 +476,14 @@ onMounted(fetchDevis)
         </button>
       </div>
     </MobileBottomSheet>
+    <EmailModal
+      :is-open="showEmailModal"
+      :document-id="emailDocumentId"
+      document-type="devis"
+      :document-ref="emailDocumentRef"
+      :client-email="emailClientEmail"
+      @close="showEmailModal = false"
+      @success="fetchDevis"
+    />
   </div>
 </template>

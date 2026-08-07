@@ -218,3 +218,62 @@ async def send_password_reset_email(to: str, prenom: str, token: str) -> bool:
         logger.error(f"Failed to send password reset email to {to}: {e}")
         return False
 
+
+async def send_transactional_document(
+    to: str,
+    subject: str,
+    message: str,
+    artisan_name: str,
+    artisan_email: str,
+    pdf_bytes: bytes,
+    filename: str
+) -> bool:
+    """
+    Envoie un document transactionnel (devis, facture, rapport) par email à un client.
+    L'expéditeur est générique, mais le Reply-To est l'email de l'artisan.
+    """
+    _init_resend()
+
+    content = f"""
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 20px; font-weight: 700;">Nouveau document de {artisan_name}</h1>
+        
+        <div style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px; line-height: 1.6; white-space: pre-line;">
+            {message}
+        </div>
+        
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0; background-color: #eff6ff; border-radius: 12px; border-left: 4px solid #3b82f6;">
+            <tr>
+                <td style="padding: 16px;">
+                    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.5;">
+                        <strong>Note :</strong> Ce document vous a été envoyé par <strong>{artisan_name}</strong> via ArtisanGestion. Vous pouvez répondre directement à cet email pour le contacter.
+                    </p>
+                </td>
+            </tr>
+        </table>
+    """
+    # Extraire le domaine de l'email configuré
+    try:
+        domain = settings.EMAIL_FROM.split('@')[1]
+    except Exception:
+        domain = "artisangestion.com"
+
+    sender_email = f"document@{domain}"
+    try:
+        resend.Emails.send({
+            "from": f"{artisan_name} (via artisangestion) <{sender_email}>",
+            "to": [to],
+            "reply_to": artisan_email,
+            "subject": subject,
+            "html": _base_template(content),
+            "attachments": [
+                {
+                    "filename": filename,
+                    "content": list(pdf_bytes)
+                }
+            ]
+        })
+        logger.info(f"Transactional document {filename} sent to {to} from {artisan_email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send transactional document {filename} to {to}: {e}")
+        return False

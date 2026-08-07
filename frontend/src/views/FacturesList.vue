@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical, Share2 } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical, Share2, Mail } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
+import EmailModal from '@/components/EmailModal.vue'
 
 import { apiFetch } from '@/lib/api'
 import { dataStore } from '@/lib/store'
 
 interface Client {
   nom: string
+  email?: string
 }
 
 interface Facture {
@@ -51,6 +53,18 @@ const typeFilter = ref('tous') // tous, facture, avoir
 const activeTab = ref('factures')
 const isBottomSheetOpen = ref(false)
 const selectedFacture = ref<Facture | null>(null)
+
+const showEmailModal = ref(false)
+const emailDocumentId = ref<number | null>(null)
+const emailDocumentRef = ref('')
+const emailClientEmail = ref('')
+
+function openEmailModal(facture: Facture) {
+  emailDocumentId.value = facture.id
+  emailDocumentRef.value = facture.numero_facture
+  emailClientEmail.value = facture.client?.email || ''
+  showEmailModal.value = true
+}
 
 function openBottomSheet(facture: Facture) {
   selectedFacture.value = facture
@@ -585,6 +599,16 @@ onMounted(fetchFactures)
             </button>
 
             <button
+              v-if="facture.statut === 'validée'"
+              @click.stop="openEmailModal(facture)"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200"
+              title="Envoyer par e-mail"
+            >
+              <Mail class="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span class="text-xs font-semibold">E-mail</span>
+            </button>
+
+            <button
               @click.stop="router.push(`/app/factures/${facture.id}/pdf`)"
               class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20"
               title="Aperçu PDF"
@@ -715,6 +739,15 @@ onMounted(fetchFactures)
 
         <button
           v-if="selectedFacture.statut === 'validée'"
+          @click="openEmailModal(selectedFacture); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-blue-600 bg-blue-50 transition-colors text-left"
+        >
+          <Mail class="w-5 h-5" />
+          <span class="font-medium">Envoyer par e-mail</span>
+        </button>
+
+        <button
+          v-if="selectedFacture.statut === 'validée'"
           @click="downloadFacturX(selectedFacture); closeBottomSheet()"
           class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
@@ -741,5 +774,15 @@ onMounted(fetchFactures)
 
       </div>
     </MobileBottomSheet>
+
+    <EmailModal
+      :is-open="showEmailModal"
+      :document-id="emailDocumentId"
+      document-type="facture"
+      :document-ref="emailDocumentRef"
+      :client-email="emailClientEmail"
+      @close="showEmailModal = false"
+      @success="fetchFactures"
+    />
   </div>
 </template>

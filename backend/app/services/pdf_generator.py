@@ -417,3 +417,201 @@ def generate_invoice_pdf(
     doc.build(elements, onFirstPage=footer_callback, onLaterPages=footer_callback)
 
     return buffer.getvalue()
+
+
+def generate_rapport_pdf(
+    rapport: Any,
+    client: Any,
+    societe: Any,
+) -> bytes:
+    """
+    Génère un PDF de rapport côté serveur avec ReportLab.
+    """
+    buffer = BytesIO()
+
+    texte_pied = getattr(societe, "texte_pied_page", None) or ""
+    bottom_margin = 25 * mm if texte_pied else 15 * mm
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=25 * mm,
+        rightMargin=25 * mm,
+        topMargin=25 * mm,
+        bottomMargin=bottom_margin + 10 * mm,
+        title=getattr(rapport, "titre_document_pdf", "RAPPORT"),
+        author=getattr(societe, "nom", "ArtisanGestion"),
+    )
+
+    styles = getSampleStyleSheet()
+
+    style_normal = ParagraphStyle(
+        "CustomNormal", parent=styles["Normal"],
+        fontName="Helvetica", fontSize=9, textColor=COLOR_TEXT, leading=13,
+    )
+    style_bold = ParagraphStyle(
+        "CustomBold", parent=style_normal,
+        fontName="Helvetica-Bold",
+    )
+    style_small = ParagraphStyle(
+        "CustomSmall", parent=style_normal,
+        fontSize=8, textColor=COLOR_GRAY, leading=11,
+    )
+    style_small_muted = ParagraphStyle(
+        "CustomSmallMuted", parent=style_normal,
+        fontSize=7.5, textColor=COLOR_LIGHT_MUTED, leading=10,
+    )
+    style_title = ParagraphStyle(
+        "CustomTitle", parent=styles["Title"],
+        fontName="Helvetica-Bold", fontSize=18, textColor=COLOR_DARK,
+        spaceAfter=2 * mm, leading=22,
+    )
+    style_label = ParagraphStyle(
+        "CustomLabel", parent=style_normal,
+        fontName="Helvetica-Bold", fontSize=7, textColor=COLOR_LIGHT_MUTED,
+        leading=9,
+    )
+    style_value = ParagraphStyle(
+        "CustomValue", parent=style_normal,
+        fontName="Helvetica-Bold", fontSize=9, textColor=COLOR_DARK,
+    )
+
+    elements = []
+
+    # ── EN-TÊTE : Société + Client ──────────────────────────────────
+    adresse_societe_parts = [
+        getattr(societe, "adresse", None),
+        getattr(societe, "code_postal", None),
+        getattr(societe, "ville", None),
+    ]
+    adresse_societe = " ".join(p for p in adresse_societe_parts if p)
+
+    societe_content = []
+    societe_content.append(
+        Paragraph(f"<b>{societe.nom}</b>", ParagraphStyle(
+            "SocieteName", parent=style_normal,
+            fontName="Helvetica-Bold", fontSize=14, textColor=COLOR_PRIMARY, leading=18,
+        ))
+    )
+    societe_content.append(Spacer(1, 2 * mm))
+    societe_content.append(Paragraph(f"<b>{societe.nom}</b>", style_bold))
+    societe_content.append(Paragraph(adresse_societe, style_small))
+    societe_content.append(Paragraph(
+        f"Tél: {getattr(societe, 'telephone', '-') or '-'}", style_small
+    ))
+    societe_content.append(Paragraph(
+        f"Email: {getattr(societe, 'email', '-') or '-'}", style_small
+    ))
+    if getattr(societe, "siret", None):
+        societe_content.append(Paragraph(f"SIRET: {societe.siret}", style_small_muted))
+
+    client_content = []
+    if client:
+        adresse_client_ville = " ".join(
+            p for p in [
+                getattr(client, "code_postal", None),
+                getattr(client, "ville", None),
+            ] if p
+        )
+        client_content.append(Paragraph("CLIENT", ParagraphStyle(
+            "ClientLabel", parent=style_normal,
+            fontName="Helvetica-Bold", fontSize=7, textColor=COLOR_LIGHT_MUTED, leading=9,
+        )))
+        client_content.append(Spacer(1, 1 * mm))
+        client_content.append(Paragraph(
+            f"<b>{client.nom}</b>",
+            ParagraphStyle("ClientName", parent=style_normal,
+                           fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_DARK)
+        ))
+        client_content.append(Spacer(1, 1 * mm))
+        client_content.append(Paragraph(
+            f"{getattr(client, 'adresse', '') or ''}<br/>{adresse_client_ville}",
+            ParagraphStyle("ClientAddr", parent=style_normal, fontSize=8, textColor=COLOR_MUTED)
+        ))
+        if getattr(client, "siret", None):
+            client_content.append(Paragraph(f"SIRET: {client.siret}", style_small_muted))
+        if getattr(client, "telephone", None):
+            client_content.append(Paragraph(f"Tél: {client.telephone}", style_small))
+
+    header_table = Table(
+        [[societe_content, client_content]],
+        colWidths=[doc.width * 0.55, doc.width * 0.45],
+    )
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (0, 0), 0),
+        ("RIGHTPADDING", (-1, -1), (-1, -1), 0),
+        ("BACKGROUND", (1, 0), (1, 0), COLOR_BG_LIGHT),
+        ("BOX", (1, 0), (1, 0), 0.5, COLOR_BORDER),
+        ("TOPPADDING", (1, 0), (1, 0), 8),
+        ("BOTTOMPADDING", (1, 0), (1, 0), 8),
+        ("LEFTPADDING", (1, 0), (1, 0), 10),
+        ("RIGHTPADDING", (1, 0), (1, 0), 10),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 8 * mm))
+
+    # ── TITRE RAPPORT + INFOS ───────────────────────────────────────
+    titre = getattr(rapport, "titre_document_pdf", "RAPPORT")
+
+    titre_left = []
+    titre_left.append(Paragraph(titre, style_title))
+
+    titre_right = []
+    titre_right.append(Paragraph("DATE D'INTERVENTION", style_label))
+    titre_right.append(Paragraph(_format_date(rapport.date_intervention), style_value))
+
+    titre_table = Table(
+        [[titre_left, titre_right]],
+        colWidths=[doc.width * 0.6, doc.width * 0.4],
+    )
+    titre_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (0, 0), 0),
+        ("RIGHTPADDING", (-1, -1), (-1, -1), 0),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+    ]))
+    elements.append(titre_table)
+    elements.append(Spacer(1, 3 * mm))
+    elements.append(HRFlowable(width="100%", thickness=1.5, color=COLOR_BORDER))
+    elements.append(Spacer(1, 6 * mm))
+
+    # ── CONTENU DU RAPPORT ──────────────────────────────────────────
+    if rapport.contenu:
+        # Remplacer les retours à la ligne par des balises <br/> pour ReportLab
+        contenu_formate = str(rapport.contenu).replace('\n', '<br/>')
+        elements.append(Paragraph(
+            contenu_formate,
+            ParagraphStyle("ContenuText", parent=style_normal,
+                           fontSize=10, textColor=COLOR_TEXT, leading=15)
+        ))
+        elements.append(Spacer(1, 10 * mm))
+
+    # ── Pied de page ────────────────────────────────────────────────
+    def footer_callback(canvas, doc_ref):
+        page_width, page_height = A4
+        canvas.saveState()
+        canvas.setStrokeColor(COLOR_PRIMARY)
+        canvas.setLineWidth(1)
+        canvas.setStrokeAlpha(0.6)
+        canvas.line(15 * mm, 20 * mm, page_width - 15 * mm, 20 * mm)
+        canvas.setStrokeAlpha(1.0)
+        if texte_pied:
+            canvas.setFont("Helvetica", 7)
+            canvas.setFillColor(COLOR_GRAY)
+            text_lines = texte_pied.strip().split("\n")
+            y = 15 * mm
+            for line in reversed(text_lines):
+                canvas.drawCentredString(page_width / 2, y, line.strip())
+                y += 3.5 * mm
+        page_num = canvas.getPageNumber()
+        canvas.setFont("Helvetica-Bold", 8)
+        canvas.setFillColor(COLOR_PRIMARY)
+        canvas.drawRightString(page_width - 15 * mm, 10 * mm, f"Page {page_num}")
+        canvas.setFont("Helvetica-Oblique", 6)
+        canvas.setFillColor(COLOR_LIGHT_MUTED)
+        canvas.drawString(15 * mm, 10 * mm, "Généré via ArtisanGestion")
+        canvas.restoreState()
+
+    doc.build(elements, onFirstPage=footer_callback, onLaterPages=footer_callback)
+    return buffer.getvalue()

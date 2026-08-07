@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, MoreVertical, Share2 } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, MoreVertical, Share2, Mail } from 'lucide-vue-next'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { useMobile } from '@/composables/useMobile'
+import EmailModal from '@/components/EmailModal.vue'
 
 import { apiFetch } from '@/lib/api'
 import { dataStore } from '@/lib/store'
 
 interface Client {
   nom: string
+  email?: string
 }
 
 interface Rapport {
@@ -28,6 +30,18 @@ const router = useRouter()
 const { sharePDF, triggerHaptic, isNative, isMobileView } = useMobile()
 const isBottomSheetOpen = ref(false)
 const selectedRapport = ref<Rapport | null>(null)
+
+const showEmailModal = ref(false)
+const emailDocumentId = ref<number | null>(null)
+const emailDocumentRef = ref('')
+const emailClientEmail = ref('')
+
+function openEmailModal(rapport: Rapport) {
+  emailDocumentId.value = rapport.id
+  emailDocumentRef.value = rapport.titre_document_pdf || 'Rapport'
+  emailClientEmail.value = rapport.client?.email || ''
+  showEmailModal.value = true
+}
 
 function openBottomSheet(rapport: Rapport) {
   selectedRapport.value = rapport
@@ -404,6 +418,15 @@ onMounted(fetchRapports)
             </button>
 
             <button
+              @click.stop="openEmailModal(rapport)"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+              title="Envoyer par e-mail"
+            >
+              <Mail class="w-4 h-4" />
+              <span class="text-xs font-semibold">E-mail</span>
+            </button>
+
+            <button
               @click.stop="generateFullPDF(rapport)"
               class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20"
               title="Télécharger PDF"
@@ -485,6 +508,14 @@ onMounted(fetchRapports)
         </button>
 
         <button
+          @click="openEmailModal(selectedRapport); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl text-blue-600 bg-blue-50 transition-colors text-left"
+        >
+          <Mail class="w-5 h-5" />
+          <span class="font-medium">Envoyer par e-mail</span>
+        </button>
+
+        <button
           @click="generateFullPDF(selectedRapport); closeBottomSheet()"
           class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >
@@ -501,5 +532,14 @@ onMounted(fetchRapports)
         </button>
       </div>
     </MobileBottomSheet>
+    <EmailModal
+      :is-open="showEmailModal"
+      :document-id="emailDocumentId"
+      document-type="rapport"
+      :document-ref="emailDocumentRef"
+      :client-email="emailClientEmail"
+      @close="showEmailModal = false"
+      @success="fetchRapports"
+    />
   </div>
 </template>

@@ -20,7 +20,6 @@ const plans = [
       'Clients, devis & factures illimités',
       'Catalogue de prestations',
       'Rapports d\'intervention simples',
-      'Support par email',
     ],
     cta: 'Essai gratuit 14 jours',
     popular: false,
@@ -36,7 +35,6 @@ const plans = [
       'Rôles et permissions sur l\'app',
       'Signature électronique des devis/rapports',
       'Export comptable avancé (Factur-X)',
-      'Support prioritaire (Chat/Téléphone)',
     ],
     cta: 'Essai gratuit 14 jours',
     popular: true,
@@ -170,22 +168,21 @@ onMounted(() => {
                 <span class="text-sm text-muted-foreground">{{ feature }}</span>
               </li>
             </ul>
-
-            <!-- CTA -->
-            <button
-              @click="handleCTA"
-              class="w-full py-4 rounded-2xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2"
-              :class="plan.popular
-                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98]'
-                : 'bg-muted text-foreground hover:bg-primary/10 hover:text-primary'"
-            >
-              <Zap v-if="plan.popular" class="h-4 w-4" />
-              {{ plan.cta }}
-              <ArrowRight class="h-4 w-4" />
-            </button>
           </div>
           </div>
         </div>
+      </div>
+
+      <!-- Single CTA -->
+      <div class="mt-12 flex justify-center">
+        <button
+          @click="handleCTA"
+          class="px-10 py-4 rounded-2xl font-bold text-base bg-primary text-primary-foreground shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2"
+        >
+          <Zap class="h-5 w-5" />
+          Essai gratuit 14 jours
+          <ArrowRight class="h-5 w-5" />
+        </button>
       </div>
 
       <!-- Trust badges -->

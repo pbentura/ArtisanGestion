@@ -36,13 +36,16 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
                     'product_data': {
                         'name': f"Abonnement {request.plan_name} ({'Annuel' if request.is_annual else 'Mensuel'})",
                     },
-                    'unit_amount': int(request.price * 100), # Stripe attend le prix en centimes
+                    'unit_amount': int(request.price * 100),
+                    'recurring': {
+                        'interval': 'year' if request.is_annual else 'month',
+                    }
                 },
                 'quantity': 1,
             }],
-            mode='payment', # Utilisez 'subscription' si vous créez des plans récurrents via le dashboard Stripe
-            success_url=settings.FRONTEND_URL + "/settings?tab=abonnement&session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=settings.FRONTEND_URL + "/settings?tab=abonnement",
+            mode='subscription',
+            success_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement",
             client_reference_id=str(current_user.id),
             customer_email=current_user.email,
         )
