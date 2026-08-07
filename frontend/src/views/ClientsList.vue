@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Plus, Pencil, Trash2, X, Building2, MoreVertical } from 'lucide-vue-next'
+import { ref, onMounted, computed } from 'vue'
+import { Plus, Pencil, Trash2, X, MoreVertical } from 'lucide-vue-next'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { apiFetch } from '@/lib/api'
-import { useMobile } from '@/composables/useMobile'
 import { dataStore } from '@/lib/store'
 import { computed } from 'vue'
 
@@ -30,7 +29,6 @@ const clientToDelete = ref<Client | null>(null)
 const isDeleting = ref(false)
 const isBottomSheetOpen = ref(false)
 const selectedClient = ref<Client | null>(null)
-const {  isMobileView } = useMobile()
 
 function openBottomSheet(client: Client) {
   selectedClient.value = client

@@ -19,7 +19,6 @@ const companyName = computed(() => dataStore.user.data?.societes?.[0]?.nom || ''
 const canCreateDevis = computed(() => dataStore.user.data?.can_create_devis !== false)
 const canCreateFactures = computed(() => dataStore.user.data?.can_create_factures !== false)
 const canCreateClients = computed(() => dataStore.user.data?.can_create_clients !== false)
-const canCreateRapports = computed(() => dataStore.user.data?.can_create_rapports !== false)
 
 interface DashboardData {
   ca_mois_ht: number
