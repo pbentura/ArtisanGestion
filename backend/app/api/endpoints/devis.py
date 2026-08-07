@@ -37,7 +37,8 @@ async def read_devis(
 async def create_devis(
     devis_in: DevisCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.check_trial_active)
+    current_user: User = Depends(deps.require_permission("can_create_devis")),
+    _: User = Depends(deps.check_trial_active)
 ):
     """
     Crée un nouveau devis pour l'utilisateur connecté.
@@ -123,7 +124,7 @@ async def update_devis(
     devis_id: int,
     devis_in: DevisUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.require_permission("can_create_devis"))
 ):
     """
     Met à jour un devis existant (infos générales uniquement).

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Building2, Settings, ShieldCheck, LogOut, ChevronRight } from 'lucide-vue-next'
+import { Building2, Settings, ShieldCheck, LogOut, ChevronRight, Users } from 'lucide-vue-next'
 import { apiFetch } from '@/lib/api'
 
 const router = useRouter()
-const user = ref({ prenom: '', nom: '', email: '', role: '' })
+const user = ref({ prenom: '', nom: '', email: '', role: '', is_owner: true, can_edit_societe: true, can_invite: true })
 const societe = ref({ nom: '' })
 
 onMounted(async () => {
@@ -13,7 +13,15 @@ onMounted(async () => {
     const res = await apiFetch('users/me')
     if (res.ok) {
       const data = await res.json()
-      user.value = { prenom: data.prenom, nom: data.nom, email: data.email, role: data.role || 'USER' }
+      user.value = { 
+        prenom: data.prenom, 
+        nom: data.nom, 
+        email: data.email, 
+        role: data.role || 'USER',
+        is_owner: data.is_owner !== false,
+        can_edit_societe: data.can_edit_societe === true,
+        can_invite: data.can_invite === true
+      }
       if (data.societes?.length > 0) {
         societe.value = data.societes[0]
       }
@@ -44,7 +52,7 @@ function handleLogout() {
     <div class="menu-group">
       <h3 class="group-title">Général</h3>
       <div class="menu-list">
-        <button class="menu-item" @click="router.push('/app/entreprise')">
+        <button v-if="user.is_owner || user.can_edit_societe" class="menu-item" @click="router.push('/app/entreprise')">
           <div class="item-left">
             <div class="icon-box bg-blue-100 text-blue-600">
               <Building2 class="w-5 h-5" />
@@ -60,6 +68,16 @@ function handleLogout() {
               <Settings class="w-5 h-5" />
             </div>
             <span>Paramètres</span>
+          </div>
+          <ChevronRight class="w-5 h-5 text-muted-foreground" />
+        </button>
+
+        <button v-if="user.is_owner || user.can_invite" class="menu-item" @click="router.push('/app/collaborateurs')">
+          <div class="item-left">
+            <div class="icon-box bg-indigo-100 text-indigo-600">
+              <Users class="w-5 h-5" />
+            </div>
+            <span>Collaborateurs</span>
           </div>
           <ChevronRight class="w-5 h-5 text-muted-foreground" />
         </button>

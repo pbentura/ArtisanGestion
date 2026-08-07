@@ -66,72 +66,72 @@ const routes = [
         path: 'devis',
         name: 'devis',
         component: () => import('@/views/DevisList.vue'),
-        meta: { title: 'Devis' }
+        meta: { title: 'Devis', permission: 'can_create_devis' }
       },
       {
         path: 'devis/new',
         name: 'nouveau-devis',
         component: () => import('@/views/NouveauDevis.vue'),
-        meta: { title: 'Devis', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Devis', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_devis' }
       },
       {
         path: 'devis/:id',
         name: 'edit-devis',
         component: () => import('@/views/NouveauDevis.vue'),
         props: true,
-        meta: { title: 'Devis', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Devis', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_devis' }
       },
       {
         path: 'devis/:id/pdf',
         name: 'devis-pdf',
         component: () => import('@/views/NouveauDevis.vue'),
         props: true,
-        meta: { title: 'Aperçu PDF', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Aperçu PDF', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_devis' }
       },
       {
         path: 'factures',
         name: 'factures',
         component: () => import('@/views/FacturesList.vue'),
-        meta: { title: 'Factures' }
+        meta: { title: 'Factures', permission: 'can_create_factures' }
       },
       {
         path: 'factures/new',
         name: 'nouvelle-facture',
         component: () => import('@/views/NouvelleFacture.vue'),
-        meta: { title: 'Factures', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Nouvelle Facture', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_factures' }
       },
       {
         path: 'factures/:id',
         name: 'edit-facture',
         component: () => import('@/views/NouvelleFacture.vue'),
         props: true,
-        meta: { title: 'Factures', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Facture', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_factures' }
       },
       {
         path: 'factures/:id/pdf',
         name: 'facture-pdf',
         component: () => import('@/views/NouvelleFacture.vue'),
         props: true,
-        meta: { title: 'Aperçu PDF', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Aperçu PDF', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_factures' }
       },
       {
         path: 'rapports',
         name: 'rapports',
         component: () => import('@/views/RapportsList.vue'),
-        meta: { title: 'Rapports' }
+        meta: { title: 'Rapports', permission: 'can_create_rapports' }
       },
       {
         path: 'rapports/new',
         name: 'nouveau-rapport',
         component: () => import('@/views/NouveauRapport.vue'),
-        meta: { title: 'Rapports', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Nouveau Rapport', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_rapports' }
       },
       {
         path: 'rapports/:id',
         name: 'edit-rapport',
         component: () => import('@/views/NouveauRapport.vue'),
         props: true,
-        meta: { title: 'Rapports', hideMobileHeader: true, hideMobileNav: true }
+        meta: { title: 'Rapport', hideMobileHeader: true, hideMobileNav: true, permission: 'can_create_rapports' }
       },
       {
         path: 'settings',
@@ -143,7 +143,7 @@ const routes = [
         path: 'entreprise',
         name: 'entreprise',
         component: () => import('@/views/SocieteInfo.vue'),
-        meta: { title: 'Entreprise' }
+        meta: { title: 'Mon Entreprise', permission: 'can_edit_societe' }
       },
       {
         path: 'clients',
@@ -161,12 +161,28 @@ const routes = [
         }
       },
       {
+        path: 'collaborateurs',
+        name: 'collaborateurs',
+        component: () => import('@/views/CollaborateursList.vue'),
+        meta: { title: 'Collaborateurs', permission: 'can_invite' }
+      },
+      {
         path: 'menu',
         name: 'menu',
         component: () => import('@/views/MobileMenu.vue'),
         meta: { title: 'Menu' }
       }
     ]
+  },
+  // Inscription collaborateur (magic link)
+  {
+    path: '/join/:token',
+    name: 'join',
+    component: () => import('@/views/RegisterCollaborateur.vue'),
+    meta: { 
+      title: 'Rejoindre une équipe',
+      description: 'Rejoignez l\'équipe de votre entreprise sur ArtisanGestion.'
+    }
   },
   // Email verification & password reset
   {
@@ -252,7 +268,7 @@ router.beforeEach(async (to, _from, next) => {
       }
       
       const user = await res.json()
-      const hasSociete = user.societes && user.societes.length > 0
+      const hasSociete = (user.societes && user.societes.length > 0) || !!user.id_societe
 
       if (to.meta.requiresSociete && !hasSociete) {
         return next('/onboarding')
@@ -262,9 +278,15 @@ router.beforeEach(async (to, _from, next) => {
         return next('/app')
       }
 
-      // Block /admin for non-ADMIN users → page forbidden
-      if (to.matched.some(r => r.meta.requiresAdmin) && user.role !== 'ADMIN') {
-        return next({ name: 'not-found', params: { pathMatch: to.path.split('/').slice(1) }, query: { forbidden: '1' } })
+      // Block requiresOwner for non-owners
+      if (to.matched.some(r => r.meta.requiresOwner) && user.is_owner === false) {
+        return next({ name: 'dashboard' })
+      }
+
+      // Block restricted routes for collaborators without permission
+      const requiredPermission = to.meta.permission as string
+      if (requiredPermission && user.is_owner === false && user[requiredPermission] !== true) {
+        return next({ name: 'dashboard' })
       }
     } catch (error) {
       console.error('Router guard error:', error)

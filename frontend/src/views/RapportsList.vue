@@ -6,9 +6,10 @@ import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { useMobile } from '@/composables/useMobile'
 import EmailModal from '@/components/EmailModal.vue'
-
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
+
+const canCreate = computed(() => dataStore.user.data?.can_create_rapports !== false)
 
 interface Client {
   nom: string
@@ -313,6 +314,7 @@ onMounted(fetchRapports)
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos rapports d'intervention et créez-en de nouveaux</p>
       </div>
       <button
+        v-if="canCreate"
         @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/rapports/new')"
         class="btn-primary"
         title="Nouveau rapport"
@@ -339,6 +341,7 @@ onMounted(fetchRapports)
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucun rapport</h3>
       <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de rapport d'intervention.</p>
       <button
+        v-if="canCreate"
         @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/rapports/new')"
         class="btn-primary w-full sm:w-auto"
         title="Nouveau rapport"

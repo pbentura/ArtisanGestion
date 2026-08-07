@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { apiFetch } from '@/lib/api'
+import { dataStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -143,6 +144,12 @@ function removeLogo() {
   if (fileInput.value) fileInput.value.value = ''
 }
 
+const canEdit = computed(() => {
+  const d = dataStore.user.data
+  if (!d) return true
+  return d.is_owner || d.can_edit_societe !== false
+})
+
 onMounted(fetchSociete)
 </script>
 
@@ -153,7 +160,7 @@ onMounted(fetchSociete)
         <h1 class="text-3xl font-bold tracking-tight text-foreground">Entreprise</h1>
         <p class="text-muted-foreground mt-1">Gérez les informations légales et facturation de votre structure.</p>
       </div>
-      <button @click="handleSave" :disabled="saving" class="btn-primary h-12">
+      <button v-if="canEdit" @click="handleSave" :disabled="saving" class="btn-primary h-12">
         <template v-if="saving">
           <Loader2 class="w-5 h-5 mr-2 animate-spin" />
           Enregistrement...
@@ -178,13 +185,12 @@ onMounted(fetchSociete)
       </div>
     </transition>
 
-    <div v-if="loading" class="space-y-6">
-      <Card v-for="i in 3" :key="i" class="animate-pulse">
-        <CardContent class="h-48"></CardContent>
-      </Card>
+    <div v-if="loading" class="flex flex-col items-center justify-center h-64 text-muted-foreground">
+      <Loader2 class="w-10 h-10 animate-spin mb-4 text-primary" />
+      <p>Chargement des informations...</p>
     </div>
 
-    <div v-else>
+    <fieldset v-else :disabled="!canEdit" class="border-0 p-0 m-0">
       <Tabs defaultValue="identity" class="space-y-6">
         <TabsList class="bg-muted/50 p-1 rounded-xl w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex">
           <TabsTrigger value="identity" class="rounded-lg py-2 px-4">
@@ -198,6 +204,9 @@ onMounted(fetchSociete)
           </TabsTrigger>
           <TabsTrigger value="bank" class="rounded-lg py-2 px-4">
             <Landmark class="w-4 h-4 mr-2" /> Banque
+          </TabsTrigger>
+          <TabsTrigger value="settings" class="rounded-lg py-2 px-4">
+            <Info class="w-4 h-4 mr-2" /> Paramètres
           </TabsTrigger>
         </TabsList>
 
@@ -318,10 +327,6 @@ onMounted(fetchSociete)
                   <Label for="capital">Capital Social (€)</Label>
                   <Input id="capital" type="number" v-model="form.capital_social" placeholder="1000" class="h-11" />
                 </div>
-                <div class="space-y-2">
-                  <Label for="tva_defaut">Taux de TVA par défaut (%)</Label>
-                  <Input id="tva_defaut" type="number" step="0.1" v-model="form.tva_defaut" placeholder="20.0" class="h-11" />
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -375,7 +380,7 @@ onMounted(fetchSociete)
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </fieldset>
   </div>
 </template>
 

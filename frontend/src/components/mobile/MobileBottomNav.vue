@@ -13,6 +13,22 @@ function isActive(paths: string[]) {
     return route.path.startsWith(path)
   })
 }
+
+import { computed } from 'vue'
+import { dataStore } from '@/lib/store'
+
+const user = computed(() => {
+  const d = dataStore.user.data
+  if (!d) return { is_owner: true, can_create_rapports: true, can_create_devis: true, can_create_factures: true, can_create_clients: true, can_edit_societe: true }
+  return { 
+    is_owner: d.is_owner !== false,
+    can_create_rapports: d.can_create_rapports !== false,
+    can_create_devis: d.can_create_devis !== false,
+    can_create_factures: d.can_create_factures !== false,
+    can_create_clients: d.can_create_clients !== false,
+    can_edit_societe: d.can_edit_societe !== false
+  }
+})
 </script>
 
 <template>
@@ -23,13 +39,13 @@ function isActive(paths: string[]) {
         <span class="label">Accueil</span>
       </router-link>
       
-      <router-link to="/app/rapports" class="nav-item" :class="{ active: isActive(['/app/rapports']) }">
+      <router-link v-if="user.is_owner || user.can_create_rapports !== false" to="/app/rapports" class="nav-item" :class="{ active: isActive(['/app/rapports']) }">
         <BarChart3 class="icon" />
         <span class="label">Rapports</span>
       </router-link>
       
       <!-- L'onglet Facturation pointe vers les factures, où le SegmentedControl gèrera le switch avec Devis -->
-      <router-link to="/app/factures" class="nav-item" :class="{ active: isActive(['/app/factures', '/app/devis']) }">
+      <router-link v-if="user.is_owner || user.can_create_factures !== false || user.can_create_devis !== false" to="/app/factures" class="nav-item" :class="{ active: isActive(['/app/factures', '/app/devis']) }">
         <Receipt class="icon" />
         <span class="label">Ventes</span>
       </router-link>

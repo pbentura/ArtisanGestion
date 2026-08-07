@@ -11,6 +11,8 @@ import EmailModal from '@/components/EmailModal.vue'
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
 
+const canCreate = computed(() => dataStore.user.data?.can_create_factures !== false)
+
 interface Client {
   nom: string
   email?: string
@@ -361,6 +363,7 @@ onMounted(fetchFactures)
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos factures et créez-en de nouvelles</p>
       </div>
       <button
+        v-if="canCreate"
         @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/factures/new')"
         class="btn-primary"
         title="Nouvelle facture"
@@ -387,6 +390,7 @@ onMounted(fetchFactures)
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucune facture</h3>
       <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de facture.</p>
       <button
+        v-if="canCreate"
         @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/factures/new')"
         class="btn-primary w-full sm:w-auto"
         title="Nouvelle facture"
@@ -566,7 +570,7 @@ onMounted(fetchFactures)
             </button>
 
             <button
-              v-if="facture.statut === 'validée' && !facture.est_avoir"
+              v-if="facture.statut === 'validée' && !facture.est_avoir && canCreate"
               @click.stop="creerAvoir(facture)"
               class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group text-purple-600 hover:bg-purple-50 border border-transparent hover:border-purple-200"
               title="Créer un avoir"
@@ -694,7 +698,7 @@ onMounted(fetchFactures)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB v-if="isMobileView" class="lg:hidden" @click="router.push('/app/factures/new')" />
+    <MobileFAB v-if="isMobileView && canCreate" @click="router.push('/app/factures/new')" />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 
@@ -723,7 +727,7 @@ onMounted(fetchFactures)
         </button>
 
         <button
-          v-if="selectedFacture.statut === 'validée' && !selectedFacture.est_avoir"
+          v-if="selectedFacture.statut === 'validée' && !selectedFacture.est_avoir && canCreate"
           @click="creerAvoir(selectedFacture); closeBottomSheet()"
           class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted/50 hover:bg-muted transition-colors text-left"
         >

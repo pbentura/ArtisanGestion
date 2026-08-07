@@ -16,6 +16,10 @@ const loading = computed(() => dataStore.dashboard.loading)
 const error = ref(false)
 const userName = computed(() => dataStore.user.data?.prenom || '')
 const companyName = computed(() => dataStore.user.data?.societes?.[0]?.nom || '')
+const canCreateDevis = computed(() => dataStore.user.data?.can_create_devis !== false)
+const canCreateFactures = computed(() => dataStore.user.data?.can_create_factures !== false)
+const canCreateClients = computed(() => dataStore.user.data?.can_create_clients !== false)
+const canCreateRapports = computed(() => dataStore.user.data?.can_create_rapports !== false)
 
 interface DashboardData {
   ca_mois_ht: number
@@ -161,13 +165,13 @@ onMounted(fetchDashboard)
           </p>
         </div>
         <div class="shortcuts">
-          <button @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')" class="btn-primary" title="Nouveau Devis">
+          <button v-if="canCreateDevis" @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')" class="btn-primary" title="Nouveau Devis">
             <Plus class="w-4 h-4" /> Nouveau Devis
           </button>
-          <button @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/factures/new')" class="btn-primary" title="Nouvelle Facture">
+          <button v-if="canCreateFactures" @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/factures/new')" class="btn-primary" title="Nouvelle Facture">
             <Plus class="w-4 h-4" /> Nouvelle Facture
           </button>
-          <button @click="router.push('/app/clients')" class="btn-primary">
+          <button v-if="canCreateClients" @click="router.push('/app/clients')" class="btn-primary">
             <Users class="w-4 h-4" /> Ajouter Client
           </button>
         </div>

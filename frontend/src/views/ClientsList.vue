@@ -21,6 +21,7 @@ interface Client {
 
 const clients = computed(() => dataStore.clients.data)
 const loading = computed(() => dataStore.clients.loading)
+const canCreate = computed(() => dataStore.user.data?.can_create_clients !== false)
 const error = ref('')
 const showModal = ref(false)
 const editingClient = ref<Client | null>(null)
@@ -138,7 +139,7 @@ onMounted(fetchClients)
   <div class="clients-page">
     <div class="hidden lg:flex items-center justify-between mb-6 animate-fade-slide-up">
       <h1 class="text-2xl font-bold text-foreground">Clients</h1>
-      <button @click="openCreateModal" class="btn-primary">
+      <button v-if="canCreate" @click="openCreateModal" class="btn-primary">
         <Plus class="w-4 h-4" /> Nouveau client
       </button>
     </div>
@@ -148,9 +149,9 @@ onMounted(fetchClients)
     <div v-if="loading" class="loading">Chargement...</div>
 
     <div v-else-if="clients.length === 0" class="empty-state">
-      <Building2 class="w-16 h-16 text-gray-300" />
-      <p>Aucun client pour le moment</p>
-      <button @click="openCreateModal" class="btn-link">Ajouter un client</button>
+      <h2 class="text-xl font-semibold mb-2">Aucun client</h2>
+      <p class="text-muted-foreground mb-6">Commencez par ajouter votre premier client.</p>
+      <button v-if="canCreate" @click="openCreateModal" class="btn-link">Ajouter un client</button>
     </div>
 
     <div v-else class="clients-grid">
@@ -171,7 +172,7 @@ onMounted(fetchClients)
           </div>
           
           <!-- Desktop Actions -->
-          <div class="card-actions hidden sm:flex">
+          <div class="card-actions hidden sm:flex" v-if="canCreate">
             <button @click="openEditModal(client)" class="btn-icon" title="Modifier">
               <Pencil class="w-4 h-4" />
             </button>
@@ -287,7 +288,11 @@ onMounted(fetchClients)
     </div>
 
     <!-- Mobile FAB -->
-    <MobileFAB v-if="isMobileView" class="lg:hidden" @click="openCreateModal" />
+    <MobileFAB 
+      v-if="canCreate"
+      icon="plus" 
+      @click="openCreateModal" 
+    />
 
     <!-- Mobile Bottom Sheet for Actions -->
     <MobileBottomSheet 
@@ -295,22 +300,32 @@ onMounted(fetchClients)
       :title="selectedClient ? selectedClient.nom : ''"
       @close="closeBottomSheet"
     >
-      <div v-if="selectedClient" class="flex flex-col gap-2 mt-4">
-        <button
-          @click="openEditModal(selectedClient); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-foreground bg-muted transition-colors text-left"
-        >
-          <Pencil class="w-5 h-5" />
-          <span class="font-medium">Modifier le client</span>
-        </button>
-
-        <button
-          @click="openDeleteModal(selectedClient); closeBottomSheet()"
-          class="flex items-center gap-3 p-4 rounded-xl text-destructive bg-destructive/10 transition-colors text-left mt-4"
-        >
-          <Trash2 class="w-5 h-5" />
-          <span class="font-medium">Supprimer le client</span>
-        </button>
+      <div v-if="selectedClient" class="flex flex-col gap-2 p-2">
+        <template v-if="canCreate">
+          <button 
+            @click="openEditModal(selectedClient); closeBottomSheet()"
+            class="flex items-center gap-3 w-full p-3 text-left bg-background hover:bg-muted active:bg-muted/80 rounded-xl transition-colors"
+          >
+            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+              <Pencil class="w-5 h-5" />
+            </div>
+            <span class="font-medium">Modifier</span>
+          </button>
+          <button 
+            @click="openDeleteModal(selectedClient); closeBottomSheet()"
+            class="flex items-center gap-3 w-full p-3 text-left bg-background hover:bg-muted active:bg-muted/80 rounded-xl transition-colors text-red-600"
+          >
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+              <Trash2 class="w-5 h-5" />
+            </div>
+            <span class="font-medium">Supprimer</span>
+          </button>
+        </template>
+        <template v-else>
+          <div class="p-4 text-center text-muted-foreground text-sm">
+            Action non autorisée
+          </div>
+        </template>
       </div>
     </MobileBottomSheet>
   </div>

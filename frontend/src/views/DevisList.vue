@@ -11,6 +11,8 @@ import EmailModal from '@/components/EmailModal.vue'
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
 
+const canCreate = computed(() => dataStore.user.data?.can_create_devis !== false)
+
 interface Client {
   nom: string
   email?: string
@@ -196,12 +198,20 @@ onMounted(fetchDevis)
       />
     </div>
 
+    <!-- FAB pour mobile -->
+    <MobileFAB 
+      v-if="canCreate"
+      icon="plus" 
+      @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')" 
+    />
+
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 hidden lg:flex animate-fade-slide-up">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Devis</h1>
         <p class="text-sm sm:text-base text-muted-foreground mt-1">Gérez vos devis et créez-en de nouveaux</p>
       </div>
       <button
+        v-if="canCreate"
         @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')"
         class="btn-primary"
         title="Nouveau devis"
@@ -228,6 +238,7 @@ onMounted(fetchDevis)
       <h3 class="text-lg font-semibold text-foreground mb-2">Aucun devis</h3>
       <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de devis.</p>
       <button
+        v-if="canCreate"
         @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/devis/new')"
         class="btn-primary w-full sm:w-auto"
         title="Nouveau devis"

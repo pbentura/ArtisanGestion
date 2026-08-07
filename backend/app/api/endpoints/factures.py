@@ -52,7 +52,8 @@ async def read_factures(
 async def create_facture(
     facture_in: FactureCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.check_trial_active),
+    current_user: User = Depends(deps.require_permission("can_create_factures")),
+    _: User = Depends(deps.check_trial_active)
 ):
     """
     Crée une nouvelle facture pour l'utilisateur connecté.
@@ -359,7 +360,7 @@ async def update_facture(
     facture_id: int,
     facture_in: FactureUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(deps.require_permission("can_create_factures"))
 ):
     """
     Met à jour une facture existante (infos générales uniquement).

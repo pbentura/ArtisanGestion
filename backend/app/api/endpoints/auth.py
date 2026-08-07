@@ -20,6 +20,7 @@ from app.core.security import (
     create_waiting_token,
 )
 from app.models.user import User
+from app.models.invitation import Invitation
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserRead, UserRegisterResponse
 from app.services.email_service import (
@@ -417,3 +418,88 @@ async def reset_password(
     await db.commit()
     
     return {"message": "Votre mot de passe a été réinitialisé avec succès."}
+
+
+# ── Collaborateur Registration ──
+
+class RegisterCollaborateurRequest(BaseModel):
+    token: str
+    nom: str
+    prenom: str
+    email: EmailStr
+    mdp: str
+
+
+@router.post("/register-collaborateur", response_model=Token, status_code=status.HTTP_201_CREATED)
+async def register_collaborateur(
+    body: RegisterCollaborateurRequest,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Inscription d'un collaborateur via un magic link.
+    Pas besoin de créer d'entreprise, il est automatiquement rattaché.
+    """
+    # 1. Vérifier le token d'invitation
+    from datetime import datetime, timezone
+    result = await db.execute(
+        select(Invitation).where(Invitation.token == body.token)
+    )
+    invitation = result.scalars().first()
+
+    if not invitation:
+        raise HTTPException(400, "Lien d'invitation invalide.")
+
+    if invitation.status != "pending":
+        raise HTTPException(400, "Cette invitation a déjà été utilisée.")
+
+    if invitation.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        invitation.status = "expired"
+        await db.commit()
+        raise HTTPException(400, "Cette invitation a expiré.")
+
+    # 2. Vérifier que l'email n'est pas déjà utilisé
+    result = await db.execute(select(User).where(User.email == body.email))
+    existing = result.scalars().first()
+    if existing:
+        raise HTTPException(400, "Cet email est déjà utilisé.")
+
+    # 3. Créer l'utilisateur collaborateur
+    new_user = User(
+        nom=body.nom,
+        prenom=body.prenom,
+        email=body.email,
+        mdp=get_password_hash(body.mdp),
+        role="USER",
+        is_email_verified=True,  # Pas besoin de vérifier, le magic link fait office
+        id_societe=invitation.id_societe,
+        is_owner=False,
+        can_create_rapports=invitation.can_create_rapports,
+        can_create_clients=invitation.can_create_clients,
+        can_create_devis=invitation.can_create_devis,
+        can_create_factures=invitation.can_create_factures,
+        can_invite=invitation.can_invite,
+        can_edit_societe=invitation.can_edit_societe,
+    )
+    db.add(new_user)
+
+    # 4. Marquer l'invitation comme acceptée
+    invitation.status = "accepted"
+    db.add(invitation)
+
+    await db.commit()
+    await db.refresh(new_user)
+
+    # 5. Envoyer l'email de bienvenue
+    await send_welcome_email(body.email, body.prenom)
+
+    # 6. Générer le token JWT pour auto-login
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": new_user.email}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
+

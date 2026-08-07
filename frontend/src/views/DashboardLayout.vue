@@ -17,8 +17,20 @@ const { isMobileView } = useMobile()
 const isSidebarOpen = ref(false)
 const user = computed(() => {
   const d = dataStore.user.data
-  if (!d) return { prenom: '', nom: '', email: '', role: '' }
-  return { prenom: d.prenom, nom: d.nom, email: d.email, role: d.role || 'USER' }
+  if (!d) return { prenom: '', nom: '', email: '', role: '', is_owner: true, can_create_rapports: true, can_create_devis: true, can_create_factures: true, can_create_clients: true, can_edit_societe: true, can_invite: true }
+  return { 
+    prenom: d.prenom, 
+    nom: d.nom, 
+    email: d.email, 
+    role: d.role || 'USER', 
+    is_owner: d.is_owner !== false,
+    can_create_rapports: d.can_create_rapports !== false,
+    can_create_devis: d.can_create_devis !== false,
+    can_create_factures: d.can_create_factures !== false,
+    can_create_clients: d.can_create_clients !== false,
+    can_edit_societe: d.can_edit_societe === true,
+    can_invite: d.can_invite === true
+  }
 })
 
 const societe = computed(() => {
@@ -65,22 +77,25 @@ function handleLogout() {
         <router-link to="/app/dashboard" class="nav-link">
           <Home class="w-5 h-5" /> Tableau de bord
         </router-link>
-        <router-link to="/app/rapports" class="nav-link">
+        <router-link v-if="user.is_owner || user.can_create_rapports !== false" to="/app/rapports" class="nav-link">
           <BarChart3 class="w-5 h-5" /> Rapports
         </router-link>
-        <router-link to="/app/devis" class="nav-link">
+        <router-link v-if="user.is_owner || user.can_create_devis !== false" to="/app/devis" class="nav-link">
           <FileText class="w-5 h-5" /> Devis
         </router-link>
-        <router-link to="/app/factures" class="nav-link">
+        <router-link v-if="user.is_owner || user.can_create_factures !== false" to="/app/factures" class="nav-link">
           <Receipt class="w-5 h-5" /> Factures
         </router-link>
 
         <p class="nav-section-title mt-8">Administration</p>
-        <router-link to="/app/entreprise" class="nav-link">
+        <router-link v-if="user.is_owner || user.can_edit_societe" to="/app/entreprise" class="nav-link">
           <Building2 class="w-5 h-5" /> Entreprise
         </router-link>
         <router-link to="/app/clients" class="nav-link">
           <Users class="w-5 h-5" /> Clients
+        </router-link>
+        <router-link v-if="user.is_owner || user.can_invite" to="/app/collaborateurs" class="nav-link">
+          <Users class="w-5 h-5" /> Collaborateurs
         </router-link>
 
         <template v-if="user.role === 'ADMIN'">

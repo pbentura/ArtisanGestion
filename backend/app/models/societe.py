@@ -27,4 +27,7 @@ class Societe(Base):
     texte_pied_page = Column(Text, nullable=True)
 
     id_user = Column(Integer, ForeignKey("users.id"))
-    user = relationship("User", back_populates="societes")
+    user = relationship("User", back_populates="societes", foreign_keys=[id_user])
+
+    # Relations équipe
+    invitations = relationship("Invitation", back_populates="societe", cascade="all, delete-orphan")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -23,8 +23,25 @@ class User(Base):
     password_reset_token = Column(String, nullable=True)
     password_reset_expires = Column(DateTime, nullable=True)
 
-    societes = relationship("Societe", back_populates="user", cascade="all, delete-orphan")
+    # Équipe / Collaborateurs
+    id_societe = Column(Integer, ForeignKey("societe.id"), nullable=True)
+    is_owner = Column(Boolean, default=True, nullable=False, server_default="true")
+
+    # Permissions granulaires (pour les collaborateurs)
+    can_create_rapports = Column(Boolean, default=True, nullable=False, server_default="true")
+    can_create_clients = Column(Boolean, default=True, nullable=False, server_default="true")
+    can_create_devis = Column(Boolean, default=True, nullable=False, server_default="true")
+    can_create_factures = Column(Boolean, default=True, nullable=False, server_default="true")
+    can_invite = Column(Boolean, default=False, nullable=False, server_default="false")
+    can_edit_societe = Column(Boolean, default=False, nullable=False, server_default="false")
+
+    # Relations existantes (propriétaire)
+    societes = relationship("Societe", back_populates="user", cascade="all, delete-orphan", foreign_keys="Societe.id_user")
     clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")
     rapports = relationship("Rapport", back_populates="user", cascade="all, delete-orphan")
     devis = relationship("Devis", back_populates="user", cascade="all, delete-orphan")
     factures = relationship("Facture", back_populates="user", cascade="all, delete-orphan")
+
+    # Relation vers la société en tant que membre
+    societe_membre = relationship("Societe", foreign_keys=[id_societe], backref="membres")
+

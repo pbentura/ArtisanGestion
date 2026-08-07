@@ -30,7 +30,8 @@ async def read_clients(
 async def create_client(
     client_in: ClientCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.require_permission("can_create_clients")),
+    _: User = Depends(deps.check_trial_active)
 ):
     """
     Crée un nouveau client pour l'utilisateur connecté.
@@ -63,7 +64,8 @@ async def update_client(
     client_id: int,
     client_in: ClientUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.require_permission("can_create_clients")),
+    _: User = Depends(deps.check_trial_active)
 ):
     """
     Met à jour un client existant.

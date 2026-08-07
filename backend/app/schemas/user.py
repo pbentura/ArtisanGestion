@@ -16,6 +16,18 @@ class UserRead(UserBase):
     id: int
     onboarding_draft: Optional[dict] = None
     date_inscription: Optional[datetime] = None
+    
+    # Équipe
+    id_societe: Optional[int] = None
+    is_owner: bool = True
+    
+    # Permissions
+    can_create_rapports: bool = True
+    can_create_clients: bool = True
+    can_create_devis: bool = True
+    can_create_factures: bool = True
+    can_invite: bool = False
+    can_edit_societe: bool = False
 
     @computed_field
     @property

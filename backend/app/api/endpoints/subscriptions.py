@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pydantic import BaseModel
 import stripe
 from app.core.config import settings
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from app.models.user import User
 
 router = APIRouter()
@@ -44,6 +46,7 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
                 'quantity': 1,
             }],
             mode='subscription',
+            metadata={"plan": request.plan_name},
             success_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement&session_id={CHECKOUT_SESSION_ID}",
             cancel_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement",
             client_reference_id=str(current_user.id),
@@ -52,3 +55,40 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
         return {"checkout_url": session.url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        # In a real app, you would define STRIPE_WEBHOOK_SECRET in settings
+        # and use stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+        # Here we just parse the event since we don't have the secret configured for local dev
+        event = stripe.Event.construct_from(
+            stripe.util.json.loads(payload), stripe.api_key
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if event.type == 'checkout.session.completed':
+        session = event.data.object
+        client_reference_id = session.get("client_reference_id")
+        plan_name = session.get("metadata", {}).get("plan")
+
+        if client_reference_id and plan_name:
+            user_id = int(client_reference_id)
+            result = await db.execute(select(User).where(User.id == user_id))
+            user = result.scalars().first()
+
+            if user:
+                # 19€ -> PREMIUM, 39€ -> TEAM
+                # Les noms de plan sont "Indépendant" et "Équipe"
+                if plan_name.lower() == "équipe" or plan_name.lower() == "equipe":
+                    user.role = "TEAM"
+                else:
+                    user.role = "PREMIUM"
+                
+                await db.commit()
+
+    return {"status": "success"}

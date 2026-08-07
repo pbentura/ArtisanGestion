@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Any
 
-from app.api.deps import get_db, get_current_user, is_admin
+from app.api.deps import get_db, get_current_user, is_admin, get_user_societe_id, require_permission
 from app.models.societe import Societe
 from app.models.user import User
 from app.schemas.societe import SocieteCreate, SocieteRead
@@ -13,13 +13,13 @@ router = APIRouter()
 @router.get("/me", response_model=SocieteRead)
 async def get_my_societe(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    societe_id: int = Depends(get_user_societe_id),
 ) -> Any:
     """
     Récupérer la société de l'utilisateur connecté.
     """
     result = await db.execute(
-        select(Societe).where(Societe.id_user == current_user.id).order_by(Societe.id.desc())
+        select(Societe).where(Societe.id == societe_id)
     )
     societe = result.scalars().first()
     
@@ -35,13 +35,14 @@ async def get_my_societe(
 async def update_my_societe(
     societe_update: SocieteCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("can_edit_societe")),
+    societe_id: int = Depends(get_user_societe_id),
 ) -> Any:
     """
     Mettre à jour la société de l'utilisateur connecté.
     """
     result = await db.execute(
-        select(Societe).where(Societe.id_user == current_user.id).order_by(Societe.id.desc())
+        select(Societe).where(Societe.id == societe_id)
     )
     societe = result.scalars().first()
     
