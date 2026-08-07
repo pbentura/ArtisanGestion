@@ -12,7 +12,7 @@ const lastUpdated = '7 août 2026'
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
-          <span class="font-bold text-lg">Ventura</span>
+          <span class="font-bold text-lg">Artisan<span class="text-primary">Gestion</span></span>
         </div>
         <button
           @click="router.push('/')"
@@ -71,7 +71,7 @@ const lastUpdated = '7 août 2026'
 
       <!-- Footer nav -->
       <div class="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <p>© {{ new Date().getFullYear() }} Ventura. Tous droits réservés.</p>
+        <p>© {{ new Date().getFullYear() }} ArtisanGestion. Tous droits réservés.</p>
         <div class="flex items-center gap-6">
           <router-link to="/legal/terms" class="hover:text-primary transition-colors">CGU</router-link>
           <router-link to="/legal/privacy" class="hover:text-primary transition-colors">Politique de confidentialité</router-link>

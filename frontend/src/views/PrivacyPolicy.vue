@@ -12,7 +12,7 @@ const lastUpdated = '7 avril 2026'
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
-          <span class="font-bold text-lg">Ventura</span>
+          <span class="font-bold text-lg">Artisan<span class="text-primary">Gestion</span></span>
         </div>
         <button
           @click="router.push('/')"
@@ -37,7 +37,7 @@ const lastUpdated = '7 avril 2026'
           </div>
         </div>
         <p class="text-muted-foreground text-lg leading-relaxed max-w-3xl">
-          Chez Ventura, la protection de vos données personnelles est une priorité. Ce document vous explique quelles données nous collectons, pourquoi, et quels sont vos droits conformément au Règlement Général sur la Protection des Données (RGPD – Règlement UE 2016/679).
+          Chez ArtisanGestion, la protection de vos données personnelles est une priorité. Ce document vous explique quelles données nous collectons, pourquoi, et quels sont vos droits conformément au Règlement Général sur la Protection des Données (RGPD – Règlement UE 2016/679).
         </p>
       </div>
     </div>
@@ -55,7 +55,7 @@ const lastUpdated = '7 avril 2026'
           <div class="section-body">
             <p>Le responsable du traitement des données personnelles collectées via la plateforme ArtisanGestion est :</p>
             <div class="info-box">
-              <p><strong>Pinhas BENTURA (Ventura)</strong><br />
+              <p><strong>Pinhas BENTURA (ArtisanGestion)</strong><br />
               Siège social : 19 BOULEVARD JACQUES COPEAU, 95200 SARCELLES<br />
               Email de contact : <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline">pinhasbent@gmail.com</a>
               </p>
@@ -70,7 +70,7 @@ const lastUpdated = '7 avril 2026'
             <h2 class="section-title">2. Données collectées</h2>
           </div>
           <div class="section-body space-y-6">
-            <p>Nous collectons les catégories de données suivantes dans le cadre de l'utilisation de la plateforme Ventura :</p>
+            <p>Nous collectons les catégories de données suivantes dans le cadre de l'utilisation de la plateforme ArtisanGestion :</p>
 
             <div class="data-category">
               <h3 class="data-category-title">2.1 Données de compte utilisateur</h3>
@@ -281,7 +281,7 @@ const lastUpdated = '7 avril 2026'
             <h2 class="section-title">8. Cookies et stockage local</h2>
           </div>
           <div class="section-body space-y-4">
-            <p>Ventura utilise le <strong>stockage local du navigateur (localStorage)</strong>, et non des cookies de tracking, pour :</p>
+            <p>ArtisanGestion utilise le <strong>stockage local du navigateur (localStorage)</strong>, et non des cookies de tracking, pour :</p>
             <ul class="data-list">
               <li>Conserver votre token d'authentification JWT afin de maintenir votre session active</li>
             </ul>
@@ -310,7 +310,7 @@ const lastUpdated = '7 avril 2026'
             <div class="info-box">
               <p>Pour toute question relative à cette politique ou à vos données personnelles :<br />
               📧 <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline font-medium">pinhasbent@gmail.com</a><br />
-              📍 Pinhas BENTURA (Ventura), 19 BOULEVARD JACQUES COPEAU, 95200 SARCELLES
+              📍 Pinhas BENTURA (ArtisanGestion), 19 BOULEVARD JACQUES COPEAU, 95200 SARCELLES
               </p>
             </div>
           </div>
@@ -320,7 +320,7 @@ const lastUpdated = '7 avril 2026'
 
       <!-- Footer nav -->
       <div class="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <p>© {{ new Date().getFullYear() }} Ventura. Tous droits réservés.</p>
+        <p>© {{ new Date().getFullYear() }} ArtisanGestion. Tous droits réservés.</p>
         <div class="flex items-center gap-6">
           <router-link to="/legal/terms" class="hover:text-primary transition-colors">Conditions d'utilisation</router-link>
           <router-link to="/" class="hover:text-primary transition-colors">Retour à l'accueil</router-link>

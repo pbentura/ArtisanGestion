@@ -13,7 +13,7 @@ const effectiveDate = '7 avril 2026'
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
-          <span class="font-bold text-lg">Ventura</span>
+          <span class="font-bold text-lg">Artisan<span class="text-primary">Gestion</span></span>
         </div>
         <button
           @click="router.push('/')"
@@ -40,7 +40,7 @@ const effectiveDate = '7 avril 2026'
         <div class="highlight-box">
           <AlertTriangle class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <p class="text-sm text-foreground leading-relaxed">
-            En créant un compte ou en utilisant la plateforme Ventura, vous acceptez sans réserve les présentes Conditions Générales d'Utilisation. Veuillez les lire attentivement avant toute utilisation du service.
+            En créant un compte ou en utilisant la plateforme ArtisanGestion, vous acceptez sans réserve les présentes Conditions Générales d'Utilisation. Veuillez les lire attentivement avant toute utilisation du service.
           </p>
         </div>
       </div>
@@ -57,7 +57,7 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">1. Présentation du service</h2>
           </div>
           <div class="section-body space-y-3">
-            <p><strong>Ventura</strong> est une plateforme SaaS (Software as a Service) de gestion d'entreprise destinée aux artisans, indépendants et petites et moyennes entreprises (PME) établis principalement en France.</p>
+            <p><strong>ArtisanGestion</strong> est une plateforme SaaS (Software as a Service) de gestion d'entreprise destinée aux artisans, indépendants et petites et moyennes entreprises (PME) établis principalement en France.</p>
             <p>La plateforme permet notamment :</p>
             <ul class="data-list">
               <li>La création et gestion de rapports d'intervention (avec photos, statut, génération de PDF)</li>
@@ -78,7 +78,7 @@ const effectiveDate = '7 avril 2026'
           </div>
           <div class="section-body space-y-4">
             <h3 class="sub-title">2.1 Conditions d'accès</h3>
-            <p>L'accès à Ventura est réservé aux personnes physiques ou morales :</p>
+            <p>L'accès à ArtisanGestion est réservé aux personnes physiques ou morales :</p>
             <ul class="data-list">
               <li>Âgées d'au moins 18 ans ou disposant de la capacité juridique pour s'engager</li>
               <li>Exerçant une activité professionnelle (artisan, commerçant, prestataire de services, PME)</li>
@@ -89,7 +89,7 @@ const effectiveDate = '7 avril 2026'
             <p>Vous pouvez créer un compte de deux manières :</p>
             <ul class="data-list">
               <li><strong>Inscription email/mot de passe :</strong> en fournissant votre nom, prénom, adresse e-mail et un mot de passe sécurisé (minimum 8 caractères).</li>
-              <li><strong>Connexion via Google OAuth :</strong> en autorisant Ventura à accéder aux informations de base de votre compte Google (nom, prénom, e-mail).</li>
+              <li><strong>Connexion via Google OAuth :</strong> en autorisant ArtisanGestion à accéder aux informations de base de votre compte Google (nom, prénom, e-mail).</li>
             </ul>
             <p>Vous êtes responsable de la confidentialité de vos identifiants. Toute utilisation du service avec vos identifiants vous est imputable. En cas de compromission, vous devez nous prévenir immédiatement à <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline">pinhasbent@gmail.com</a>.</p>
 
@@ -142,7 +142,7 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">4. Obligations de l'utilisateur</h2>
           </div>
           <div class="section-body space-y-4">
-            <p>En utilisant Ventura, vous vous engagez à :</p>
+            <p>En utilisant ArtisanGestion, vous vous engagez à :</p>
             <ul class="data-list">
               <li>Fournir des informations exactes, complètes et à jour lors de votre inscription et de l'utilisation du service</li>
               <li>N'utiliser le service qu'à des fins professionnelles légales et légitimes</li>
@@ -155,7 +155,7 @@ const effectiveDate = '7 avril 2026'
             </ul>
             <div class="warning-box">
               <AlertTriangle class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p class="text-sm">En tant qu'utilisateur professionnel, vous êtes responsable de la licéité du traitement des données personnelles de vos propres clients. Ventura agit en tant que <strong>sous-traitant</strong> au sens du RGPD pour ces données.</p>
+              <p class="text-sm">En tant qu'utilisateur professionnel, vous êtes responsable de la licéité du traitement des données personnelles de vos propres clients. ArtisanGestion agit en tant que <strong>sous-traitant</strong> au sens du RGPD pour ces données.</p>
             </div>
           </div>
         </section>
@@ -167,7 +167,7 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">5. Utilisations interdites</h2>
           </div>
           <div class="section-body">
-            <p>Il est strictement interdit d'utiliser Ventura pour :</p>
+            <p>Il est strictement interdit d'utiliser ArtisanGestion pour :</p>
             <ul class="data-list">
               <li>La collecte de données personnelles à des fins non liées à l'exercice de votre activité professionnelle déclarée</li>
               <li>La transmission de contenus illicites, diffamatoires, obscènes ou portant atteinte aux droits de tiers</li>
@@ -187,9 +187,9 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">6. Propriété intellectuelle</h2>
           </div>
           <div class="section-body space-y-3">
-            <p>L'ensemble des éléments composant la plateforme Ventura (code source, design, interface, logos, marques, documentation) est la propriété exclusive de Pinhas BENTURA et est protégé par les lois françaises et européennes relatives à la propriété intellectuelle.</p>
+            <p>L'ensemble des éléments composant la plateforme ArtisanGestion (code source, design, interface, logos, marques, documentation) est la propriété exclusive de Pinhas BENTURA et est protégé par les lois françaises et européennes relatives à la propriété intellectuelle.</p>
             <p>L'utilisation de la plateforme ne vous confère aucun droit de propriété sur ces éléments. Toute reproduction, représentation, modification ou exploitation non autorisée est formellement interdite.</p>
-            <p><strong>Vos données restent les vôtres.</strong> Ventura revendique aucun droit de propriété sur les données que vous créez (rapports, clients, documents). Vous nous accordez uniquement une licence limitée pour héberger, traiter et restituer ces données dans le cadre du service.</p>
+            <p><strong>Vos données restent les vôtres.</strong> ArtisanGestion revendique aucun droit de propriété sur les données que vous créez (rapports, clients, documents). Vous nous accordez uniquement une licence limitée pour héberger, traiter et restituer ces données dans le cadre du service.</p>
           </div>
         </section>
 
@@ -200,7 +200,7 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">7. Disponibilité et niveaux de service</h2>
           </div>
           <div class="section-body space-y-3">
-            <p>Ventura s'efforce de maintenir la plateforme accessible <strong>24h/24 et 7j/7</strong>. Cependant, des interruptions peuvent survenir pour :</p>
+            <p>ArtisanGestion s'efforce de maintenir la plateforme accessible <strong>24h/24 et 7j/7</strong>. Cependant, des interruptions peuvent survenir pour :</p>
             <ul class="data-list">
               <li>Maintenances programmées (annoncées à l'avance, de préférence en dehors des heures ouvrées)</li>
               <li>Mises à jour, correctifs de sécurité ou évolutions fonctionnelles</li>
@@ -218,7 +218,7 @@ const effectiveDate = '7 avril 2026'
           </div>
           <div class="section-body space-y-4">
             <h3 class="sub-title">8.1 Limitation de responsabilité</h3>
-            <p>Dans les limites autorisées par la loi, l'éditeur de Ventura ne saurait être tenu responsable :</p>
+            <p>Dans les limites autorisées par la loi, l'éditeur d'ArtisanGestion ne saurait être tenu responsable :</p>
             <ul class="data-list">
               <li>Des pertes de données résultant d'une utilisation incorrecte du service par l'utilisateur</li>
               <li>Des dommages indirects, pertes de chiffre d'affaires, manque à gagner ou préjudices commerciaux</li>
@@ -237,7 +237,7 @@ const effectiveDate = '7 avril 2026'
 
             <div class="warning-box">
               <AlertTriangle class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p class="text-sm">Ventura n'est pas un logiciel de comptabilité certifié. Les documents générés (devis, factures) doivent être vérifiés par un expert-comptable pour garantir leur conformité fiscale et légale.</p>
+              <p class="text-sm">ArtisanGestion n'est pas un logiciel de comptabilité certifié. Les documents générés (devis, factures) doivent être vérifiés par un expert-comptable pour garantir leur conformité fiscale et légale.</p>
             </div>
           </div>
         </section>
@@ -249,7 +249,7 @@ const effectiveDate = '7 avril 2026'
             <h2 class="section-title">9. Tarifs et facturation</h2>
           </div>
           <div class="section-body space-y-3">
-            <p>Ventura propose actuellement une période d'essai gratuite de <strong>14 jours</strong>, sans engagement et sans carte bancaire requise.</p>
+            <p>ArtisanGestion propose actuellement une période d'essai gratuite de <strong>14 jours</strong>, sans engagement et sans carte bancaire requise.</p>
             <p>Les conditions tarifaires détaillées (plans, prix, modalités de paiement) sont disponibles sur la page <router-link to="/#pricing" class="text-primary hover:underline">Tarifs</router-link> de la plateforme. En cas d'évolution tarifaire, vous serez notifié au moins <strong>30 jours</strong> à l'avance par e-mail.</p>
             <p>Vous pouvez résilier votre abonnement à tout moment depuis votre espace compte. La résiliation prend effet à la fin de la période en cours. Aucun remboursement au prorata n'est accordé pour les périodes déjà facturées, sauf erreur de notre part.</p>
           </div>
@@ -265,7 +265,7 @@ const effectiveDate = '7 avril 2026'
             <h3 class="sub-title">10.1 Résiliation par l'utilisateur</h3>
             <p>Vous pouvez supprimer votre compte à tout moment en contactant notre support à <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline">pinhasbent@gmail.com</a>. La suppression entraîne l'effacement de toutes vos données dans les délais prévus par notre politique de confidentialité, sous réserve des obligations légales de conservation.</p>
 
-            <h3 class="sub-title">10.2 Suspension par Ventura</h3>
+            <h3 class="sub-title">10.2 Suspension par ArtisanGestion</h3>
             <p>L'éditeur se réserve le droit de suspendre ou résilier votre compte, avec ou sans préavis selon la gravité, en cas de :</p>
             <ul class="data-list">
               <li>Violation des présentes CGU</li>
@@ -323,7 +323,7 @@ const effectiveDate = '7 avril 2026'
 
       <!-- Footer nav -->
       <div class="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <p>© {{ new Date().getFullYear() }} Ventura. Tous droits réservés.</p>
+        <p>© {{ new Date().getFullYear() }} ArtisanGestion. Tous droits réservés.</p>
         <div class="flex items-center gap-6">
           <router-link to="/legal/privacy" class="hover:text-primary transition-colors">Politique de confidentialité</router-link>
           <router-link to="/" class="hover:text-primary transition-colors">Retour à l'accueil</router-link>

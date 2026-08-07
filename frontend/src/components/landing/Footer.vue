@@ -45,7 +45,7 @@ const footerSections = [
         <div class="col-span-2">
           <div class="flex items-center gap-3 mb-5">
             <img src="/logo.svg" alt="Logo ArtisanGestion" class="w-10 h-10" />
-            <span class="text-xl font-bold">Ventura</span>
+            <span class="text-xl font-bold">Artisan<span class="text-primary">Gestion</span></span>
           </div>
           <p class="text-secondary-foreground/60 text-sm mb-6 max-w-xs leading-relaxed">
             L'outil tout-en-un pour gérer votre activité d'artisan et PME. Rapports, devis, factures — simplement.
@@ -79,7 +79,7 @@ const footerSections = [
       <div class="border-t border-secondary-foreground/10 py-6">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p class="text-sm text-secondary-foreground/40">
-            © {{ currentYear }} Ventura. Tous droits réservés.
+            © {{ currentYear }} ArtisanGestion. Tous droits réservés.
           </p>
           <p class="text-xs text-secondary-foreground/30">
             Conçu avec ❤️ pour les artisans français
