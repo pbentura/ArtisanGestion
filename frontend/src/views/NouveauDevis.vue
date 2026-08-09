@@ -949,7 +949,7 @@ async function unlinkRapport() {
                 <template v-else><CheckCircle2 class="w-4 h-4" /></template>
                 <span>{{ devis.statut === 'envoyé' ? 'Brouillon' : 'Envoyer' }}</span>
               </button>
-              <button @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devisId}`)" class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium">
+              <button v-if="devis.statut !== 'facturé'" @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devisId}`)" class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium">
                 <Receipt class="w-5 h-5" />
                 <span>Facturer</span>
               </button>
@@ -988,6 +988,7 @@ async function unlinkRapport() {
           </button>
 
           <button
+            v-if="devis.statut !== 'facturé'"
             @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devisId}`)"
             class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium whitespace-nowrap"
           >

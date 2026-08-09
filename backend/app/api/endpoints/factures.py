@@ -109,6 +109,11 @@ async def create_facture(
     # Si la facture est créée directement comme validée, on lui donne un numéro séquentiel
     if db_facture.statut == "validée":
         db_facture.numero_facture = await get_next_invoice_number(db, societe_id, is_avoir=db_facture.est_avoir)
+        if db_facture.id_devis and not getattr(db_facture, 'est_acompte', False):
+            devis_result = await db.execute(select(Devis).where(Devis.id == db_facture.id_devis))
+            devis_obj = devis_result.scalars().first()
+            if devis_obj:
+                devis_obj.statut = "facturé"
 
     db.add(db_facture)
     await db.commit()
@@ -174,6 +179,8 @@ async def create_facture_from_devis(
     # Si validée, numéro séquentiel
     if db_facture.statut == "validée":
         db_facture.numero_facture = await get_next_invoice_number(db, societe_id)
+        if not getattr(db_facture, 'est_acompte', False):
+            db_devis.statut = "facturé"
 
     # Copier les lignes du devis
     for ligne_devis in db_devis.lignes:
@@ -438,6 +445,12 @@ async def update_facture(
     # Gestion de la transition vers "validée" pour attribuer le numéro séquentiel
     if "statut" in update_data and update_data["statut"] == "validée" and db_facture.statut == "brouillon":
         db_facture.numero_facture = await get_next_invoice_number(db, societe_id, is_avoir=db_facture.est_avoir)
+        
+        if db_facture.id_devis and not getattr(db_facture, 'est_acompte', False):
+            devis_result = await db.execute(select(Devis).where(Devis.id == db_facture.id_devis))
+            devis_obj = devis_result.scalars().first()
+            if devis_obj:
+                devis_obj.statut = "facturé"
 
     for field, value in update_data.items():
         setattr(db_facture, field, value)

@@ -354,6 +354,7 @@ onMounted(fetchDevis)
             </button>
 
             <button
+              v-if="devis.statut !== 'facturé'"
               @click.stop="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devis.id}`)"
               class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200"
               title="Facturer ce devis"
