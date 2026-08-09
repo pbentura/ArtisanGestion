@@ -529,7 +529,7 @@ onMounted(fetchDevis)
       :is-open="showAcompteModal"
       :devis="acompteDevis"
       @close="showAcompteModal = false"
-      @success="(id) => { showAcompteModal = false; fetchDevis(); }"
+      @success="() => { showAcompteModal = false; fetchDevis(); }"
     />
   </div>
 </template>
