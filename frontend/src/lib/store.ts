@@ -12,7 +12,7 @@ export const uiStore = reactive({
   subscriptionModalContext: {
     badge: "Période d'essai terminée",
     title: "Passez à la vitesse supérieure",
-    description: "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de Ventura.",
+    description: "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de ArtisanGestion.",
     hideTrialBadge: false
   },
   openSubscriptionModal(context?: { badge?: string, title?: string, description?: string, hideTrialBadge?: boolean }) {
@@ -20,14 +20,14 @@ export const uiStore = reactive({
       this.subscriptionModalContext = {
         badge: context.badge || "Période d'essai terminée",
         title: context.title || "Passez à la vitesse supérieure",
-        description: context.description || "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de Ventura.",
+        description: context.description || "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de ArtisanGestion.",
         hideTrialBadge: context.hideTrialBadge || false
       }
     } else {
       this.subscriptionModalContext = {
         badge: "Période d'essai terminée",
         title: "Passez à la vitesse supérieure",
-        description: "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de Ventura.",
+        description: "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de ArtisanGestion.",
         hideTrialBadge: false
       }
     }

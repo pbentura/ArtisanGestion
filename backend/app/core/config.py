@@ -6,11 +6,11 @@ load_dotenv(find_dotenv())
 
 class Settings:
     PROJECT_NAME: str = "ArtisanGestion API"
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "ventura")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "ventura")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "artisangestion")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "artisangestion")
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "ventura")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "artisangestion")
     
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 

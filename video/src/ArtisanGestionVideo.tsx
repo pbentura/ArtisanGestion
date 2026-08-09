@@ -15,7 +15,7 @@ import { Scene5CTA } from "./scenes/Scene5CTA";
 
 export const ArtisanGestionVideo: React.FC = () => {
   return (
-    <AbsoluteFill className="bg-ventura-slate-50 font-sans">
+    <AbsoluteFill className="bg-artisangestion-slate-50 font-sans">
       <Sequence durationInFrames={165}>
         <Scene1Intro />
       </Sequence>

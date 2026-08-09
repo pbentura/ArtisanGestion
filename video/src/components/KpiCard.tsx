@@ -22,7 +22,7 @@ export const KpiCard: React.FC<{
   icon,
   iconBg,
   subText,
-  subColor = "text-ventura-slate-500",
+  subColor = "text-artisangestion-slate-500",
   delay,
   animateValue = false,
   targetNumber,
@@ -60,7 +60,7 @@ export const KpiCard: React.FC<{
         transform: `translateY(${translateY}px)`,
         opacity,
       }}
-      className="bg-white rounded-2xl border border-ventura-slate-200 p-6 flex items-start gap-5 shadow-sm"
+      className="bg-white rounded-2xl border border-artisangestion-slate-200 p-6 flex items-start gap-5 shadow-sm"
     >
       <div
         className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}
@@ -68,10 +68,10 @@ export const KpiCard: React.FC<{
         {icon}
       </div>
       <div className="flex flex-col gap-1 min-w-0">
-        <span className="text-xs font-semibold text-ventura-slate-500 uppercase tracking-widest">
+        <span className="text-xs font-semibold text-artisangestion-slate-500 uppercase tracking-widest">
           {label}
         </span>
-        <span className="text-3xl font-extrabold text-ventura-slate-900 tracking-tight leading-tight">
+        <span className="text-3xl font-extrabold text-artisangestion-slate-900 tracking-tight leading-tight">
           {displayValue}
         </span>
         <span className={`text-xs font-medium flex items-center gap-1 ${subColor}`}>

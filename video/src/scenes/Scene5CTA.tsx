@@ -6,7 +6,7 @@ import {
   spring,
   interpolate,
 } from "remotion";
-import { VenturaLogo } from "../components/VenturaLogo";
+import { ArtisanGestionLogo } from "../components/ArtisanGestionLogo";
 
 // Scene 5 — Appel à l'action (33–40s / 210 frames within sequence)
 
@@ -104,7 +104,7 @@ export const Scene5CTA: React.FC = () => {
       {/* Content */}
       <AbsoluteFill className="flex flex-col items-center justify-center gap-8">
         {/* Logo */}
-        <VenturaLogo size={120} delay={logoDelay} white showText />
+        <ArtisanGestionLogo size={120} delay={logoDelay} white showText />
 
         {/* Tagline */}
         <div
@@ -135,7 +135,7 @@ export const Scene5CTA: React.FC = () => {
             className="flex items-center gap-3 bg-white rounded-full px-10 py-5 shadow-2xl"
             style={{ boxShadow: "0 0 0 0 rgba(255,255,255,0.2), 0 20px 60px rgba(0,0,0,0.3)" }}
           >
-            <span className="text-ventura-blue text-xl font-extrabold tracking-tight">
+            <span className="text-artisangestion-blue text-xl font-extrabold tracking-tight">
               Commencer gratuitement
             </span>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

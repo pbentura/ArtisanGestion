@@ -8,7 +8,7 @@ import {
 } from "remotion";
 import { KpiCard } from "../components/KpiCard";
 import { BrowserFrame } from "../components/BrowserFrame";
-import { VenturaLogo } from "../components/VenturaLogo";
+import { ArtisanGestionLogo } from "../components/ArtisanGestionLogo";
 
 // Scene 2 — Tableau de bord web (5–15.5s / 315 frames within sequence)
 // Fidèle au vrai Dashboard.vue : header + shortcuts, 4 KPIs, évolution CA,
@@ -36,17 +36,17 @@ const Sidebar: React.FC<{ delay: number }> = ({ delay }) => {
   return (
     <div
       style={{ opacity, transform: `translateX(${slideX}px)` }}
-      className="w-[240px] bg-white border-r border-ventura-slate-200 flex flex-col"
+      className="w-[240px] bg-white border-r border-artisangestion-slate-200 flex flex-col"
     >
-      <div className="px-5 pt-6 pb-5 flex items-center gap-2.5 border-b border-ventura-slate-100">
-        <VenturaLogo size={32} delay={delay + 5} showText={false} />
-        <span className="font-extrabold text-ventura-slate-900 tracking-tight text-[17px]">
-          Artisan<span className="text-ventura-blue">Gestion</span>
+      <div className="px-5 pt-6 pb-5 flex items-center gap-2.5 border-b border-artisangestion-slate-100">
+        <ArtisanGestionLogo size={32} delay={delay + 5} showText={false} />
+        <span className="font-extrabold text-artisangestion-slate-900 tracking-tight text-[17px]">
+          Artisan<span className="text-artisangestion-blue">Gestion</span>
         </span>
       </div>
 
       <div className="p-4 pt-5 flex-1">
-        <span className="text-[10px] font-bold text-ventura-slate-400 uppercase tracking-widest px-3">
+        <span className="text-[10px] font-bold text-artisangestion-slate-400 uppercase tracking-widest px-3">
           Menu Principal
         </span>
         <div className="mt-3 flex flex-col gap-1">
@@ -54,7 +54,7 @@ const Sidebar: React.FC<{ delay: number }> = ({ delay }) => {
             <div
               key={item.label}
               className={`px-3 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 ${
-                item.active ? "bg-ventura-blue text-white shadow-md shadow-ventura-blue/30" : "text-ventura-slate-500"
+                item.active ? "bg-artisangestion-blue text-white shadow-md shadow-artisangestion-blue/30" : "text-artisangestion-slate-500"
               }`}
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -65,11 +65,11 @@ const Sidebar: React.FC<{ delay: number }> = ({ delay }) => {
           ))}
         </div>
 
-        <span className="text-[10px] font-bold text-ventura-slate-400 uppercase tracking-widest px-3 mt-6 block">
+        <span className="text-[10px] font-bold text-artisangestion-slate-400 uppercase tracking-widest px-3 mt-6 block">
           Configuration
         </span>
         <div className="mt-3 flex flex-col gap-1">
-          <div className="px-3 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 text-ventura-slate-500">
+          <div className="px-3 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 text-artisangestion-slate-500">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 21h18 M5 21V7l8-4v18 M19 21V11l-6-4" />
             </svg>
@@ -78,14 +78,14 @@ const Sidebar: React.FC<{ delay: number }> = ({ delay }) => {
         </div>
       </div>
 
-      <div className="mt-auto p-4 border-t border-ventura-slate-200 bg-ventura-slate-50">
+      <div className="mt-auto p-4 border-t border-artisangestion-slate-200 bg-artisangestion-slate-50">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-ventura-blue text-white flex items-center justify-center text-xs font-bold shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-artisangestion-blue text-white flex items-center justify-center text-xs font-bold shadow-sm">
             PM
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-bold text-ventura-slate-900 truncate">Pierre Martin</div>
-            <div className="text-[10px] text-ventura-slate-500 truncate">Martin Plomberie</div>
+            <div className="text-xs font-bold text-artisangestion-slate-900 truncate">Pierre Martin</div>
+            <div className="text-[10px] text-artisangestion-slate-500 truncate">Martin Plomberie</div>
           </div>
         </div>
       </div>
@@ -103,27 +103,27 @@ const TopHeader: React.FC<{ delay: number }> = ({ delay }) => {
   return (
     <div
       style={{ opacity }}
-      className="h-[56px] px-7 border-b border-ventura-slate-200 flex items-center justify-between bg-white"
+      className="h-[56px] px-7 border-b border-artisangestion-slate-200 flex items-center justify-between bg-white"
     >
       <div className="flex items-center gap-3">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
         </svg>
-        <span className="text-base font-bold text-ventura-slate-900">Tableau de bord</span>
+        <span className="text-base font-bold text-artisangestion-slate-900">Tableau de bord</span>
       </div>
       <div className="flex items-center gap-4">
         <div className="relative">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
-          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-ventura-danger border-2 border-white" />
+          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-artisangestion-danger border-2 border-white" />
         </div>
-        <div className="w-9 h-9 rounded-full bg-ventura-slate-100 flex items-center justify-center">
+        <div className="w-9 h-9 rounded-full bg-artisangestion-slate-100 flex items-center justify-center">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
           </svg>
         </div>
-        <div className="bg-ventura-blue text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm">
+        <div className="bg-artisangestion-blue text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm">
           Mon compte
         </div>
       </div>
@@ -152,16 +152,16 @@ const WelcomeHeader: React.FC<{ delay: number }> = ({ delay }) => {
       className="flex items-start justify-between gap-4 mb-5"
     >
       <div>
-        <h2 className="text-[28px] font-extrabold text-ventura-slate-900 tracking-tight leading-tight">
+        <h2 className="text-[28px] font-extrabold text-artisangestion-slate-900 tracking-tight leading-tight">
           Bienvenue, Pierre
         </h2>
-        <p className="text-sm text-ventura-slate-500 mt-1">
-          Vue d'ensemble de <strong className="text-ventura-slate-900">Martin Plomberie</strong>
+        <p className="text-sm text-artisangestion-slate-500 mt-1">
+          Vue d'ensemble de <strong className="text-artisangestion-slate-900">Martin Plomberie</strong>
         </p>
       </div>
       <div className="flex gap-2">
         {shortcuts.map((s) => (
-          <div key={s.label} className="flex items-center gap-1.5 bg-ventura-blue text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow-sm">
+          <div key={s.label} className="flex items-center gap-1.5 bg-artisangestion-blue text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow-sm">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d={s.icon} />
             </svg>
@@ -200,13 +200,13 @@ const EvolutionChart: React.FC<{ delay: number }> = ({ delay }) => {
   return (
     <div
       style={{ opacity: cardAppear, transform: `translateY(${cardY}px)` }}
-      className="bg-white border border-ventura-slate-200 rounded-2xl p-6 shadow-sm"
+      className="bg-white border border-artisangestion-slate-200 rounded-2xl p-6 shadow-sm"
     >
       <div className="flex items-center gap-2 mb-4">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" />
         </svg>
-        <span className="text-sm font-bold text-ventura-slate-900">Évolution du CA (6 mois)</span>
+        <span className="text-sm font-bold text-artisangestion-slate-900">Évolution du CA (6 mois)</span>
       </div>
 
       <svg viewBox="0 0 420 200" preserveAspectRatio="xMidYMid meet" className="w-full">
@@ -280,13 +280,13 @@ const TopClients: React.FC<{ delay: number }> = ({ delay }) => {
   return (
     <div
       style={{ opacity: cardAppear }}
-      className="bg-white border border-ventura-slate-200 rounded-2xl p-6 shadow-sm"
+      className="bg-white border border-artisangestion-slate-200 rounded-2xl p-6 shadow-sm"
     >
       <div className="flex items-center gap-2 mb-4">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
         </svg>
-        <span className="text-sm font-bold text-ventura-slate-900">Top 5 Clients</span>
+        <span className="text-sm font-bold text-artisangestion-slate-900">Top 5 Clients</span>
       </div>
 
       <div className="flex flex-col gap-3.5">
@@ -304,12 +304,12 @@ const TopClients: React.FC<{ delay: number }> = ({ delay }) => {
 
           return (
             <div key={c.name} style={{ opacity: rowOpacity }} className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-ventura-slate-100 text-ventura-slate-900 flex items-center justify-center text-xs font-extrabold flex-shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-artisangestion-slate-100 text-artisangestion-slate-900 flex items-center justify-center text-xs font-extrabold flex-shrink-0">
                 {idx + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-ventura-slate-900 mb-1 truncate">{c.name}</div>
-                <div className="w-full h-1.5 bg-ventura-slate-100 rounded-full overflow-hidden">
+                <div className="text-xs font-semibold text-artisangestion-slate-900 mb-1 truncate">{c.name}</div>
+                <div className="w-full h-1.5 bg-artisangestion-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{
@@ -319,7 +319,7 @@ const TopClients: React.FC<{ delay: number }> = ({ delay }) => {
                   />
                 </div>
               </div>
-              <span className="text-xs font-bold text-ventura-slate-900 whitespace-nowrap">
+              <span className="text-xs font-bold text-artisangestion-slate-900 whitespace-nowrap">
                 {c.ca.toLocaleString("fr-FR")} €
               </span>
             </div>
@@ -348,13 +348,13 @@ const FacturesImpayees: React.FC<{ delay: number }> = ({ delay }) => {
   return (
     <div
       style={{ opacity: cardAppear }}
-      className="bg-white border border-ventura-slate-200 rounded-2xl p-6 shadow-sm"
+      className="bg-white border border-artisangestion-slate-200 rounded-2xl p-6 shadow-sm"
     >
       <div className="flex items-center gap-2 mb-4">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 2v20l4-2 4 2 4-2 4 2V2l-4 2-4-2-4 2z" /><line x1="8" y1="10" x2="16" y2="10" /><line x1="8" y1="14" x2="14" y2="14" />
         </svg>
-        <span className="text-sm font-bold text-ventura-slate-900">Factures impayées</span>
+        <span className="text-sm font-bold text-artisangestion-slate-900">Factures impayées</span>
       </div>
 
       <div className="flex flex-col gap-1">
@@ -374,14 +374,14 @@ const FacturesImpayees: React.FC<{ delay: number }> = ({ delay }) => {
               className="flex items-center justify-between py-3 px-3.5 rounded-xl"
             >
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-sm font-bold text-ventura-slate-900">{f.num}</span>
-                <span className="text-xs text-ventura-slate-500">{f.client}</span>
+                <span className="text-sm font-bold text-artisangestion-slate-900">{f.num}</span>
+                <span className="text-xs text-artisangestion-slate-500">{f.client}</span>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <span className="text-sm font-bold text-ventura-slate-900">
+                <span className="text-sm font-bold text-artisangestion-slate-900">
                   {f.amount.toLocaleString("fr-FR")},00 €
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-ventura-danger">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-artisangestion-danger">
                   {f.retard}j de retard
                 </span>
               </div>
@@ -421,13 +421,13 @@ const ConversionDonut: React.FC<{ delay: number }> = ({ delay }) => {
   return (
     <div
       style={{ opacity: cardAppear }}
-      className="bg-white border border-ventura-slate-200 rounded-2xl p-6 shadow-sm flex flex-col"
+      className="bg-white border border-artisangestion-slate-200 rounded-2xl p-6 shadow-sm flex flex-col"
     >
       <div className="flex items-center gap-2 mb-3">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
         </svg>
-        <span className="text-sm font-bold text-ventura-slate-900">Taux de conversion</span>
+        <span className="text-sm font-bold text-artisangestion-slate-900">Taux de conversion</span>
       </div>
 
       <div className="flex justify-center mb-3">
@@ -447,7 +447,7 @@ const ConversionDonut: React.FC<{ delay: number }> = ({ delay }) => {
         </svg>
       </div>
 
-      <div className="flex flex-col gap-2.5 border-t border-ventura-slate-200 pt-3">
+      <div className="flex flex-col gap-2.5 border-t border-artisangestion-slate-200 pt-3">
         {rapports.map((r) => {
           const rowOpacity = interpolate(frame - delay - 30, [0, 12], [0, 1], {
             extrapolateLeft: "clamp",
@@ -458,8 +458,8 @@ const ConversionDonut: React.FC<{ delay: number }> = ({ delay }) => {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={r.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
               </svg>
-              <span className="flex-1 text-ventura-slate-500 font-medium">{r.label}</span>
-              <span className="font-extrabold text-ventura-slate-900">{r.value}</span>
+              <span className="flex-1 text-artisangestion-slate-500 font-medium">{r.label}</span>
+              <span className="font-extrabold text-artisangestion-slate-900">{r.value}</span>
             </div>
           );
         })}
@@ -485,7 +485,7 @@ const OverlayText: React.FC<{ delay: number }> = ({ delay }) => {
       }}
       className="flex justify-center"
     >
-      <div className="bg-ventura-blue/95 backdrop-blur-sm px-10 py-5 rounded-2xl shadow-2xl">
+      <div className="bg-artisangestion-blue/95 backdrop-blur-sm px-10 py-5 rounded-2xl shadow-2xl">
         <span className="text-white text-3xl font-extrabold tracking-tight">
           Votre entreprise, sous contrôle.
         </span>
@@ -505,7 +505,7 @@ export const Scene2Dashboard: React.FC = () => {
   const exitOpacity = interpolate(frame, [295, 315], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
-    <AbsoluteFill style={{ opacity: sceneOpacity * exitOpacity }} className="bg-ventura-slate-100 flex items-center justify-center">
+    <AbsoluteFill style={{ opacity: sceneOpacity * exitOpacity }} className="bg-artisangestion-slate-100 flex items-center justify-center">
       <div
         className="absolute inset-0"
         style={{ background: "radial-gradient(ellipse at top left, rgba(37, 99, 235, 0.07) 0%, transparent 60%)" }}
@@ -534,7 +534,7 @@ export const Scene2Dashboard: React.FC = () => {
                     }
                     iconBg="bg-blue-50"
                     subText="↗ 18% vs mois précédent"
-                    subColor="text-ventura-success"
+                    subColor="text-artisangestion-success"
                     delay={30}
                   />
                   <KpiCard
@@ -559,7 +559,7 @@ export const Scene2Dashboard: React.FC = () => {
                     }
                     iconBg="bg-red-50"
                     subText="1 480 € à recouvrer"
-                    subColor="text-ventura-danger"
+                    subColor="text-artisangestion-danger"
                     delay={54}
                   />
                   <KpiCard

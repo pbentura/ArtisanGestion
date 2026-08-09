@@ -6,7 +6,7 @@ import {
   spring,
   interpolate,
 } from "remotion";
-import { VenturaLogo } from "../components/VenturaLogo";
+import { ArtisanGestionLogo } from "../components/ArtisanGestionLogo";
 
 // Scene 1 — Intro / Problématique (0–5.5s / 165 frames)
 // Chaotic floating admin icons → blue sweep reveal → ArtisanGestion logo
@@ -109,7 +109,7 @@ export const Scene1Intro: React.FC = () => {
   const exitOpacity = interpolate(frame, [148, 165], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
-    <AbsoluteFill className="bg-ventura-slate-50 overflow-hidden" style={{ opacity: exitOpacity }}>
+    <AbsoluteFill className="bg-artisangestion-slate-50 overflow-hidden" style={{ opacity: exitOpacity }}>
       {/* Background dotted grid */}
       <AbsoluteFill style={{ opacity: 0.03 }}>
         <div
@@ -135,13 +135,13 @@ export const Scene1Intro: React.FC = () => {
       <AbsoluteFill className="flex flex-col items-center justify-center gap-4 px-8">
         <h1
           style={{ opacity: text1Opacity * (1 - sweep), transform: `translateY(${text1Y}px)` }}
-          className="text-6xl font-extrabold text-ventura-slate-900 tracking-tight text-center"
+          className="text-6xl font-extrabold text-artisangestion-slate-900 tracking-tight text-center"
         >
           Encore sur vos factures
         </h1>
         <h1
           style={{ opacity: text2Opacity * (1 - sweep), transform: `translateY(${text2Y}px)` }}
-          className="text-6xl font-extrabold text-ventura-blue tracking-tight text-center"
+          className="text-6xl font-extrabold text-artisangestion-blue tracking-tight text-center"
         >
           à cette heure-ci ?
         </h1>
@@ -164,11 +164,11 @@ export const Scene1Intro: React.FC = () => {
       {/* Logo + tagline reveal */}
       <AbsoluteFill style={{ opacity: logoOpacity, zIndex: 60 }} className="flex flex-col items-center justify-center gap-10">
         <div style={{ transform: `scale(${logoScale})` }}>
-          <VenturaLogo size={130} delay={sweepStart + 12} showText />
+          <ArtisanGestionLogo size={130} delay={sweepStart + 12} showText />
         </div>
         <div
           style={{ opacity: taglineOpacity, transform: `translateY(${taglineY}px)` }}
-          className="text-3xl font-bold text-ventura-slate-500 tracking-tight"
+          className="text-3xl font-bold text-artisangestion-slate-500 tracking-tight"
         >
           La gestion simplifiée pour artisans & PME.
         </div>

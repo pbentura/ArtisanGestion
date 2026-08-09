@@ -8,8 +8,8 @@ services:
     env_file:
       - .env.production
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ventura_db}
-      POSTGRES_USER: ${POSTGRES_USER:-ventura}
+      POSTGRES_DB: ${POSTGRES_DB:-artisangestion_db}
+      POSTGRES_USER: ${POSTGRES_USER:-artisangestion}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Poulet5*}
     ports:
       - "5432:5432"

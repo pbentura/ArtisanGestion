@@ -6,10 +6,10 @@ import {
   interpolate,
 } from "remotion";
 
-// VenturaLogo - High-fidelity implementation of the real logo from video/public/logo.svg
+// ArtisanGestionLogo - High-fidelity implementation of the real logo from video/public/logo.svg
 // Allows for individual part animation and perfect rendering
 
-export const VenturaLogo: React.FC<{
+export const ArtisanGestionLogo: React.FC<{
   size?: number;
   delay?: number;
   showText?: boolean;

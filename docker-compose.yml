@@ -1,14 +1,14 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: ventura-db-dev
+    container_name: artisangestion-db-dev
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ventura_dev_db}
-      POSTGRES_USER: ${POSTGRES_USER:-ventura_dev}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ventura_dev_pwd}
+      POSTGRES_DB: ${POSTGRES_DB:-artisangestion_dev_db}
+      POSTGRES_USER: ${POSTGRES_USER:-artisangestion_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-artisangestion_dev_pwd}
     ports:
       - "5432:5432"
     volumes:
@@ -20,7 +20,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: ventura-backend-dev
+    container_name: artisangestion-backend-dev
     restart: unless-stopped
     ports:
       - "8000:8000"

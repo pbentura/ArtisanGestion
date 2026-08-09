@@ -33,10 +33,10 @@ export const BrowserFrame: React.FC<{
         width,
         height,
       }}
-      className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-ventura-slate-200 flex flex-col"
+      className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-artisangestion-slate-200 flex flex-col"
     >
       {/* Browser top bar */}
-      <div className="bg-ventura-slate-100 px-5 py-3 flex items-center gap-3 border-b border-ventura-slate-200">
+      <div className="bg-artisangestion-slate-100 px-5 py-3 flex items-center gap-3 border-b border-artisangestion-slate-200">
         {/* Traffic lights */}
         <div className="flex gap-2">
           <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
@@ -44,12 +44,12 @@ export const BrowserFrame: React.FC<{
           <div className="w-3 h-3 rounded-full bg-[#28C840]" />
         </div>
         {/* URL bar */}
-        <div className="flex-1 mx-4 bg-white rounded-md px-4 py-1.5 flex items-center gap-2 border border-ventura-slate-200 shadow-sm">
+        <div className="flex-1 mx-4 bg-white rounded-md px-4 py-1.5 flex items-center gap-2 border border-artisangestion-slate-200 shadow-sm">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span className="text-xs font-medium text-ventura-slate-500">{url}</span>
+          <span className="text-xs font-medium text-artisangestion-slate-500">{url}</span>
         </div>
       </div>
 

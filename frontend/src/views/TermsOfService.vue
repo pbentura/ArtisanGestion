@@ -312,7 +312,7 @@ const effectiveDate = '7 avril 2026'
               <p>Pour toute question relative aux présentes CGU ou à l'utilisation du service :<br /><br />
               📧 Support général : <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline font-medium">pinhasbent@gmail.com</a><br />
               🔒 Questions juridiques / RGPD : <a href="mailto:pinhasbent@gmail.com" class="text-primary hover:underline font-medium">pinhasbent@gmail.com</a><br />
-<!--              🛡️ Signalement de sécurité : <a href="mailto:security@ventura.app" class="text-primary hover:underline font-medium">security@ventura.app</a><br />-->
+<!--              🛡️ Signalement de sécurité : <a href="mailto:security@artisangestion.app" class="text-primary hover:underline font-medium">security@artisangestion.app</a><br />-->
               📍 Pinhas BENTURA, 19 BOULEVARD JACQUES COPEAU, 95200 SARCELLES
               </p>
             </div>

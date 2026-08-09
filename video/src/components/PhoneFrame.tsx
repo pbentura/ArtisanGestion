@@ -32,7 +32,7 @@ export const PhoneFrame: React.FC<{
     >
       {/* Phone body */}
       <div
-        className="relative bg-ventura-slate-900 rounded-[48px] p-3 shadow-2xl"
+        className="relative bg-artisangestion-slate-900 rounded-[48px] p-3 shadow-2xl"
         style={{
           width: 380,
           height: 780,
@@ -41,8 +41,8 @@ export const PhoneFrame: React.FC<{
         }}
       >
         {/* Notch */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[140px] h-[32px] bg-ventura-slate-900 rounded-b-2xl z-10 flex items-center justify-center">
-          <div className="w-16 h-4 bg-ventura-slate-800 rounded-full" />
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[140px] h-[32px] bg-artisangestion-slate-900 rounded-b-2xl z-10 flex items-center justify-center">
+          <div className="w-16 h-4 bg-artisangestion-slate-800 rounded-full" />
         </div>
 
         {/* Screen */}

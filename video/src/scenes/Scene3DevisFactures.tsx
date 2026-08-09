@@ -28,14 +28,14 @@ const FeaturePoint: React.FC<{
         opacity: interpolate(appear, [0, 1], [0, 1]),
         transform: `translateX(${interpolate(appear, [0, 1], [-25, 0])}px)`,
       }}
-      className="flex items-center gap-4 bg-white p-5 rounded-2xl shadow-md border border-ventura-slate-100"
+      className="flex items-center gap-4 bg-white p-5 rounded-2xl shadow-md border border-artisangestion-slate-100"
     >
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${bg}`} style={{ color }}>
         {icon}
       </div>
       <div>
-        <p className="font-bold text-ventura-slate-900 text-lg leading-tight">{title}</p>
-        <p className="text-sm text-ventura-slate-500">{sub}</p>
+        <p className="font-bold text-artisangestion-slate-900 text-lg leading-tight">{title}</p>
+        <p className="text-sm text-artisangestion-slate-500">{sub}</p>
       </div>
     </div>
   );
@@ -55,12 +55,12 @@ const LineItem: React.FC<{ delay: number; desc: string; qty: number; pu: number;
         opacity: interpolate(appear, [0, 1], [0, 1]),
         transform: `translateY(${interpolate(appear, [0, 1], [10, 0])}px)`,
       }}
-      className="grid grid-cols-12 gap-2 py-2.5 border-b border-ventura-slate-100 text-xs items-center"
+      className="grid grid-cols-12 gap-2 py-2.5 border-b border-artisangestion-slate-100 text-xs items-center"
     >
-      <div className="col-span-6 font-semibold text-ventura-slate-900">{desc}</div>
-      <div className="col-span-2 text-center text-ventura-slate-500">{qty}</div>
-      <div className="col-span-2 text-right text-ventura-slate-500">{pu.toLocaleString("fr-FR")} €</div>
-      <div className="col-span-2 text-right font-bold text-ventura-slate-900">{total} €</div>
+      <div className="col-span-6 font-semibold text-artisangestion-slate-900">{desc}</div>
+      <div className="col-span-2 text-center text-artisangestion-slate-500">{qty}</div>
+      <div className="col-span-2 text-right text-artisangestion-slate-500">{pu.toLocaleString("fr-FR")} €</div>
+      <div className="col-span-2 text-right font-bold text-artisangestion-slate-900">{total} €</div>
     </div>
   );
 };
@@ -79,7 +79,7 @@ const Signature: React.FC<{ delay: number }> = ({ delay }) => {
 
   return (
     <div className="flex items-center gap-4 mt-5">
-      <div className="relative w-[180px] h-[60px] border-b-2 border-dashed border-ventura-slate-300">
+      <div className="relative w-[180px] h-[60px] border-b-2 border-dashed border-artisangestion-slate-300">
         <svg width="180" height="60" viewBox="0 0 60 50" className="absolute inset-0">
           <path
             d={path}
@@ -95,7 +95,7 @@ const Signature: React.FC<{ delay: number }> = ({ delay }) => {
           />
         </svg>
       </div>
-      <span className="text-xs text-ventura-slate-400 font-medium">Signature du client</span>
+      <span className="text-xs text-artisangestion-slate-400 font-medium">Signature du client</span>
     </div>
   );
 };
@@ -103,11 +103,11 @@ const Signature: React.FC<{ delay: number }> = ({ delay }) => {
 const Document: React.FC<{ isInvoice: boolean; morphProgress: number }> = ({ isInvoice, morphProgress }) => {
   return (
     <div
-      className="bg-white rounded-2xl shadow-2xl border border-ventura-slate-200 w-full overflow-hidden flex flex-col"
+      className="bg-white rounded-2xl shadow-2xl border border-artisangestion-slate-200 w-full overflow-hidden flex flex-col"
       style={{ height: 720, transform: `translateX(${interpolate(morphProgress, [0, 1], [0, -30])}px)` }}
     >
       {/* Document header */}
-      <div className="px-10 py-6 flex items-start justify-between border-b border-ventura-slate-100">
+      <div className="px-10 py-6 flex items-start justify-between border-b border-artisangestion-slate-100">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <div
@@ -117,8 +117,8 @@ const Document: React.FC<{ isInvoice: boolean; morphProgress: number }> = ({ isI
               M
             </div>
             <div>
-              <div className="font-extrabold text-ventura-slate-900 text-lg leading-tight">Martin Plomberie</div>
-              <div className="text-[11px] text-ventura-slate-500">15 rue de l'Eau • 75011 Paris</div>
+              <div className="font-extrabold text-artisangestion-slate-900 text-lg leading-tight">Martin Plomberie</div>
+              <div className="text-[11px] text-artisangestion-slate-500">15 rue de l'Eau • 75011 Paris</div>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ const Document: React.FC<{ isInvoice: boolean; morphProgress: number }> = ({ isI
           >
             {isInvoice ? "FACTURE" : "DEVIS"}
           </div>
-          <div className="text-xs text-ventura-slate-500 font-mono mt-0.5">
+          <div className="text-xs text-artisangestion-slate-500 font-mono mt-0.5">
             {isInvoice ? "F-2026-0042" : "D-2026-0017"}
           </div>
         </div>
@@ -138,22 +138,22 @@ const Document: React.FC<{ isInvoice: boolean; morphProgress: number }> = ({ isI
       {/* Meta */}
       <div className="px-10 py-4 flex justify-between text-xs">
         <div>
-          <div className="text-ventura-slate-400 font-semibold uppercase tracking-wide text-[10px] mb-1">Client</div>
-          <div className="font-bold text-ventura-slate-900">Martin Durand</div>
-          <div className="text-ventura-slate-500">8 avenue du Chantier, 92100 Boulogne</div>
+          <div className="text-artisangestion-slate-400 font-semibold uppercase tracking-wide text-[10px] mb-1">Client</div>
+          <div className="font-bold text-artisangestion-slate-900">Martin Durand</div>
+          <div className="text-artisangestion-slate-500">8 avenue du Chantier, 92100 Boulogne</div>
         </div>
         <div className="text-right">
-          <div className="text-ventura-slate-400 font-semibold uppercase tracking-wide text-[10px] mb-1">
+          <div className="text-artisangestion-slate-400 font-semibold uppercase tracking-wide text-[10px] mb-1">
             {isInvoice ? "Échéance" : "Validité"}
           </div>
-          <div className="font-bold text-ventura-slate-900">{isInvoice ? "23/05/2026" : "30 jours"}</div>
-          <div className="text-ventura-slate-500">Date : 23/04/2026</div>
+          <div className="font-bold text-artisangestion-slate-900">{isInvoice ? "23/05/2026" : "30 jours"}</div>
+          <div className="text-artisangestion-slate-500">Date : 23/04/2026</div>
         </div>
       </div>
 
       {/* Line items header */}
       <div className="px-10 pt-2">
-        <div className="grid grid-cols-12 gap-2 py-2 border-b-2 border-ventura-slate-200 text-[10px] font-bold text-ventura-slate-400 uppercase tracking-wide">
+        <div className="grid grid-cols-12 gap-2 py-2 border-b-2 border-artisangestion-slate-200 text-[10px] font-bold text-artisangestion-slate-400 uppercase tracking-wide">
           <div className="col-span-6">Description</div>
           <div className="col-span-2 text-center">Qté</div>
           <div className="col-span-2 text-right">P.U. HT</div>
@@ -168,15 +168,15 @@ const Document: React.FC<{ isInvoice: boolean; morphProgress: number }> = ({ isI
       {/* Totals */}
       <div className="px-10 pt-3 flex justify-end">
         <div className="w-[280px] text-xs space-y-1.5">
-          <div className="flex justify-between text-ventura-slate-500">
-            <span>Sous-total HT</span><span className="font-semibold text-ventura-slate-900">1 065,00 €</span>
+          <div className="flex justify-between text-artisangestion-slate-500">
+            <span>Sous-total HT</span><span className="font-semibold text-artisangestion-slate-900">1 065,00 €</span>
           </div>
-          <div className="flex justify-between text-ventura-slate-500">
-            <span>TVA (20%)</span><span className="font-semibold text-ventura-slate-900">213,00 €</span>
+          <div className="flex justify-between text-artisangestion-slate-500">
+            <span>TVA (20%)</span><span className="font-semibold text-artisangestion-slate-900">213,00 €</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-ventura-slate-200">
-            <span className="font-extrabold text-ventura-slate-900 text-base">Total TTC</span>
-            <span className="font-extrabold text-ventura-blue text-base">1 278,00 €</span>
+          <div className="flex justify-between pt-2 border-t border-artisangestion-slate-200">
+            <span className="font-extrabold text-artisangestion-slate-900 text-base">Total TTC</span>
+            <span className="font-extrabold text-artisangestion-blue text-base">1 278,00 €</span>
           </div>
         </div>
       </div>
@@ -201,7 +201,7 @@ const Document: React.FC<{ isInvoice: boolean; morphProgress: number }> = ({ isI
       )}
 
       {/* Footer */}
-      <div className="px-10 py-3 bg-ventura-slate-50 border-t border-ventura-slate-100 text-[10px] text-ventura-slate-400 text-center">
+      <div className="px-10 py-3 bg-artisangestion-slate-50 border-t border-artisangestion-slate-100 text-[10px] text-artisangestion-slate-400 text-center">
         Martin Plomberie • SIRET 842 931 000 001 • TVA FR 42 842 931 000 • IBAN FR76 • noreply@artisangestion.com
       </div>
     </div>
@@ -228,7 +228,7 @@ export const Scene3DevisFactures: React.FC = () => {
   const overlaySpring = spring({ frame: frame - overlayDelay, fps, config: { damping: 14, stiffness: 60 } });
 
   return (
-    <AbsoluteFill style={{ opacity: entryOpacity * exitOpacity }} className="bg-ventura-slate-100">
+    <AbsoluteFill style={{ opacity: entryOpacity * exitOpacity }} className="bg-artisangestion-slate-100">
       <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.06) 0%, transparent 60%)" }} />
 
       <div className="absolute inset-0 flex items-center justify-center gap-20 px-24">
@@ -240,8 +240,8 @@ export const Scene3DevisFactures: React.FC = () => {
               transform: `translateY(${interpolate(frame, [10, 25], [15, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}px)`,
             }}
           >
-            <h2 className="text-5xl font-extrabold text-ventura-slate-900 tracking-tight leading-tight mb-2">
-              Devis & factures<br /><span className="text-ventura-blue">en quelques clics.</span>
+            <h2 className="text-5xl font-extrabold text-artisangestion-slate-900 tracking-tight leading-tight mb-2">
+              Devis & factures<br /><span className="text-artisangestion-blue">en quelques clics.</span>
             </h2>
           </div>
           <FeaturePoint
@@ -284,7 +284,7 @@ export const Scene3DevisFactures: React.FC = () => {
               transform: `scale(${1 + convertHighlight * 0.08}) translateY(${interpolate(frame, [130, 160], [0, -10], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}px)`,
               boxShadow: `0 10px 40px rgba(37, 99, 235, ${0.3 + convertHighlight * 0.2})`,
             }}
-            className="bg-ventura-blue text-white px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 pointer-events-none"
+            className="bg-artisangestion-blue text-white px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 pointer-events-none"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
@@ -306,7 +306,7 @@ export const Scene3DevisFactures: React.FC = () => {
         }}
         className="flex justify-center"
       >
-        <div className="bg-ventura-slate-900/90 backdrop-blur-sm px-9 py-4 rounded-2xl shadow-2xl">
+        <div className="bg-artisangestion-slate-900/90 backdrop-blur-sm px-9 py-4 rounded-2xl shadow-2xl">
           <span className="text-white text-2xl font-extrabold tracking-tight">
             Du devis à la facture, sans recopier une seule ligne.
           </span>

@@ -28,14 +28,14 @@ const BenefitCard: React.FC<{
         opacity: interpolate(appear, [0, 1], [0, 1]),
         transform: `translateX(${interpolate(appear, [0, 1], [-25, 0])}px)`,
       }}
-      className="flex items-center gap-4 bg-white p-5 rounded-2xl shadow-md border border-ventura-slate-100 w-[420px]"
+      className="flex items-center gap-4 bg-white p-5 rounded-2xl shadow-md border border-artisangestion-slate-100 w-[420px]"
     >
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${bg}`} style={{ color }}>
         {icon}
       </div>
       <div>
-        <p className="font-bold text-ventura-slate-900 text-lg leading-tight">{title}</p>
-        <p className="text-sm text-ventura-slate-500">{sub}</p>
+        <p className="font-bold text-artisangestion-slate-900 text-lg leading-tight">{title}</p>
+        <p className="text-sm text-artisangestion-slate-500">{sub}</p>
       </div>
     </div>
   );
@@ -56,9 +56,9 @@ const FormSection: React.FC<{
         opacity: interpolate(appear, [0, 1], [0, 1]),
         transform: `translateY(${interpolate(appear, [0, 1], [15, 0])}px)`,
       }}
-      className="bg-white border border-ventura-slate-200 rounded-xl p-4 mb-3 shadow-sm"
+      className="bg-white border border-artisangestion-slate-200 rounded-xl p-4 mb-3 shadow-sm"
     >
-      {title && <h3 className="text-sm font-bold text-ventura-slate-900 mb-3">{title}</h3>}
+      {title && <h3 className="text-sm font-bold text-artisangestion-slate-900 mb-3">{title}</h3>}
       {children}
     </div>
   );
@@ -79,13 +79,13 @@ const FormField: React.FC<{ label: string; value: string; delay: number; isDate?
 
   return (
     <div className="mb-2.5 last:mb-0" style={{ opacity: appear }}>
-      <label className="block text-[10px] font-bold text-ventura-slate-500 mb-1.5 uppercase tracking-wide">
+      <label className="block text-[10px] font-bold text-artisangestion-slate-500 mb-1.5 uppercase tracking-wide">
         {label}
       </label>
-      <div className="w-full bg-ventura-slate-50 border border-ventura-slate-200 rounded-lg px-3 py-2 text-xs text-ventura-slate-900 min-h-[32px] flex items-center justify-between">
+      <div className="w-full bg-artisangestion-slate-50 border border-artisangestion-slate-200 rounded-lg px-3 py-2 text-xs text-artisangestion-slate-900 min-h-[32px] flex items-center justify-between">
         <span className="font-medium">{displayValue}</span>
         {isDate && (
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ventura-slate-400">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-artisangestion-slate-400">
             <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
           </svg>
         )}
@@ -105,7 +105,7 @@ const SparkleButton: React.FC<{ delay: number }> = ({ delay }) => {
         opacity,
         transform: `scale(${pulse})`,
       }}
-      className="flex items-center gap-2 bg-gradient-to-r from-ventura-blue to-ventura-purple text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg"
+      className="flex items-center gap-2 bg-gradient-to-r from-artisangestion-blue to-artisangestion-purple text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 3l1.5 5L19 9.5 13.5 11 12 16l-1.5-5L5 9.5 10.5 8z" />
@@ -154,10 +154,10 @@ const AIModal: React.FC<{ delay: number; closeModalProgress: number }> = ({ dela
           width: "100%",
           maxHeight: "92%",
         }}
-        className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-ventura-slate-200"
+        className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-artisangestion-slate-200"
       >
         {/* Modal header */}
-        <div className="bg-gradient-to-r from-ventura-blue to-ventura-purple px-4 py-3 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-artisangestion-blue to-artisangestion-purple px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-white">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3l1.5 5L19 9.5 13.5 11 12 16l-1.5-5L5 9.5 10.5 8z" />
@@ -169,19 +169,19 @@ const AIModal: React.FC<{ delay: number; closeModalProgress: number }> = ({ dela
 
         {/* Modal body */}
         <div className="p-4 flex-1 overflow-hidden">
-          <div className="text-[11px] text-ventura-slate-500 mb-3">
-            Type d'intervention : <span className="font-bold text-ventura-slate-900">Plomberie</span> • Longueur : <span className="font-bold text-ventura-slate-900">Normal</span>
+          <div className="text-[11px] text-artisangestion-slate-500 mb-3">
+            Type d'intervention : <span className="font-bold text-artisangestion-slate-900">Plomberie</span> • Longueur : <span className="font-bold text-artisangestion-slate-900">Normal</span>
           </div>
-          <div className="bg-ventura-slate-50 rounded-lg p-3 border border-ventura-slate-200 text-[11px] text-ventura-slate-700 leading-relaxed whitespace-pre-wrap font-mono h-[280px] overflow-hidden">
+          <div className="bg-artisangestion-slate-50 rounded-lg p-3 border border-artisangestion-slate-200 text-[11px] text-artisangestion-slate-700 leading-relaxed whitespace-pre-wrap font-mono h-[280px] overflow-hidden">
             {visibleText}
-            {streamProgress < 1 && cursorVisible && <span className="text-ventura-blue font-bold">▋</span>}
+            {streamProgress < 1 && cursorVisible && <span className="text-artisangestion-blue font-bold">▋</span>}
           </div>
         </div>
 
         {/* Modal footer */}
-        <div className="px-4 py-3 border-t border-ventura-slate-100 flex items-center justify-between">
-          <span className="text-[10px] text-ventura-slate-400">Anti-hallucination • Reprend votre description</span>
-          <div className="bg-ventura-blue text-white px-3 py-1.5 rounded-lg text-[11px] font-bold">
+        <div className="px-4 py-3 border-t border-artisangestion-slate-100 flex items-center justify-between">
+          <span className="text-[10px] text-artisangestion-slate-400">Anti-hallucination • Reprend votre description</span>
+          <div className="bg-artisangestion-blue text-white px-3 py-1.5 rounded-lg text-[11px] font-bold">
             Insérer
           </div>
         </div>
@@ -219,7 +219,7 @@ export const Scene4MobileAI: React.FC = () => {
   const overlaySpring = spring({ frame: frame - overlayDelay, fps, config: { damping: 14, stiffness: 60 } });
 
   return (
-    <AbsoluteFill style={{ opacity: entryOpacity * exitOpacity }} className="bg-ventura-slate-50">
+    <AbsoluteFill style={{ opacity: entryOpacity * exitOpacity }} className="bg-artisangestion-slate-50">
       <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at bottom left, rgba(37, 99, 235, 0.07) 0%, transparent 60%)" }} />
 
       <div className="absolute inset-0 flex items-center justify-center gap-16 px-20">
@@ -231,8 +231,8 @@ export const Scene4MobileAI: React.FC = () => {
               transform: `translateY(${interpolate(frame, [10, 28], [15, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}px)`,
             }}
           >
-            <h2 className="text-5xl font-extrabold text-ventura-slate-900 tracking-tight leading-tight mb-2">
-              Vos rapports<br /><span className="text-ventura-blue">en direct du chantier.</span>
+            <h2 className="text-5xl font-extrabold text-artisangestion-slate-900 tracking-tight leading-tight mb-2">
+              Vos rapports<br /><span className="text-artisangestion-blue">en direct du chantier.</span>
             </h2>
           </div>
           <BenefitCard
@@ -264,30 +264,30 @@ export const Scene4MobileAI: React.FC = () => {
         {/* Phone side */}
         <div className="relative" style={{ transform: `translateY(${interpolate(sparkleHighlight, [0, 1], [0, -8], { extrapolateRight: "clamp" })}px)` }}>
           <PhoneFrame delay={phoneDelay}>
-            <div className="h-full bg-ventura-slate-50 flex flex-col overflow-hidden relative">
+            <div className="h-full bg-artisangestion-slate-50 flex flex-col overflow-hidden relative">
               {/* Status bar */}
               <div className="h-6 flex justify-between items-center px-6 pt-2">
-                <span className="text-[10px] font-bold text-ventura-slate-900">14:32</span>
+                <span className="text-[10px] font-bold text-artisangestion-slate-900">14:32</span>
                 <div className="flex gap-1 items-center">
-                  <div className="w-3 h-3 rounded-full border border-ventura-slate-900/20" />
-                  <div className="w-4 h-2 rounded-sm bg-ventura-slate-900" />
+                  <div className="w-3 h-3 rounded-full border border-artisangestion-slate-900/20" />
+                  <div className="w-4 h-2 rounded-sm bg-artisangestion-slate-900" />
                 </div>
               </div>
 
               {/* App Header */}
               <div
                 style={{ opacity: interpolate(spring({ frame: frame - headerDelay, fps }), [0, 1], [0, 1]) }}
-                className="px-4 py-3 flex items-center justify-between bg-white border-b border-ventura-slate-200"
+                className="px-4 py-3 flex items-center justify-between bg-white border-b border-artisangestion-slate-200"
               >
-                <div className="flex items-center gap-2 text-ventura-slate-500 font-medium text-sm">
+                <div className="flex items-center gap-2 text-artisangestion-slate-500 font-medium text-sm">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
                   Retour
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg border border-ventura-slate-200 flex items-center justify-center text-ventura-slate-500">
+                  <div className="w-8 h-8 rounded-lg border border-artisangestion-slate-200 flex items-center justify-center text-artisangestion-slate-500">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                   </div>
-                  <div className="bg-ventura-blue text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-sm">
+                  <div className="bg-artisangestion-blue text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-sm">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                     PDF
                   </div>
@@ -298,7 +298,7 @@ export const Scene4MobileAI: React.FC = () => {
               <div className="flex-1 overflow-hidden p-4 pt-5">
                 <h1
                   style={{ opacity: interpolate(spring({ frame: frame - titleDelay, fps }), [0, 1], [0, 1]) }}
-                  className="text-xl font-extrabold text-ventura-slate-900 mb-4 leading-tight"
+                  className="text-xl font-extrabold text-artisangestion-slate-900 mb-4 leading-tight"
                 >
                   Nouveau Rapport<br />d'Intervention
                 </h1>
@@ -309,10 +309,10 @@ export const Scene4MobileAI: React.FC = () => {
 
                 <FormSection delay={s2Delay}>
                   <div className="flex justify-between items-center mb-3">
-                    <label className="text-[10px] font-bold text-ventura-slate-500 uppercase tracking-wide">Titre du document PDF</label>
-                    <div className="bg-ventura-slate-100 rounded-lg p-0.5 flex gap-0.5">
-                      <div className="bg-ventura-blue text-white text-[9px] font-bold px-2 py-1 rounded">En cours</div>
-                      <div className="text-ventura-slate-500 text-[9px] font-bold px-2 py-1 rounded">Terminée</div>
+                    <label className="text-[10px] font-bold text-artisangestion-slate-500 uppercase tracking-wide">Titre du document PDF</label>
+                    <div className="bg-artisangestion-slate-100 rounded-lg p-0.5 flex gap-0.5">
+                      <div className="bg-artisangestion-blue text-white text-[9px] font-bold px-2 py-1 rounded">En cours</div>
+                      <div className="text-artisangestion-slate-500 text-[9px] font-bold px-2 py-1 rounded">Terminée</div>
                     </div>
                   </div>
                   <FormField label="" value="RAPPORT D'INTERVENTION" delay={s2Delay + 10} typing={false} />
@@ -351,7 +351,7 @@ export const Scene4MobileAI: React.FC = () => {
         }}
         className="flex justify-center"
       >
-        <div className="bg-ventura-blue/95 backdrop-blur-sm px-9 py-4 rounded-2xl shadow-2xl">
+        <div className="bg-artisangestion-blue/95 backdrop-blur-sm px-9 py-4 rounded-2xl shadow-2xl">
           <span className="text-white text-2xl font-extrabold tracking-tight">
             Décrivez l'intervention, l'IA rédige le rapport.
           </span>
