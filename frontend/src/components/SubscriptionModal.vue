@@ -90,15 +90,15 @@ function close() {
           <div class="p-8 sm:p-12">
             <!-- Header -->
             <div class="text-center mb-10">
-              <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+              <span v-if="!uiStore.subscriptionModalContext.hideTrialBadge" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
                 <CreditCard class="h-4 w-4" />
-                Période d'essai terminée
+                {{ uiStore.subscriptionModalContext.badge }}
               </span>
               <h2 class="text-3xl font-bold text-foreground mb-4">
-                Passez à la vitesse supérieure
+                {{ uiStore.subscriptionModalContext.title }}
               </h2>
               <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de Ventura.
+                {{ uiStore.subscriptionModalContext.description }}
               </p>
             </div>
 

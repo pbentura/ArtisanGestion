@@ -154,7 +154,11 @@ async function removeCollab(id: number) {
 
 function resetInviteModal() {
   if (currentUser.value?.role !== 'TEAM' && currentUser.value?.role !== 'ADMIN') {
-    uiStore.openSubscriptionModal()
+    uiStore.openSubscriptionModal({
+      title: 'Passez au plan Équipe',
+      description: 'Pour inviter des collaborateurs et travailler en équipe, vous devez passer au plan Équipe.',
+      hideTrialBadge: true
+    })
     return
   }
   showInviteModal.value = true

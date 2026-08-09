@@ -9,7 +9,28 @@ interface CollectionState<T> {
 
 export const uiStore = reactive({
   showSubscriptionModal: false,
-  openSubscriptionModal() {
+  subscriptionModalContext: {
+    badge: "Période d'essai terminée",
+    title: "Passez à la vitesse supérieure",
+    description: "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de Ventura.",
+    hideTrialBadge: false
+  },
+  openSubscriptionModal(context?: { badge?: string, title?: string, description?: string, hideTrialBadge?: boolean }) {
+    if (context) {
+      this.subscriptionModalContext = {
+        badge: context.badge || "Période d'essai terminée",
+        title: context.title || "Passez à la vitesse supérieure",
+        description: context.description || "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de Ventura.",
+        hideTrialBadge: context.hideTrialBadge || false
+      }
+    } else {
+      this.subscriptionModalContext = {
+        badge: "Période d'essai terminée",
+        title: "Passez à la vitesse supérieure",
+        description: "Votre essai gratuit est arrivé à son terme. Choisissez un abonnement pour continuer à profiter de toutes les fonctionnalités de Ventura.",
+        hideTrialBadge: false
+      }
+    }
     this.showSubscriptionModal = true
   },
   closeSubscriptionModal() {
