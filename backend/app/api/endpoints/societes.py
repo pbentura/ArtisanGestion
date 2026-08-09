@@ -133,6 +133,13 @@ async def create_societe(
     
     # Mettre à jour l'entreprise active de l'utilisateur
     current_user.active_societe_id = new_societe.id
+    
+    # Si c'est la première entreprise qu'il crée (ex: ancien collaborateur qui se lance),
+    # on réinitialise sa date_inscription pour que ses 14 jours d'essai commencent maintenant.
+    if societe_count == 0:
+        from datetime import datetime, timezone
+        current_user.date_inscription = datetime.now(timezone.utc)
+        
     db.add(current_user)
     await db.commit()
     

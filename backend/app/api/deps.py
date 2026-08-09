@@ -70,12 +70,18 @@ async def check_trial_active(
     """Dependency qui lève une exception si l'essai est terminé."""
     user_to_check = current_user
     
-    # Si collaborateur, on vérifie l'essai/abonnement du propriétaire
-    if not current_user.is_owner and current_user.id_societe:
-        result = await db.execute(select(Societe).where(Societe.id == current_user.id_societe))
-        societe = result.scalars().first()
-        if societe:
-            owner_result = await db.execute(select(User).where(User.id == societe.id_user))
+    # On détermine l'entreprise active
+    active_id = getattr(current_user, 'active_societe_id', None) or current_user.id_societe
+    if not active_id:
+        result = await db.execute(select(Societe.id).where(Societe.id_user == current_user.id))
+        active_id = result.scalar()
+        
+    if active_id:
+        result = await db.execute(select(Societe.id_user).where(Societe.id == active_id))
+        owner_id = result.scalar()
+        if owner_id and owner_id != current_user.id:
+            # Si l'utilisateur consulte une entreprise qu'il ne possède pas, on vérifie l'essai du propriétaire
+            owner_result = await db.execute(select(User).where(User.id == owner_id))
             owner = owner_result.scalars().first()
             if owner:
                 user_to_check = owner
