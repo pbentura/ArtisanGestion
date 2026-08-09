@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch } from '@/lib/api'
+import { dataStore, uiStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +13,18 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+
+onMounted(() => {
+  const user = dataStore.user?.data
+  if (user && user.societes && user.societes.length >= 1 && user.role !== 'TEAM' && user.role !== 'ADMIN') {
+    uiStore.openSubscriptionModal({
+      title: 'Passez au plan Équipe',
+      description: 'Pour créer et gérer plusieurs entreprises, vous devez posséder le plan Équipe.',
+      hideTrialBadge: true
+    })
+    router.push('/app/dashboard')
+  }
+})
 
 const steps = [
   { id: 1, title: 'Recherche', subtitle: 'Trouvez votre entreprise', icon: Search },

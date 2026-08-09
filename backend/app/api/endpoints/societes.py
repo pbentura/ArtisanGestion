@@ -77,6 +77,17 @@ async def create_societe(
     """
     from app.core.config import settings
     import httpx
+    from sqlalchemy import func
+    
+    # Vérifier le nombre d'entreprises pour restreindre au plan Équipe
+    result_count = await db.execute(select(func.count(Societe.id)).where(Societe.id_user == current_user.id))
+    societe_count = result_count.scalar()
+    
+    if societe_count >= 1 and current_user.role not in ["TEAM", "ADMIN"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Le plan Équipe est requis pour créer plusieurs entreprises."
+        )
     
     if settings.ENVIRONMENT == "production" and current_user.role != "ADMIN":
         import re

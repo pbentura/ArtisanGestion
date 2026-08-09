@@ -7,9 +7,9 @@ import { initializeApp } from "firebase/app";
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBcFJ-g2cqst9G1R4PgYnwaH2wslYF0SbI",
-  authDomain: "artisangestion-e277f.firebaseapp.com",
-  projectId: "artisangestion-e277f",
-  storageBucket: "artisangestion-e277f.firebasestorage.app",
+  authDomain: "ventura-e277f.firebaseapp.com",
+  projectId: "ventura-e277f",
+  storageBucket: "ventura-e277f.firebasestorage.app",
   messagingSenderId: "966848821957",
   appId: "1:966848821957:web:ad21978c5a63afcca60eac",
   measurementId: "G-NSS5CENRCE"

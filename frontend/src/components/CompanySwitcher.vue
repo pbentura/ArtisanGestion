@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Building2, Plus, ChevronDown, Check } from 'lucide-vue-next'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 import { apiFetch } from '@/lib/api'
 
 const router = useRouter()
@@ -46,7 +46,15 @@ async function switchSociete(societeId: number) {
 
 function handleCreateClick() {
   isDropdownOpen.value = false
-  router.push('/app/nouvelle-entreprise')
+  if (societes.value.length >= 1 && user.value?.role !== 'TEAM' && user.value?.role !== 'ADMIN') {
+    uiStore.openSubscriptionModal({
+      title: 'Passez au plan Équipe',
+      description: 'Pour créer et gérer plusieurs entreprises, vous devez posséder le plan Équipe.',
+      hideTrialBadge: true
+    })
+  } else {
+    router.push('/app/nouvelle-entreprise')
+  }
 }
 </script>
 

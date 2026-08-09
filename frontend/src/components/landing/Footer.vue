@@ -14,14 +14,6 @@ const footerSections = [
     ]
   },
   {
-    title: 'Ressources',
-    links: [
-      { label: 'Centre d\'aide', href: '#' },
-      { label: 'Blog', href: '#' },
-      { label: 'Documentation API', href: '#' },
-    ]
-  },
-  {
     title: 'Légal',
     links: [
       { label: 'Mentions Légales', href: '/legal/mentions-legales' },
@@ -80,9 +72,6 @@ const footerSections = [
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p class="text-sm text-secondary-foreground/40">
             © {{ currentYear }} ArtisanGestion. Tous droits réservés.
-          </p>
-          <p class="text-xs text-secondary-foreground/30">
-            Conçu avec ❤️ pour les artisans français
           </p>
         </div>
       </div>
