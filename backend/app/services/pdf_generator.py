@@ -14,9 +14,46 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
 )
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+
+import re
+import urllib.request
+import logging
+
+logger = logging.getLogger(__name__)
+
+def clean_html_for_reportlab(html_text: str) -> str:
+    if not html_text:
+        return ""
+    text = str(html_text)
+    
+    text = text.replace('</div>', '<br/>')
+    text = text.replace('</p>', '<br/>')
+    text = re.sub(r'<div[^>]*>', '', text)
+    text = re.sub(r'<p[^>]*>', '', text)
+    
+    text = re.sub(r'<h[1-6][^>]*>(.*?)</h[1-6]>', r'<br/><font color="#2563eb"><b>\1</b></font><br/>', text, flags=re.IGNORECASE)
+    
+    text = text.replace('<ul>', '')
+    text = text.replace('</ul>', '<br/>')
+    text = text.replace('<ol>', '')
+    text = text.replace('</ol>', '<br/>')
+    text = re.sub(r'<li[^>]*>', '• ', text)
+    text = text.replace('</li>', '<br/>')
+    
+    text = re.sub(r'<strong[^>]*>', '<b>', text)
+    text = text.replace('</strong>', '</b>')
+    
+    text = re.sub(r'<span[^>]*>', '', text)
+    text = text.replace('</span>', '')
+    text = re.sub(r'<img[^>]*>', '', text)
+    
+    text = re.sub(r'(<br\s*/?>\s*){3,}', '<br/><br/>', text)
+    text = re.sub(r'^(<br\s*/?>\s*)+', '', text)
+    
+    return text.strip()
 
 
 # ── Couleurs du thème (alignées sur le design frontend) ─────────────
@@ -578,14 +615,55 @@ def generate_rapport_pdf(
 
     # ── CONTENU DU RAPPORT ──────────────────────────────────────────
     if rapport.contenu:
-        # Remplacer les retours à la ligne par des balises <br/> pour ReportLab
-        contenu_formate = str(rapport.contenu).replace('\n', '<br/>')
+        contenu_formate = clean_html_for_reportlab(rapport.contenu)
         elements.append(Paragraph(
             contenu_formate,
             ParagraphStyle("ContenuText", parent=style_normal,
                            fontSize=10, textColor=COLOR_TEXT, leading=15)
         ))
         elements.append(Spacer(1, 10 * mm))
+
+    # ── PHOTOS DU RAPPORT ───────────────────────────────────────────
+    photos = getattr(rapport, "photos", [])
+    if not photos and getattr(rapport, "photo_url", None):
+        photos = [rapport.photo_url]
+    
+    if photos:
+        elements.append(Paragraph(
+            "PHOTOS", 
+            ParagraphStyle("PhotoTitle", parent=style_normal,
+                           fontName="Helvetica-Bold", fontSize=11, textColor=COLOR_PRIMARY)
+        ))
+        elements.append(Spacer(1, 1 * mm))
+        elements.append(HRFlowable(width="100%", thickness=1, color=COLOR_BORDER))
+        elements.append(Spacer(1, 5 * mm))
+        
+        for photo_data in photos:
+            if not photo_data:
+                continue
+            try:
+                if photo_data.startswith("http"):
+                    req = urllib.request.Request(photo_data, headers={'User-Agent': 'Mozilla/5.0'})
+                else:
+                    req = urllib.request.Request(photo_data)
+                    
+                with urllib.request.urlopen(req, timeout=15) as response:
+                    img_bytes = response.read()
+                
+                img = Image(BytesIO(img_bytes))
+                
+                max_width = doc.width
+                max_height = 140 * mm
+                
+                ratio = min(max_width / img.drawWidth, max_height / img.drawHeight)
+                if ratio < 1:
+                    img.drawWidth = img.drawWidth * ratio
+                    img.drawHeight = img.drawHeight * ratio
+                    
+                elements.append(img)
+                elements.append(Spacer(1, 10 * mm))
+            except Exception as e:
+                logger.error(f"Erreur chargement photo PDF: {e}")
 
     # ── Pied de page ────────────────────────────────────────────────
     def footer_callback(canvas, doc_ref):

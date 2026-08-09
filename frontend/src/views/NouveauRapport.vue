@@ -602,7 +602,12 @@ function getReportHTML() {
 
       <div style="margin-bottom: 20px;">
         <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Rapport d'intervention</h2>
-        <div class="rapport-content" style="font-size: 12px; line-height: 1.8;">${rapport.value.contenu || '<p>Aucun contenu</p>'}</div>
+        <div class="rapport-content" style="font-size: 12px; line-height: 1.8;">${
+          (rapport.value.contenu || '<p>Aucun contenu</p>')
+            .replace(/<h3/gi, '<h3 style="color: #2563eb; font-size: 14px; font-weight: 600; margin-top: 16px; margin-bottom: 6px; display: block;"')
+            .replace(/<ul/gi, '<ul style="margin: 4px 0; padding-left: 25px; list-style-type: disc; list-style-position: outside; display: block;"')
+            .replace(/<li/gi, '<li style="margin-bottom: 4px; display: list-item;"')
+        }</div>
       </div>
 
       ${rapport.value.photos && rapport.value.photos.length > 0 ? `
