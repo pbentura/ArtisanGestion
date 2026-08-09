@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { 
   Building2, MapPin, Scale, Landmark, Save, 
-  Upload, Loader2, CheckCircle2, X, Info
+  Upload, Loader2, CheckCircle2, X, Info, AlertTriangle
 } from 'lucide-vue-next'
 
 const loading = ref(true)
@@ -142,6 +142,39 @@ function handleFileUpload(event: Event) {
 function removeLogo() {
   form.value.logo = ''
   if (fileInput.value) fileInput.value.value = ''
+}
+
+const showDeleteConfirm = ref(false)
+const deleteConfirmName = ref('')
+const deleteAcknowledge = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+
+async function handleDeleteSociete() {
+  if (deleteConfirmName.value !== form.value.nom || !deleteAcknowledge.value) {
+    return
+  }
+  
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    const res = await apiFetch('societes/me', {
+      method: 'DELETE'
+    })
+    
+    if (res.ok) {
+      window.location.href = '/app/dashboard'
+    } else {
+      const error = await res.json()
+      deleteError.value = error.detail || 'Erreur lors de la suppression.'
+      showDeleteConfirm.value = false
+    }
+  } catch (e: any) {
+    deleteError.value = 'Erreur réseau, impossible de contacter le serveur.'
+    showDeleteConfirm.value = false
+  } finally {
+    deleting.value = false
+  }
 }
 
 const canEdit = computed(() => {
@@ -374,6 +407,65 @@ onMounted(fetchSociete)
                     class="flex min-h-[100px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all focus:border-primary/50"
                     placeholder="Ex: Auto-entrepreneur, TVA non applicable, art. 293 B du CGI."></textarea>
                   <p class="text-[10px] text-muted-foreground">Ce texte apparaîtra en bas de vos rapports PDF (Devis, Factures, Interventions).</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <!-- Settings Tab -->
+        <TabsContent value="settings">
+          <Card class="border-destructive/30 shadow-sm bg-destructive/5">
+            <CardHeader>
+              <CardTitle class="text-destructive flex items-center gap-2">
+                <AlertTriangle class="w-5 h-5" />
+                Zone Dangereuse
+              </CardTitle>
+              <CardDescription class="text-destructive/80">Actions irréversibles concernant cette entreprise.</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-6">
+              <div v-if="deleteError" class="p-4 rounded-xl border bg-destructive/10 text-destructive border-destructive/20 text-sm font-medium flex items-start gap-3">
+                <Info class="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p>{{ deleteError }}</p>
+              </div>
+
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-destructive/20 rounded-xl bg-background">
+                <div>
+                  <h4 class="font-semibold text-foreground">Supprimer l'entreprise</h4>
+                  <p class="text-sm text-muted-foreground mt-1">Cette action est irréversible. Les données seront définitivement effacées.</p>
+                </div>
+                <Button variant="destructive" @click="showDeleteConfirm = true" :disabled="!canEdit">
+                  Supprimer l'entreprise
+                </Button>
+              </div>
+              
+              <!-- Zone de confirmation intégrée -->
+              <div v-if="showDeleteConfirm" class="mt-6 p-6 border border-destructive/30 rounded-xl bg-background space-y-4 animate-in fade-in slide-in-from-top-4">
+                <h4 class="font-bold text-destructive text-lg">Confirmation de suppression</h4>
+                <p class="text-sm text-muted-foreground">Veuillez taper <span class="font-bold text-foreground">{{ form.nom }}</span> pour confirmer la suppression.</p>
+                
+                <Input 
+                  v-model="deleteConfirmName" 
+                  placeholder="Nom exact de l'entreprise" 
+                  class="border-destructive/30 focus-visible:ring-destructive/50"
+                />
+
+                <label class="flex items-start gap-3 mt-4 p-4 rounded-lg bg-muted/50 cursor-pointer border border-transparent hover:border-border transition-colors">
+                  <input type="checkbox" v-model="deleteAcknowledge" class="mt-1 w-4 h-4 text-destructive border-border rounded focus:ring-destructive/50 accent-destructive" />
+                  <span class="text-sm text-muted-foreground font-medium">
+                    Je comprends que la suppression est <strong class="text-foreground">définitive</strong> et entraîne l'effacement de tous mes clients, devis, rapports, et brouillons de factures.
+                  </span>
+                </label>
+
+                <div class="flex items-center gap-3 pt-4">
+                  <Button variant="outline" @click="showDeleteConfirm = false; deleteConfirmName = ''; deleteAcknowledge = false">Annuler</Button>
+                  <Button 
+                    variant="destructive" 
+                    :disabled="deleteConfirmName !== form.nom || !deleteAcknowledge || deleting"
+                    @click="handleDeleteSociete"
+                  >
+                    <Loader2 v-if="deleting" class="w-4 h-4 mr-2 animate-spin" />
+                    Supprimer définitivement
+                  </Button>
                 </div>
               </div>
             </CardContent>

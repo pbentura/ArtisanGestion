@@ -78,6 +78,45 @@ async def update_user_me(
         
     return user_data
 
+@router.post("/me/switch-societe/{societe_id}", response_model=UserReadWithSocietes)
+async def switch_societe(
+    societe_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    from fastapi import HTTPException
+    
+    result = await db.execute(
+        select(User).options(selectinload(User.societes)).where(User.id == current_user.id)
+    )
+    user = result.scalars().first()
+    
+    if current_user.is_owner:
+        if not any(s.id == societe_id for s in user.societes):
+            raise HTTPException(status_code=403, detail="Vous n'avez pas accès à cette société.")
+    else:
+        if current_user.id_societe != societe_id:
+            raise HTTPException(status_code=403, detail="Vous n'avez pas accès à cette société.")
+
+    user.id_societe = societe_id
+    db.add(user)
+    await db.commit()
+    
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.societes), selectinload(User.societe_membre))
+        .where(User.id == current_user.id)
+    )
+    reloaded_user = result.scalars().first()
+    
+    user_data = UserReadWithSocietes.model_validate(reloaded_user)
+    if not reloaded_user.is_owner and reloaded_user.societe_membre:
+        from app.schemas.societe import SocieteRead
+        user_data.societes = [SocieteRead.model_validate(reloaded_user.societe_membre)]
+        
+    return user_data
+
+
 @router.delete("/me")
 async def delete_user_me(
     *,

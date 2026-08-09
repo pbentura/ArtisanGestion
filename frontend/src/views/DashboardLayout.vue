@@ -6,6 +6,7 @@ import {
   Receipt, Bell, BarChart3, Users, ShieldCheck, Menu
 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import CompanySwitcher from '@/components/CompanySwitcher.vue'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileBottomNav from '@/components/mobile/MobileBottomNav.vue'
 import { useMobile } from '@/composables/useMobile'
@@ -144,6 +145,7 @@ function handleLogout() {
         <div class="header-right">
           <button class="icon-btn"><Bell class="w-5 h-5" /></button>
           <ThemeToggle />
+          <CompanySwitcher />
           <button class="user-pill cursor-pointer hover:bg-muted/50 transition-colors" @click="router.push('/app/settings?tab=compte')">Mon compte</button>
         </div>
       </header>

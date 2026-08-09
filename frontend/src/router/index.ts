@@ -147,6 +147,12 @@ const routes = [
         meta: { title: 'Mon Entreprise', permission: 'can_edit_societe' }
       },
       {
+        path: 'nouvelle-entreprise',
+        name: 'nouvelle-entreprise',
+        component: () => import('@/views/NouvelleEntreprise.vue'),
+        meta: { title: 'Nouvelle Entreprise', hideMobileHeader: true, hideMobileNav: true }
+      },
+      {
         path: 'clients',
         name: 'clients',
         component: () => import('@/views/ClientsList.vue'),
