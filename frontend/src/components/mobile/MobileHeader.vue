@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import CompanySwitcher from '@/components/CompanySwitcher.vue'
 import { Bell } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -14,6 +15,7 @@ const route = useRoute()
     </div>
     
     <div class="header-right">
+      <CompanySwitcher />
       <button class="icon-btn">
         <Bell class="w-5 h-5" />
       </button>

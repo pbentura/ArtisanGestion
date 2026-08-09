@@ -274,7 +274,7 @@ function removeLogo() {
 </script>
 
 <template>
-  <div class="min-h-full bg-background flex flex-col items-center pb-6 px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-full bg-background flex flex-col items-center pb-8 px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24">
     
     <!-- Top Header Navigation -->
     <div class="w-full max-w-3xl flex justify-between items-center mb-8">
