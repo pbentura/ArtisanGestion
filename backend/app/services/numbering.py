@@ -5,9 +5,9 @@ from app.models.facture import Facture
 from app.models.societe import Societe
 from datetime import date
 
-async def get_next_invoice_number(db: AsyncSession, user_id: int, is_avoir: bool = False) -> str:
+async def get_next_invoice_number(db: AsyncSession, societe_id: int, is_avoir: bool = False) -> str:
     """
-    Génère le prochain numéro de facture séquentiel pour un utilisateur donné.
+    Génère le prochain numéro de facture séquentiel pour une société donnée.
     Format : YYYY-XXXX pour les factures, AV-YYYY-XXXX pour les avoirs.
     """
     year = date.today().year
@@ -20,7 +20,7 @@ async def get_next_invoice_number(db: AsyncSession, user_id: int, is_avoir: bool
     result = await db.execute(
         select(Facture.numero_facture)
         .where(
-            Facture.id_user == user_id,
+            Facture.id_societe == societe_id,
             Facture.est_avoir == is_avoir,
             Facture.numero_facture.like(search_pattern),
             Facture.statut == "validée"
@@ -31,13 +31,26 @@ async def get_next_invoice_number(db: AsyncSession, user_id: int, is_avoir: bool
     last_number = result.scalars().first()
     
     if not last_number:
-        # Si aucun numéro trouvé pour cette année, on regarde dans la société
-        result_soc = await db.execute(select(Societe).where(Societe.id_user == user_id))
+        # Si aucun numéro trouvé pour cette année, on regarde dans la société avec un Lock (FOR UPDATE)
+        # pour s'assurer qu'aucune autre transaction ne génère de numéro en même temps.
+        result_soc = await db.execute(
+            select(Societe)
+            .where(Societe.id == societe_id)
+            .with_for_update()
+        )
         societe = result_soc.scalars().first()
         if societe and societe.dernier_numero_facture:
             # On ne l'utilise que si l'année correspond ou si on force le début
             if str(year) in societe.dernier_numero_facture:
                 last_number = societe.dernier_numero_facture
+    else:
+        # Même si on a trouvé un numéro, on pose un verrou sur la société
+        # pour bloquer la concurrence jusqu'au COMMIT.
+        await db.execute(
+            select(Societe.id)
+            .where(Societe.id == societe_id)
+            .with_for_update()
+        )
 
     new_sequence = 1
     if last_number:

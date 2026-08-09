@@ -87,7 +87,7 @@ async def create_facture(
 
     # Si la facture est créée directement comme validée, on lui donne un numéro séquentiel
     if db_facture.statut == "validée":
-        db_facture.numero_facture = await get_next_invoice_number(db, current_user.id, is_avoir=db_facture.est_avoir)
+        db_facture.numero_facture = await get_next_invoice_number(db, societe_id, is_avoir=db_facture.est_avoir)
 
     db.add(db_facture)
     await db.commit()
@@ -152,7 +152,7 @@ async def create_facture_from_devis(
 
     # Si validée, numéro séquentiel
     if db_facture.statut == "validée":
-        db_facture.numero_facture = await get_next_invoice_number(db, current_user.id)
+        db_facture.numero_facture = await get_next_invoice_number(db, societe_id)
 
     # Copier les lignes du devis
     for ligne_devis in db_devis.lignes:
@@ -231,7 +231,7 @@ async def create_avoir_from_facture(
     # Un avoir peut être créé comme validé directement selon le besoin, 
     # mais ici on suit le statut par défaut du schéma (souvent brouillon)
     if db_avoir.statut == "validée":
-        db_avoir.numero_facture = await get_next_invoice_number(db, current_user.id, is_avoir=True)
+        db_avoir.numero_facture = await get_next_invoice_number(db, societe_id, is_avoir=True)
 
     for ligne in db_facture_source.lignes:
         db_ligne = LigneFacture(
@@ -416,7 +416,7 @@ async def update_facture(
 
     # Gestion de la transition vers "validée" pour attribuer le numéro séquentiel
     if "statut" in update_data and update_data["statut"] == "validée" and db_facture.statut == "brouillon":
-        db_facture.numero_facture = await get_next_invoice_number(db, current_user.id, is_avoir=db_facture.est_avoir)
+        db_facture.numero_facture = await get_next_invoice_number(db, societe_id, is_avoir=db_facture.est_avoir)
 
     for field, value in update_data.items():
         setattr(db_facture, field, value)

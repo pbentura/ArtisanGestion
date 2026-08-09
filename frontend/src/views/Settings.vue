@@ -66,7 +66,7 @@ async function handleSubscribe(plan: any) {
       body: JSON.stringify({
         plan_name: plan.name,
         is_annual: isAnnual.value,
-        price: isAnnual.value ? parseFloat(plan.priceAnnual) : parseFloat(plan.priceMonthly)
+        price: isAnnual.value ? parseFloat(plan.priceAnnual) * 12 : parseFloat(plan.priceMonthly)
       })
     })
 
@@ -84,6 +84,27 @@ async function handleSubscribe(plan: any) {
     alert("Une erreur est survenue")
   } finally {
     loadingPlan.value = null
+  }
+}
+
+async function handleManageSubscription() {
+  try {
+    const res = await apiFetch('subscriptions/create-portal-session', {
+      method: 'POST'
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      if (data.portal_url) {
+        window.location.href = data.portal_url
+      }
+    } else {
+      const errorData = await res.json()
+      alert(errorData.detail || "Erreur lors de la création de la session de portail")
+    }
+  } catch (error) {
+    console.error('Error opening portal:', error)
+    alert("Une erreur est survenue")
   }
 }
 
@@ -366,6 +387,16 @@ onMounted(() => {
             <div v-if="user.role === 'ADMIN'" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-full text-sm font-semibold mb-4 border border-purple-200">
               <CheckCircle2 class="w-4 h-4" />
               Plan Max Actif (Administrateur)
+            </div>
+            <div v-else-if="user.role === 'PREMIUM' || user.role === 'TEAM'" class="inline-flex flex-col items-center gap-2 mb-4">
+              <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20">
+                <CheckCircle2 class="w-4 h-4" />
+                Plan {{ user.role === 'PREMIUM' ? 'Indépendant' : 'Équipe' }} Actif
+              </div>
+              <Button variant="outline" size="sm" @click="handleManageSubscription" class="mt-2">
+                <CreditCard class="w-4 h-4 mr-2" />
+                Gérer mon abonnement (Factures, Annulation)
+              </Button>
             </div>
             <div v-else-if="user.trial_days_remaining > 0" class="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold mb-4 border border-green-200">
               <CheckCircle2 class="w-4 h-4" />

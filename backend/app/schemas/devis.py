@@ -19,7 +19,6 @@ class DevisBase(BaseModel):
     conditions_particulieres: Optional[str] = None
     statut: str = "brouillon"
     signature: Optional[str] = None
-    id_rapport: Optional[int] = None
 
 
 class DevisCreate(DevisBase):
@@ -39,7 +38,6 @@ class DevisUpdate(BaseModel):
     conditions_particulieres: Optional[str] = None
     statut: Optional[str] = None
     signature: Optional[str] = None
-    id_rapport: Optional[int] = None
 
 
 class Devis(DevisBase):
@@ -48,7 +46,6 @@ class Devis(DevisBase):
     created_at: datetime
     client: Optional[ClientSchema] = None
     lignes: List[LigneDevisSchema] = []
-    rapport: Optional[BaseModel] = None # Avoid circular import
 
     class Config:
         from_attributes = True

@@ -50,7 +50,7 @@ async function handleSubscribe(plan: any) {
       body: JSON.stringify({
         plan_name: plan.name,
         is_annual: isAnnual.value,
-        price: isAnnual.value ? parseFloat(plan.priceAnnual) : parseFloat(plan.priceMonthly)
+        price: isAnnual.value ? parseFloat(plan.priceAnnual) * 12 : parseFloat(plan.priceMonthly)
       })
     })
 

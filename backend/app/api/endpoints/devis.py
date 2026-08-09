@@ -26,7 +26,7 @@ async def read_devis(
     """
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes))
         .where(Devis.id_societe == societe_id)
         .offset(skip)
         .limit(limit)
@@ -66,7 +66,7 @@ async def create_devis(
     # Reload fully mapped object with relationships to avoid MissingGreenlet on Pydantic serialization
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes))
         .where(Devis.id == db_devis.id)
     )
     db_devis_loaded = result.unique().scalars().first()
@@ -112,7 +112,7 @@ async def read_un_devis(
     """
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes))
         .where(Devis.id == devis_id, Devis.id_societe == societe_id)
     )
     devis = result.unique().scalars().first()
@@ -133,7 +133,7 @@ async def update_devis(
     """
     result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes))
         .where(Devis.id == devis_id, Devis.id_societe == societe_id)
     )
     db_devis = result.unique().scalars().first()
@@ -162,31 +162,16 @@ async def update_devis(
             )
 
     for field, value in update_data.items():
+        if field == "id_rapport":
+            continue
         setattr(db_devis, field, value)
     
-    # Bidirectional link: if id_rapport is updated, update the Rapport to point to this devis
-    if "id_rapport" in update_data and update_data["id_rapport"] is not None:
-        rapport_result = await db.execute(
-            select(Rapport).where(Rapport.id == update_data["id_rapport"], Rapport.id_societe == societe_id)
-        )
-        db_rapport = rapport_result.scalars().first()
-        if db_rapport:
-            db_rapport.id_devis = db_devis.id
-    elif "id_rapport" in update_data and update_data["id_rapport"] is None:
-        # If unlinking, also unlink from the other side
-        rapport_result = await db.execute(
-            select(Rapport).where(Rapport.id_devis == db_devis.id)
-        )
-        db_rapport = rapport_result.scalars().first()
-        if db_rapport:
-            db_rapport.id_devis = None
-        
     await db.commit()
     
     # Reload fully mapped object with relationships to avoid MissingGreenlet
     reload_result = await db.execute(
         select(Devis)
-        .options(joinedload(Devis.client), joinedload(Devis.lignes), joinedload(Devis.rapport))
+        .options(joinedload(Devis.client), joinedload(Devis.lignes))
         .where(Devis.id == db_devis.id)
     )
     return reload_result.unique().scalars().first()

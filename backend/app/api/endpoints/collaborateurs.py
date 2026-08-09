@@ -98,6 +98,14 @@ async def create_invitation(
         select(User).options(selectinload(User.societes)).where(User.id == current_user.id)
     )
     current_user = result.scalars().first()
+    
+    # Vérifier l'abonnement TEAM
+    if current_user.role not in ["TEAM", "ADMIN"]:
+        raise HTTPException(
+            status_code=403, 
+            detail="Vous devez avoir l'abonnement Équipe pour inviter des collaborateurs."
+        )
+
     societe_id = _get_user_societe_id(current_user)
 
     # Générer un token unique
@@ -273,6 +281,16 @@ async def remove_collaborateur(
     # Dissocier de l'entreprise (ne supprime pas le compte)
     collab.id_societe = None
     collab.is_owner = False
+    
+    # Réinitialiser les permissions au cas où il créerait sa propre société
+    collab.role = "USER"
+    collab.can_create_rapports = True
+    collab.can_create_clients = True
+    collab.can_create_devis = True
+    collab.can_create_factures = True
+    collab.can_invite = False
+    collab.can_edit_societe = False
+    
     db.add(collab)
     await db.commit()
 

@@ -31,8 +31,5 @@ class Devis(Base):
     id_societe = Column(Integer, ForeignKey("societe.id"), nullable=True)
     societe = relationship("Societe", back_populates="devis")
 
-    id_rapport = Column(Integer, ForeignKey("rapports.id", ondelete="SET NULL"), nullable=True)
-    rapport = relationship("Rapport", foreign_keys=[id_rapport])
-
     lignes = relationship("LigneDevis", back_populates="devis", cascade="all, delete-orphan")
     factures = relationship("Facture", back_populates="devis")
