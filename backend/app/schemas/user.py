@@ -19,6 +19,7 @@ class UserRead(UserBase):
     
     # Équipe
     id_societe: Optional[int] = None
+    active_societe_id: Optional[int] = None
     is_owner: bool = True
     
     # Permissions

@@ -26,9 +26,10 @@ async def read_user_me(
     user = result.scalars().first()
     
     user_data = UserReadWithSocietes.model_validate(user)
-    if not user.is_owner and user.societe_membre:
+    societes_dict = {s.id: s for s in user_data.societes}
+    if user.societe_membre and user.societe_membre.id not in societes_dict:
         from app.schemas.societe import SocieteRead
-        user_data.societes = [SocieteRead.model_validate(user.societe_membre)]
+        user_data.societes.append(SocieteRead.model_validate(user.societe_membre))
         
     return user_data
 
@@ -72,9 +73,10 @@ async def update_user_me(
     })
     
     user_data = UserReadWithSocietes.model_validate(user)
-    if not user.is_owner and user.societe_membre:
+    societes_dict = {s.id: s for s in user_data.societes}
+    if user.societe_membre and user.societe_membre.id not in societes_dict:
         from app.schemas.societe import SocieteRead
-        user_data.societes = [SocieteRead.model_validate(user.societe_membre)]
+        user_data.societes.append(SocieteRead.model_validate(user.societe_membre))
         
     return user_data
 
@@ -87,18 +89,17 @@ async def switch_societe(
     from fastapi import HTTPException
     
     result = await db.execute(
-        select(User).options(selectinload(User.societes)).where(User.id == current_user.id)
+        select(User).options(selectinload(User.societes), selectinload(User.societe_membre)).where(User.id == current_user.id)
     )
     user = result.scalars().first()
     
-    if current_user.is_owner:
-        if not any(s.id == societe_id for s in user.societes):
-            raise HTTPException(status_code=403, detail="Vous n'avez pas accès à cette société.")
-    else:
-        if current_user.id_societe != societe_id:
-            raise HTTPException(status_code=403, detail="Vous n'avez pas accès à cette société.")
+    is_target_owner = any(s.id == societe_id for s in user.societes)
+    is_target_member = (user.societe_membre and user.societe_membre.id == societe_id)
+    
+    if not is_target_owner and not is_target_member:
+        raise HTTPException(status_code=403, detail="Vous n'avez pas accès à cette société.")
 
-    user.id_societe = societe_id
+    user.active_societe_id = societe_id
     db.add(user)
     await db.commit()
     
@@ -110,9 +111,10 @@ async def switch_societe(
     reloaded_user = result.scalars().first()
     
     user_data = UserReadWithSocietes.model_validate(reloaded_user)
-    if not reloaded_user.is_owner and reloaded_user.societe_membre:
+    societes_dict = {s.id: s for s in user_data.societes}
+    if reloaded_user.societe_membre and reloaded_user.societe_membre.id not in societes_dict:
         from app.schemas.societe import SocieteRead
-        user_data.societes = [SocieteRead.model_validate(reloaded_user.societe_membre)]
+        user_data.societes.append(SocieteRead.model_validate(reloaded_user.societe_membre))
         
     return user_data
 

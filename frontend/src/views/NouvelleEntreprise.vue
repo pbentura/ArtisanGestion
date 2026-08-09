@@ -16,13 +16,16 @@ const router = useRouter()
 
 onMounted(() => {
   const user = dataStore.user?.data
-  if (user && user.societes && user.societes.length >= 1 && user.role !== 'TEAM' && user.role !== 'ADMIN') {
-    uiStore.openSubscriptionModal({
-      title: 'Passez au plan Équipe',
-      description: 'Pour créer et gérer plusieurs entreprises, vous devez posséder le plan Équipe.',
-      hideTrialBadge: true
-    })
-    router.push('/app/dashboard')
+  if (user && user.societes && user.role !== 'TEAM' && user.role !== 'ADMIN') {
+    const ownedSocietes = user.societes.filter((s: any) => s.id_user === user.id)
+    if (ownedSocietes.length >= 1) {
+      uiStore.openSubscriptionModal({
+        title: 'Passez au plan Équipe',
+        description: 'Pour créer et gérer plusieurs entreprises, vous devez posséder le plan Équipe.',
+        hideTrialBadge: true
+      })
+      router.push('/app/dashboard')
+    }
   }
 })
 

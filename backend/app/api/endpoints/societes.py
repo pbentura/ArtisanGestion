@@ -132,7 +132,7 @@ async def create_societe(
     await db.refresh(new_societe)
     
     # Mettre à jour l'entreprise active de l'utilisateur
-    current_user.id_societe = new_societe.id
+    current_user.active_societe_id = new_societe.id
     db.add(current_user)
     await db.commit()
     
@@ -272,8 +272,7 @@ async def delete_my_societe(
     )
     autre_societe = result_autres.scalars().first()
     
-    current_user.id_societe = autre_societe.id if autre_societe else None
-    current_user.is_owner = bool(autre_societe)
+    current_user.active_societe_id = autre_societe.id if autre_societe else current_user.id_societe
     db.add(current_user)
 
     await db.commit()

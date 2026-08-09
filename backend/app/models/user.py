@@ -25,6 +25,7 @@ class User(Base):
 
     # Équipe / Collaborateurs
     id_societe = Column(Integer, ForeignKey("societe.id"), nullable=True)
+    active_societe_id = Column(Integer, ForeignKey("societe.id"), nullable=True)
     is_owner = Column(Boolean, default=True, nullable=False, server_default="true")
 
     # Permissions granulaires (pour les collaborateurs)

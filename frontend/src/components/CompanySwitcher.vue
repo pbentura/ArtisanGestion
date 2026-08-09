@@ -13,8 +13,9 @@ const isSwitching = ref(false)
 const user = computed(() => dataStore.user.data)
 const societes = computed(() => user.value?.societes || [])
 const activeSociete = computed(() => {
-  if (user.value?.id_societe) {
-    return societes.value.find((s: any) => s.id === user.value.id_societe)
+  const targetId = user.value?.active_societe_id || user.value?.id_societe
+  if (targetId) {
+    return societes.value.find((s: any) => s.id === targetId)
   }
   return societes.value[0]
 })
@@ -46,7 +47,8 @@ async function switchSociete(societeId: number) {
 
 function handleCreateClick() {
   isDropdownOpen.value = false
-  if (societes.value.length >= 1 && user.value?.role !== 'TEAM' && user.value?.role !== 'ADMIN') {
+  const ownedSocietes = societes.value.filter((s: any) => s.id_user === user.value?.id)
+  if (ownedSocietes.length >= 1 && user.value?.role !== 'TEAM' && user.value?.role !== 'ADMIN') {
     uiStore.openSubscriptionModal({
       title: 'Passez au plan Équipe',
       description: 'Pour créer et gérer plusieurs entreprises, vous devez posséder le plan Équipe.',

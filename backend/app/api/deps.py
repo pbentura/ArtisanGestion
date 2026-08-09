@@ -90,13 +90,22 @@ async def check_trial_active(
 
 def require_permission(permission: str):
     """Dependency factory qui vérifie qu'un utilisateur a une permission donnée."""
-    async def check(current_user: User = Depends(get_current_user)):
-        # Le propriétaire a tous les droits
-        if current_user.is_owner:
-            return current_user
-        # Les admins aussi
+    async def check(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
         if is_admin(current_user):
             return current_user
+            
+        # Si on est le propriétaire de la société active, on a tous les droits
+        active_id = getattr(current_user, 'active_societe_id', None) or current_user.id_societe
+        if not active_id:
+            result = await db.execute(select(Societe.id).where(Societe.id_user == current_user.id))
+            active_id = result.scalar()
+            
+        if active_id:
+            result = await db.execute(select(Societe.id_user).where(Societe.id == active_id))
+            owner_id = result.scalar()
+            if owner_id == current_user.id:
+                return current_user
+
         # Vérifier la permission spécifique
         if not getattr(current_user, permission, False):
             raise HTTPException(
@@ -111,11 +120,11 @@ async def get_user_societe_id(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> int:
-    """Retourne l'id_societe de l'utilisateur (propriétaire ou collaborateur)."""
-    # Collaborateur : id_societe direct
+    """Retourne l'id_societe active de l'utilisateur."""
+    if getattr(current_user, 'active_societe_id', None):
+        return current_user.active_societe_id
     if current_user.id_societe:
         return current_user.id_societe
-    # Propriétaire : chercher la société
     result = await db.execute(select(Societe).where(Societe.id_user == current_user.id))
     societe = result.scalars().first()
     if societe:
