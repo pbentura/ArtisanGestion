@@ -79,17 +79,38 @@ async def create_societe(
     import httpx
     
     if settings.ENVIRONMENT == "production" and current_user.role != "ADMIN":
+        import re
         if not societe_in.siret:
             raise HTTPException(status_code=400, detail="Le SIRET est obligatoire en production.")
             
+        siret_clean = societe_in.siret.replace(" ", "")
+        if not re.match(r"^\d{14}$", siret_clean):
+            raise HTTPException(status_code=400, detail="Le SIRET doit contenir exactement 14 chiffres.")
+            
         async with httpx.AsyncClient() as client:
-            res = await client.get(f"https://recherche-entreprises.api.gouv.fr/search?q={societe_in.siret}")
+            res = await client.get(f"https://recherche-entreprises.api.gouv.fr/search?q={siret_clean}")
             if res.status_code != 200:
                 raise HTTPException(status_code=400, detail="Erreur lors de la vérification du SIRET.")
             
             data = res.json()
-            if not data.get("results") or len(data["results"]) == 0:
-                raise HTTPException(status_code=400, detail="Ce SIRET est introuvable ou l'entreprise n'existe pas.")
+            results = data.get("results", [])
+            
+            # Vérifier qu'au moins un résultat correspond exactement à ce SIRET (soit le siège, soit un établissement)
+            siret_found = False
+            for r in results:
+                if r.get("siege", {}).get("siret") == siret_clean:
+                    siret_found = True
+                    break
+                # Parcourir les établissements correspondants (matching_etablissements)
+                for etablissement in r.get("matching_etablissements", []):
+                    if etablissement.get("siret") == siret_clean:
+                        siret_found = True
+                        break
+                if siret_found:
+                    break
+                    
+            if not siret_found:
+                raise HTTPException(status_code=400, detail="Ce SIRET est introuvable dans la base INSEE.")
 
     new_societe = Societe(
         id_user=current_user.id,
@@ -110,6 +131,52 @@ async def create_societe(
     })
     
     return new_societe
+
+@router.get("/lookup-siret")
+async def lookup_siret(
+    siret: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Rechercher une entreprise par son SIRET via l'API INSEE.
+    """
+    import httpx
+    import re
+    
+    siret_clean = siret.replace(" ", "")
+    if not re.match(r"^\d{14}$", siret_clean):
+        raise HTTPException(status_code=400, detail="Le SIRET doit contenir exactement 14 chiffres.")
+        
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"https://recherche-entreprises.api.gouv.fr/search?q={siret_clean}")
+        if res.status_code != 200:
+            raise HTTPException(status_code=400, detail="Erreur lors de la vérification du SIRET.")
+        
+        data = res.json()
+        results = data.get("results", [])
+        
+        # Trouver la correspondance exacte
+        found = False
+        result_match = None
+        for r in results:
+            if r.get("siege", {}).get("siret") == siret_clean:
+                found = True
+                result_match = r
+                break
+            for etablissement in r.get("matching_etablissements", []):
+                if etablissement.get("siret") == siret_clean:
+                    found = True
+                    result_match = r
+                    break
+            if found:
+                break
+                
+        if not found:
+            raise HTTPException(status_code=400, detail="Ce SIRET est introuvable dans la base INSEE.")
+            
+        return {"results": [result_match]}
+
 
 @router.delete("/me")
 async def delete_my_societe(

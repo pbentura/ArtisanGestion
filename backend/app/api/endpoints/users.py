@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -138,6 +138,12 @@ async def delete_user_me(
 
     uid = current_user.id
     is_owner = current_user.is_owner
+
+    if not is_owner and current_user.id_societe is not None:
+        raise HTTPException(
+            status_code=403,
+            detail="En tant que collaborateur, vous ne pouvez pas supprimer votre compte. Veuillez contacter le propriétaire de l'entreprise."
+        )
 
     if is_owner:
         # L'utilisateur est propriétaire : on supprime son entreprise et toutes ses données

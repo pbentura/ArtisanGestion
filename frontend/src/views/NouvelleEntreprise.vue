@@ -7,16 +7,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { 
-  Building2, MapPin, Scale, Landmark, CheckCircle2,
-  ChevronRight, ArrowLeft, Upload, Loader2, Info, X
+  Building2, MapPin, Landmark, CheckCircle2, Search,
+  ChevronRight, ArrowLeft, Upload, Loader2, X
 } from 'lucide-vue-next'
 
 const router = useRouter()
 
 const steps = [
-  { id: 1, title: 'Identité', subtitle: 'Parlons de votre entreprise', icon: Building2 },
-  { id: 2, title: 'Coordonnées', subtitle: 'Pour vous joindre facilement', icon: MapPin },
-  { id: 3, title: 'Légal & Fiscal', subtitle: 'Les informations administratives', icon: Scale },
+  { id: 1, title: 'Recherche', subtitle: 'Trouvez votre entreprise', icon: Search },
+  { id: 2, title: 'Identité', subtitle: 'Parlons de votre entreprise', icon: Building2 },
+  { id: 3, title: 'Coordonnées', subtitle: 'Pour vous joindre facilement', icon: MapPin },
   { id: 4, title: 'Banque & Paramètres', subtitle: 'Pour vos paiements et factures', icon: Landmark },
   { id: 5, title: 'Récapitulatif', subtitle: 'Vérifiez avant de valider', icon: CheckCircle2 }
 ]
@@ -88,10 +88,77 @@ watch(
 
 const isAutoEntrepreneur = computed(() => form.value.forme_juridique === 'Auto-entrepreneur')
 
+
+const siretFound = ref(false)
+const isSearchingSiret = ref(false)
+const searchSiretError = ref('')
+
+async function searchSiret() {
+  const siretClean = form.value.siret.replace(/\s+/g, '')
+  if (siretClean.length !== 14) {
+    searchSiretError.value = "Le SIRET doit contenir exactement 14 chiffres."
+    return
+  }
+  
+  isSearchingSiret.value = true
+  searchSiretError.value = ''
+  
+  try {
+    const response = await apiFetch(`societes/lookup-siret?siret=${siretClean}`)
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || "Erreur réseau")
+    }
+    
+    const data = await response.json()
+    const results = data.results || []
+    
+    let found = false
+    for (const r of results) {
+      if (r.siege?.siret === siretClean || r.matching_etablissements?.some((e: any) => e.siret === siretClean)) {
+        found = true
+        form.value.nom = r.nom_complet || r.nom_raison_sociale || ''
+        if (r.siege) {
+          const typeVoie = r.siege.type_voie || ''
+          const libelleVoie = r.siege.libelle_voie || ''
+          const numVoie = r.siege.numero_voie || ''
+          const adresse = r.siege.adresse || `${numVoie} ${typeVoie} ${libelleVoie}`.trim()
+          
+          form.value.adresse = adresse
+          form.value.code_postal = r.siege.code_postal || ''
+          form.value.ville = r.siege.libelle_commune || ''
+        }
+        
+        // Forme juridique basique
+        const nj = (r.nature_juridique || '').toLowerCase()
+        if (nj.includes('sas') && nj.includes('unipersonnelle')) form.value.forme_juridique = 'SASU'
+        else if (nj.includes('sas') || nj.includes('actions simplifiée')) form.value.forme_juridique = 'SAS'
+        else if (nj.includes('sarl') && nj.includes('unipersonnelle')) form.value.forme_juridique = 'EURL'
+        else if (nj.includes('sarl') || nj.includes('responsabilité limitée')) form.value.forme_juridique = 'SARL'
+        else if (nj.includes('entrepreneur individuel') || nj.includes('artisan') || nj.includes('commerçant')) form.value.forme_juridique = 'EI'
+        
+        break
+      }
+    }
+    
+    if (found) {
+      siretFound.value = true
+    } else {
+      searchSiretError.value = "Ce SIRET est introuvable dans la base INSEE."
+      siretFound.value = false
+    }
+  } catch (e: any) {
+    searchSiretError.value = e.message || "Impossible de contacter l'API Sirene."
+    siretFound.value = false
+  } finally {
+    isSearchingSiret.value = false
+  }
+}
+
 const isStepValid = computed(() => {
-  if (currentStep.value === 1) return !!form.value.nom.trim()
-  if (currentStep.value === 2) return !!form.value.email.trim() && !!form.value.adresse.trim() && !!form.value.ville.trim()
-  if (currentStep.value === 3) return !!form.value.siret.trim()
+  if (currentStep.value === 1) return siretFound.value
+  if (currentStep.value === 2) return !!form.value.nom.trim()
+  if (currentStep.value === 3) return !!form.value.email.trim() && !!form.value.adresse.trim() && !!form.value.ville.trim()
   if (currentStep.value === 4) return true // Optional fields
   return true
 })
@@ -231,8 +298,41 @@ function removeLogo() {
       <Card class="border-border/50 shadow-xl overflow-hidden focus-within:ring-1 focus-within:ring-primary/20 transition-all">
         <CardContent class="p-6 sm:p-8">
           <transition name="slide-fade" mode="out-in">
-            <!-- Step 1: Identité -->
+            <!-- Step 1: Recherche -->
             <div v-if="currentStep === 1" key="step1" class="space-y-6">
+              <div class="space-y-2">
+                <Label for="siret" class="text-foreground">Numéro SIRET (14 chiffres) <span class="text-destructive">*</span></Label>
+                <div class="flex flex-col sm:flex-row gap-3">
+                  <Input 
+                    id="siret" 
+                    v-model="form.siret" 
+                    placeholder="Ex: 123 456 789 00012" 
+                    class="h-12 text-base transition-all bg-background hover:bg-muted/20 focus:bg-background flex-1" 
+                    @keyup.enter="searchSiret"
+                    @input="siretFound = false"
+                  />
+                  <Button @click="searchSiret" :disabled="isSearchingSiret || form.siret.replace(/\s+/g, '').length < 14" class="h-12 px-6">
+                    <Loader2 v-if="isSearchingSiret" class="w-4 h-4 mr-2 animate-spin" />
+                    <Search v-else class="w-4 h-4 mr-2" />
+                    Rechercher
+                  </Button>
+                </div>
+                <p v-if="searchSiretError" class="text-sm text-destructive mt-2">{{ searchSiretError }}</p>
+              </div>
+              
+              <transition name="slide-fade">
+                <div v-if="siretFound" class="flex items-start bg-green-500/10 text-green-700 dark:text-green-400 p-4 rounded-xl border border-green-500/20 mt-4">
+                  <CheckCircle2 class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p class="text-sm font-semibold">Entreprise trouvée !</p>
+                    <p class="text-sm mt-1">Nous avons pré-rempli vos informations (Nom, Adresse, etc.). Cliquez sur "Continuer" pour vérifier la suite.</p>
+                  </div>
+                </div>
+              </transition>
+            </div>
+
+            <!-- Step 2: Identité -->
+            <div v-else-if="currentStep === 2" key="step2" class="space-y-6">
               <div class="space-y-2">
                 <Label for="nom" class="text-foreground">Nom de l'entreprise <span class="text-destructive">*</span></Label>
                 <Input id="nom" v-model="form.nom" placeholder="Ex: Menuiserie Dupont" class="h-12 text-base transition-all bg-background hover:bg-muted/20 focus:bg-background" />
@@ -252,7 +352,26 @@ function removeLogo() {
                 </div>
               </div>
 
-              <div class="space-y-2 pt-2">
+              <div class="grid gap-6 grid-cols-1 md:grid-cols-2 pt-4 border-t border-border/50">
+                <div v-if="!isAutoEntrepreneur" class="space-y-2">
+                  <Label for="rcs">RCS (Ville)</Label>
+                  <Input id="rcs" v-model="form.rcs" placeholder="Ex: RCS Paris" class="h-12 text-base" />
+                </div>
+                <div v-if="!isAutoEntrepreneur" class="space-y-2">
+                  <Label for="tva">Numéro de TVA Intra.</Label>
+                  <Input id="tva" v-model="form.tva_intracommunautaire" placeholder="Ex: FR 12 345678900" class="h-12 text-base uppercase" />
+                </div>
+                <div v-if="!isAutoEntrepreneur" class="space-y-2">
+                  <Label for="capital">Capital Social (€)</Label>
+                  <Input id="capital" type="number" v-model="form.capital_social" placeholder="Ex: 1000" class="h-12 text-base" />
+                </div>
+                <div v-if="!isAutoEntrepreneur" class="space-y-2">
+                  <Label for="tva_defaut">Taux de TVA par défaut (%)</Label>
+                  <Input id="tva_defaut" type="number" step="0.1" v-model="form.tva_defaut" placeholder="Ex: 20.0" class="h-12 text-base" />
+                </div>
+              </div>
+
+              <div class="space-y-2 pt-4 border-t border-border/50">
                 <Label class="text-foreground">Logo (optionnel)</Label>
                 <div 
                   v-if="!form.logo"
@@ -279,8 +398,8 @@ function removeLogo() {
               </div>
             </div>
 
-            <!-- Step 2: Coordonnées -->
-            <div v-else-if="currentStep === 2" key="step2" class="space-y-6">
+            <!-- Step 3: Coordonnées -->
+            <div v-else-if="currentStep === 3" key="step3" class="space-y-6">
               <div class="grid gap-6 grid-cols-1 md:grid-cols-2">
                 <div class="space-y-2 md:col-span-2">
                   <Label for="adresse">Adresse complète <span class="text-destructive">*</span></Label>
@@ -305,41 +424,6 @@ function removeLogo() {
                   <Label for="telephone">Téléphone</Label>
                   <Input id="telephone" type="tel" v-model="form.telephone" placeholder="Ex: 06 12 34 56 78" class="h-12 text-base" />
                 </div>
-              </div>
-            </div>
-
-            <!-- Step 3: Légal & Fiscal -->
-            <div v-else-if="currentStep === 3" key="step3" class="space-y-6">
-              
-              <div v-if="isAutoEntrepreneur" class="flex items-start bg-blue-500/10 text-blue-600 dark:text-blue-400 p-4 rounded-xl border border-blue-500/20 mb-6">
-                <Info class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
-                <p class="text-sm">En tant qu'auto-entrepreneur, certains champs comme le capital social et la TVA ne sont pas requis. Nous avons allégé le formulaire pour vous !</p>
-              </div>
-
-              <div class="grid gap-6 grid-cols-1 md:grid-cols-2">
-                <div class="space-y-2">
-                  <Label for="siret">Numéro SIRET <span class="text-destructive">*</span></Label>
-                  <Input id="siret" v-model="form.siret" placeholder="Ex: 123 456 789 00012" class="h-12 text-base" />
-                </div>
-                
-                <template v-if="!isAutoEntrepreneur">
-                  <div class="space-y-2">
-                    <Label for="rcs">RCS (Ville)</Label>
-                    <Input id="rcs" v-model="form.rcs" placeholder="Ex: RCS Paris" class="h-12 text-base" />
-                  </div>
-                  <div class="space-y-2">
-                    <Label for="tva">Numéro de TVA Intracommunautaire</Label>
-                    <Input id="tva" v-model="form.tva_intracommunautaire" placeholder="Ex: FR 12 345678900" class="h-12 text-base uppercase" />
-                  </div>
-                  <div class="space-y-2">
-                    <Label for="capital">Capital Social (€)</Label>
-                    <Input id="capital" type="number" v-model="form.capital_social" placeholder="Ex: 1000" class="h-12 text-base" />
-                  </div>
-                  <div class="space-y-2">
-                    <Label for="tva_defaut">Taux de TVA par défaut (%)</Label>
-                    <Input id="tva_defaut" type="number" step="0.1" v-model="form.tva_defaut" placeholder="Ex: 20.0" class="h-12 text-base" />
-                  </div>
-                </template>
               </div>
             </div>
 

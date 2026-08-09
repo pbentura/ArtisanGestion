@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { apiFetch } from '@/lib/api'
-import { dataStore } from '@/lib/store'
+import { dataStore, uiStore } from '@/lib/store'
 import { 
   Users, UserPlus, Copy, Check, Trash2, Loader2, Shield, 
   FileText, Receipt, Building2, ClipboardList, X
@@ -143,7 +143,7 @@ async function savePermissions() {
 }
 
 async function removeCollab(id: number) {
-  if (!confirm('Êtes-vous sûr de vouloir révoquer ce collaborateur ?')) return
+  if (!confirm('Êtes-vous sûr de vouloir supprimer le compte de ce collaborateur ?')) return
   try {
     const res = await apiFetch(`collaborateurs/${id}`, { method: 'DELETE' })
     if (res.ok) await loadData()
@@ -153,6 +153,10 @@ async function removeCollab(id: number) {
 }
 
 function resetInviteModal() {
+  if (currentUser.value?.role !== 'TEAM' && currentUser.value?.role !== 'ADMIN') {
+    uiStore.openSubscriptionModal()
+    return
+  }
   showInviteModal.value = true
   generatedLink.value = ''
   linkCopied.value = false
@@ -225,7 +229,7 @@ onMounted(loadData)
                 <Shield class="w-4 h-4" /> Droits
               </button>
               <button @click="removeCollab(collab.id)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-                <Trash2 class="w-4 h-4" /> Révoquer
+                <Trash2 class="w-4 h-4" /> Supprimer
               </button>
             </div>
           </div>

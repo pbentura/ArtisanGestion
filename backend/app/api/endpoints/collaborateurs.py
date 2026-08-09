@@ -278,20 +278,25 @@ async def remove_collaborateur(
     if collab.is_owner:
         raise HTTPException(400, "Impossible de révoquer le propriétaire.")
 
-    # Dissocier de l'entreprise (ne supprime pas le compte)
-    collab.id_societe = None
-    collab.is_owner = False
+    # Transférer la propriété de ses documents au propriétaire de l'entreprise avant de le supprimer
+    from sqlalchemy import update, delete
+    from app.models.facture import Facture
+    from app.models.devis import Devis
+    from app.models.rapport import Rapport
+    from app.models.client import Client
+
+    soc_result = await db.execute(select(Societe).where(Societe.id == societe_id))
+    societe = soc_result.scalars().first()
     
-    # Réinitialiser les permissions au cas où il créerait sa propre société
-    collab.role = "USER"
-    collab.can_create_rapports = True
-    collab.can_create_clients = True
-    collab.can_create_devis = True
-    collab.can_create_factures = True
-    collab.can_invite = False
-    collab.can_edit_societe = False
-    
-    db.add(collab)
+    if societe:
+        owner_id = societe.id_user
+        uid = collab.id
+        await db.execute(update(Facture).where(Facture.id_user == uid).values(id_user=owner_id))
+        await db.execute(update(Devis).where(Devis.id_user == uid).values(id_user=owner_id))
+        await db.execute(update(Rapport).where(Rapport.id_user == uid).values(id_user=owner_id))
+        await db.execute(update(Client).where(Client.id_user == uid).values(id_user=owner_id))
+
+    await db.delete(collab)
     await db.commit()
 
-    return {"status": "success", "message": "Collaborateur révoqué."}
+    return {"status": "success", "message": "Compte collaborateur supprimé avec succès."}
