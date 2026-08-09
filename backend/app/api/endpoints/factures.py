@@ -48,6 +48,27 @@ async def read_factures(
     return result.unique().scalars().all()
 
 
+@router.get("/acomptes/devis/{devis_id}", response_model=List[FactureSchema])
+async def read_acomptes_for_devis(
+    devis_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    societe_id: int = Depends(deps.get_user_societe_id)
+):
+    """
+    Récupère toutes les factures d'acompte liées à un devis.
+    """
+    result = await db.execute(
+        select(Facture)
+        .options(joinedload(Facture.client), joinedload(Facture.lignes))
+        .where(
+            Facture.id_devis == devis_id, 
+            Facture.id_societe == societe_id,
+            Facture.est_acompte == True
+        )
+    )
+    return result.unique().scalars().all()
+
+
 @router.post("", response_model=FactureSchema)
 async def create_facture(
     facture_in: FactureCreate,

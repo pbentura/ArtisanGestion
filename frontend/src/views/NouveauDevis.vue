@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
-import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser, Link as LinkIcon, ExternalLink, Unlink } from 'lucide-vue-next'
+import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser, Link as LinkIcon, ExternalLink, Unlink, FileText, Euro } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
+import AcompteModal from '@/components/AcompteModal.vue'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
 
@@ -14,6 +15,7 @@ const { sharePDF, triggerHaptic, isNative } = useMobile()
 
 const mainContainer = ref<HTMLElement | null>(null)
 const isLeaving = ref(false)
+const showAcompteModal = ref(false)
 
 const { lengthX, isSwiping } = useSwipe(mainContainer, {
   onSwipeEnd(_e: TouchEvent, direction) {
@@ -62,12 +64,8 @@ const showLinkModal = ref(false)
 
 // Mode édition
 const isEditMode = computed(() => !!route.params.id)
+const isNew = computed(() => !route.params.id)
 const devisId = computed(() => route.params.id ? Number(route.params.id) : null)
-
-// interface Client {
-//   id?: number
-//   nom: string
-// }
 
 interface LigneDevis {
   id?: number
@@ -98,6 +96,7 @@ interface DevisForm {
   id_rapport?: number | null
   rapport?: any
   lignes: LigneDevis[]
+  client?: any
 }
 
 const devis = ref<DevisForm>({
@@ -136,7 +135,6 @@ const societe = ref({
 
 // Autocomplete du client
 const clients = ref<any[]>([])
-const selectedClientId = ref<number | null>(null)
 const showSuggestions = ref(false)
 const focusedIndex = ref(-1)
 
@@ -233,6 +231,7 @@ const isValid = computed(() => {
 const pastDescriptions = ref<any[]>([])
 const activeLineIndex = ref<number | null>(null)
 const focusedLineIndex = ref(-1)
+const selectedClientId = ref<number | null>(null)
 
 const lineSuggestions = computed(() => {
   if (activeLineIndex.value === null) return []
@@ -356,7 +355,8 @@ async function loadExistingDevis(id: number) {
       })) : [],
       signature: data.signature || '',
       id_rapport: data.id_rapport || null,
-      rapport: data.rapport || null
+      rapport: data.rapport || null,
+      client: data.client
     }
     
     if (data.client?.id) {
@@ -375,16 +375,13 @@ onMounted(async () => {
   loadLineDescriptions()
   if (isEditMode.value && devisId.value) {
     await loadExistingDevis(devisId.value)
-    // S'assurer que le canvas est prêt avant d'init
     setTimeout(() => {
       initSignatureCanvas()
     }, 500)
   } else {
-    // Ajouter une ligne vide par défaut pour un nouveau devis
     ajouterLigne()
   }
 
-  // Si on est en mode aperçu PDF
   if (route.path.endsWith('/pdf')) {
     setTimeout(() => {
       openPreview()
@@ -392,7 +389,6 @@ onMounted(async () => {
   }
 })
 
-// Sauvegarde
 async function saveClientToDatabase(): Promise<number | null> {
   if (selectedClientId.value) {
     const c = clients.value.find(cl => cl.id === selectedClientId.value)
@@ -493,7 +489,6 @@ async function saveDevis() {
   }
 }
 
-// PDF Generation
 function getReportHTML() {
   const pdfFormatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -522,7 +517,6 @@ function getReportHTML() {
   return `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
 
-      <!-- EN-TÊTE : Logo + Infos société / Client -->
       <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
         <div style="flex: 1;">
           <div style="margin-bottom: 15px;">
@@ -550,7 +544,6 @@ function getReportHTML() {
         </div>
       </div>
 
-      <!-- TITRE FACTURE/DEVIS & INFOS -->
       <div style="margin-bottom: 30px; display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
         <div>
           <h1 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">${devis.value.titre_document_pdf}</h1>
@@ -570,7 +563,6 @@ function getReportHTML() {
         </div>
       </div>
 
-      <!-- TABLEAU DES LIGNES -->
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11px;">
         <thead>
           <tr>
@@ -586,7 +578,6 @@ function getReportHTML() {
         </tbody>
       </table>
 
-      <!-- Conditions Encadrées (Placées au-dessus des totaux) -->
       <div style="margin-bottom: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; overflow: hidden; page-break-inside: avoid;">
         <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #2563eb;"></div>
         <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Conditions & Informations</div>
@@ -596,9 +587,7 @@ function getReportHTML() {
         </div>
       </div>
 
-      <!-- ENCART DES TOTAUX & SIGNATURE -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; page-break-inside: avoid;">
-        <!-- Signature (Gauche) -->
         <div style="width: 250px;">
           ${devis.value.signature ? `
             <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">Signature</div>
@@ -608,7 +597,6 @@ function getReportHTML() {
           ` : ''}
         </div>
 
-        <!-- Totaux (Droite) -->
         <div style="width: 250px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <span style="color: #475569; font-weight: 600;">Total HT</span>
@@ -648,10 +636,9 @@ async function saveAndGeneratePDF() {
     const clientId = await saveClientToDatabase()
     if (!clientId) throw new Error("Impossible de créer le client")
     
-    // On sauvegarde d'abord
     const saved = await saveDevisToDatabase(clientId)
     devis.value.id = saved.id
-    devis.value.numero_devis = saved.numero_devis // S'assurer qu'on utilise le numéro finalisé
+    devis.value.numero_devis = saved.numero_devis
     
     const footerText = societe.value.texte_pied_page || ''
     const container = document.createElement('div')
@@ -684,15 +671,13 @@ async function saveAndGeneratePDF() {
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
         
-        // 1. Ligne de séparation élégante (Bleu Primaire #2563eb)
         pdf.setDrawColor(37, 99, 235)
         pdf.setLineWidth(0.4)
         pdf.line(25, pageHeight - 20, pageWidth - 25, pageHeight - 20)
 
-        // 2. Informations société (Centrées)
         if (footerText) {
           pdf.setFontSize(7)
-          pdf.setTextColor(107, 114, 128) // COLOR_GRAY
+          pdf.setTextColor(107, 114, 128)
           const lines = pdf.splitTextToSize(footerText, pageWidth - 60)
           const startY = pageHeight - 15
           lines.forEach((line: string, idx: number) => {
@@ -700,15 +685,13 @@ async function saveAndGeneratePDF() {
           })
         }
 
-        // 3. Numérotation de page (Bas Droite)
         pdf.setFontSize(8)
-        pdf.setTextColor(37, 99, 235) // COLOR_PRIMARY
+        pdf.setTextColor(37, 99, 235)
         pdf.setFont('helvetica', 'bold')
         pdf.text(`Page ${i} / ${totalPages}`, pageWidth - 25, pageHeight - 10, { align: 'right' })
 
-        // 4. Petit branding (Bas Gauche)
         pdf.setFontSize(6)
-        pdf.setTextColor(156, 163, 175) // COLOR_LIGHT_MUTED
+        pdf.setTextColor(156, 163, 175)
         pdf.setFont('helvetica', 'italic')
         pdf.text("Généré via ArtisanGestion", 25, pageHeight - 10)
       }
@@ -723,7 +706,6 @@ async function saveAndGeneratePDF() {
     }
     document.body.removeChild(container)
     
-    // Après téléchargement on retourne à la liste
     dataStore.fetchDevis(true)
     router.push('/app/devis')
   } catch (e: any) {
@@ -764,19 +746,15 @@ function shareDevis() {
   alert("Le partage direct sera disponible bientôt. Utilisez l'aperçu PDF.")
 }
 
-// Signature Pad Logic
 function startDrawing(e: MouseEvent | TouchEvent) {
   isDrawing.value = true
-  
   const canvas = signatureCanvas.value
   if (!canvas) return
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  
   const rect = canvas.getBoundingClientRect()
   const scaleX = canvas.width / rect.width
   const scaleY = canvas.height / rect.height
-  
   let clientX, clientY
   if (e instanceof MouseEvent) {
     clientX = e.clientX
@@ -785,10 +763,8 @@ function startDrawing(e: MouseEvent | TouchEvent) {
     clientX = e.touches[0].clientX
     clientY = e.touches[0].clientY
   }
-  
   const x = (clientX - rect.left) * scaleX
   const y = (clientY - rect.top) * scaleY
-  
   ctx.beginPath()
   ctx.moveTo(x, y)
 }
@@ -804,17 +780,12 @@ function stopDrawing() {
 
 function draw(e: MouseEvent | TouchEvent) {
   if (!isDrawing.value || !signatureCanvas.value) return
-  
   const canvas = signatureCanvas.value
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-
   const rect = canvas.getBoundingClientRect()
-  
-  // Correction du décalage : multiplication par le ratio (taille réelle / taille affichée)
   const scaleX = canvas.width / rect.width
   const scaleY = canvas.height / rect.height
-
   let clientX, clientY
   if (e instanceof MouseEvent) {
     clientX = e.clientX
@@ -823,15 +794,12 @@ function draw(e: MouseEvent | TouchEvent) {
     clientX = e.touches[0].clientX
     clientY = e.touches[0].clientY
   }
-
   const x = (clientX - rect.left) * scaleX
   const y = (clientY - rect.top) * scaleY
-
   ctx.lineWidth = 2.5
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.strokeStyle = '#0f172a'
-
   ctx.lineTo(x, y)
   ctx.stroke()
 }
@@ -848,7 +816,6 @@ function clearSignature() {
 
 function saveSignature() {
   if (!signatureCanvas.value) return
-  // Vérifier si le canvas est vide (optionnel mais recommandé)
   const isEmpty = isCanvasEmpty(signatureCanvas.value)
   if (isEmpty) {
     devis.value.signature = ''
@@ -864,7 +831,6 @@ function isCanvasEmpty(canvas: HTMLCanvasElement) {
   return canvas.toDataURL() === blank.toDataURL()
 }
 
-// Initialiser le canvas si on a déjà une signature
 function initSignatureCanvas() {
   if (devis.value.signature && signatureCanvas.value) {
     const canvas = signatureCanvas.value
@@ -880,11 +846,8 @@ function initSignatureCanvas() {
   }
 }
 
-// Watch signature changes to init canvas when loading existing devis
-import { watch } from 'vue'
 watch(() => devis.value.signature, (newVal) => {
   if (newVal && signatureCanvas.value) {
-    // Only init if canvas is empty
     if (isCanvasEmpty(signatureCanvas.value)) {
        initSignatureCanvas()
     }
@@ -899,7 +862,6 @@ async function handleLinkRapport(rapportId: number) {
         method: 'PUT',
         body: JSON.stringify({ id_rapport: rapportId })
       })
-      // Re-load to get rapport object
       const res = await apiFetch(`devis/${devisId.value}`)
       if (res.ok) {
         const data = await res.json()
@@ -937,9 +899,7 @@ async function unlinkRapport() {
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Header -->
       <div class="sticky top-0 bg-background/95 backdrop-blur z-20 border-b pt-safe px-4 -mx-4 mb-6">
-        <!-- Première ligne : Retour + Actions Primaires -->
         <div class="flex items-center justify-between py-3">
           <button
             @click="router.push('/app/devis')"
@@ -950,7 +910,6 @@ async function unlinkRapport() {
           </button>
           
           <div class="flex items-center gap-2">
-            <!-- Toujours visible : Aperçu -->
             <button
               @click="openPreview"
               :disabled="isSaving || isGeneratingPDF"
@@ -961,7 +920,6 @@ async function unlinkRapport() {
               <span class="hidden sm:inline">Aperçu</span>
             </button>
 
-            <!-- Toujours visible : Sauvegarder (si brouillon) -->
             <button
               v-if="devis.statut === 'brouillon'"
               @click="trialEnded ? uiStore.openSubscriptionModal() : saveDevis()"
@@ -974,7 +932,6 @@ async function unlinkRapport() {
               <span class="hidden sm:inline">Sauvegarder</span>
             </button>
 
-            <!-- Toujours visible : Sauvegarder & PDF -->
             <button
               @click="trialEnded ? uiStore.openSubscriptionModal() : saveAndGeneratePDF()"
               :disabled="isSaving || isGeneratingPDF"
@@ -986,7 +943,6 @@ async function unlinkRapport() {
               <span class="sm:hidden">PDF</span>
             </button>
 
-            <!-- Desktop only : Actions spécifiques -->
             <div v-if="isEditMode" class="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l border-border">
               <button @click="toggleStatus" :disabled="isUpdatingStatus" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg font-medium border shadow-sm" :class="devis.statut === 'envoyé' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'">
                 <template v-if="isUpdatingStatus"><Loader2 class="w-4 h-4 animate-spin" /></template>
@@ -996,6 +952,14 @@ async function unlinkRapport() {
               <button @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devisId}`)" class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium">
                 <Receipt class="w-5 h-5" />
                 <span>Facturer</span>
+              </button>
+              <button 
+                v-if="!isNew"
+                @click="trialEnded ? uiStore.openSubscriptionModal() : (showAcompteModal = true)"
+                class="flex flex-col items-center justify-center p-3 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors border border-purple-200"
+              >
+                <Euro class="w-6 h-6 mb-1" />
+                <span>Acompte</span>
               </button>
               <button 
                 v-if="!devis.id_rapport"
@@ -1010,7 +974,6 @@ async function unlinkRapport() {
           </div>
         </div>
 
-        <!-- Deuxième ligne (Mobile uniquement) : Actions Spécifiques -->
         <div v-if="isEditMode" class="flex sm:hidden items-center gap-2 pb-3 overflow-x-auto no-scrollbar">
           <button
             @click="toggleStatus"
@@ -1030,6 +993,15 @@ async function unlinkRapport() {
           >
             <Receipt class="w-4 h-4" />
             <span class="text-xs">Facturer</span>
+          </button>
+
+          <button
+            v-if="!isNew"
+            @click="trialEnded ? uiStore.openSubscriptionModal() : (showAcompteModal = true)"
+            class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-lg font-medium whitespace-nowrap"
+          >
+            <Euro class="w-4 h-4" />
+            <span class="text-xs">Acompte</span>
           </button>
 
           <button
@@ -1055,7 +1027,6 @@ async function unlinkRapport() {
       <h1 class="text-2xl font-bold text-foreground mb-4 hidden sm:block">{{ isEditMode ? 'Modifier le Devis' : 'Nouveau Devis' }}</h1>
 
       <div class="space-y-6">
-        <!-- Informations Générales -->
         <section class="bg-card border border-border rounded-xl p-6">
           <h3 class="text-lg font-semibold text-foreground mb-4">Informations du document</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -1105,7 +1076,6 @@ async function unlinkRapport() {
             </div>
           </div>
 
-          <!-- Document Lié -->
           <div v-if="devis.id_rapport && devis.rapport" class="mt-6 p-4 rounded-xl border border-blue-100 bg-blue-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div class="flex items-center">
               <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4 text-blue-600">
@@ -1138,11 +1108,9 @@ async function unlinkRapport() {
           </div>
         </section>
 
-        <!-- Informations Client -->
         <section class="bg-card border border-border rounded-xl p-6">
           <h3 class="text-lg font-semibold text-foreground mb-4">Informations Client</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <!-- Autocomplete Field -->
             <div class="relative">
               <label class="block text-sm font-medium text-foreground mb-1.5">Nom du client <span class="text-destructive">*</span></label>
               <input 
@@ -1197,7 +1165,6 @@ async function unlinkRapport() {
           </div>
         </section>
 
-        <!-- Lignes du devis -->
         <section class="bg-card border border-border rounded-xl p-6">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
@@ -1269,7 +1236,6 @@ async function unlinkRapport() {
             </div>
           </div>
 
-          <!-- Totaux -->
           <div class="flex justify-end pt-6 border-t border-border">
             <div class="w-full max-w-sm bg-muted/30 border border-border rounded-xl p-5 shadow-sm">
               <div class="flex justify-between items-center mb-3 text-sm">
@@ -1288,7 +1254,6 @@ async function unlinkRapport() {
           </div>
         </section>
 
-        <!-- Paramètres annexes -->
         <section class="bg-card border border-border rounded-xl p-6">
           <h3 class="text-lg font-semibold text-foreground mb-4">Modalités et Conditions</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1302,7 +1267,6 @@ async function unlinkRapport() {
             </div>
           </div>
           
-          <!-- Signature Section -->
           <div class="mt-8 pt-8 border-t border-border">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
               <div>
@@ -1350,7 +1314,6 @@ async function unlinkRapport() {
           </div>
         </section>
 
-        <!-- Bouton Sauvegarder (Bas de page) -->
         <div class="flex justify-end mt-8">
           <button
             @click="trialEnded ? uiStore.openSubscriptionModal() : saveDevis()"
@@ -1366,17 +1329,11 @@ async function unlinkRapport() {
     </div>
   </div>
 
-  <!-- PDF Preview Modal -->
   <Teleport to="body">
     <Transition name="modal-fade">
       <div v-if="showPDFModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" @click.self="closePDFModal">
-        <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
-
-        <!-- Modal card -->
         <div class="relative w-full max-w-5xl h-[90vh] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
-          
-          <!-- Header -->
           <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/30">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -1406,7 +1363,6 @@ async function unlinkRapport() {
             </div>
           </div>
 
-          <!-- Content (Viewer) -->
           <div class="flex-1 bg-muted/20 relative overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex justify-center pdf-preview-container">
             <div 
               v-if="previewHTML" 
@@ -1419,7 +1375,6 @@ async function unlinkRapport() {
             </div>
           </div>
 
-          <!-- Mobile Footer (always show download on HTML preview) -->
           <div class="p-4 border-t border-border bg-card">
             <div class="max-w-xs mx-auto space-y-2">
               <p class="text-[10px] text-muted-foreground text-center">
@@ -1448,10 +1403,17 @@ async function unlinkRapport() {
     @close="showLinkModal = false"
     @select="handleLinkRapport"
   />
+
+  <AcompteModal
+    v-if="!isNew && devisId"
+    :is-open="showAcompteModal"
+    :devis="{ id: devisId, numero_devis: devis.numero_devis, client: devis.client, lignes: devis.lignes, total_ttc: total_ttc }"
+    @close="showAcompteModal = false"
+    @success="() => { showAcompteModal = false }"
+  />
 </template>
 
 <style scoped>
-/* Modal transitions */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
   transition: opacity 0.25s ease;

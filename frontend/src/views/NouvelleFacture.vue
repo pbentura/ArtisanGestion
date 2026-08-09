@@ -478,7 +478,7 @@ async function loadExistingFacture(id: number) {
     }
     
     if (data.client?.id) {
-      selectedClientId.value = data.client.id
+    selectedClientId.value = data.client.id
     }
   } catch (e) {
     console.error('Erreur lors du chargement de la facture:', e)
@@ -486,6 +486,8 @@ async function loadExistingFacture(id: number) {
     isLoading.value = false
   }
 }
+
+const acomptesList = ref<any[]>([])
 
 async function loadDevisForConversion(devisId: number) {
   isLoading.value = true
@@ -523,6 +525,31 @@ async function loadDevisForConversion(devisId: number) {
         total_ht: Number(l.total_ht)
       })) : [],
       id_devis: devisId
+    }
+    
+    // Fetch and deduct acomptes
+    try {
+      const resAcomptes = await apiFetch(`factures/acomptes/devis/${devisId}`)
+      if (resAcomptes.ok) {
+        const acomptes = await resAcomptes.json()
+        acomptesList.value = acomptes
+        
+        for (const acompte of acomptes) {
+          const acompteTotalHt = acompte.lignes?.reduce((acc: number, l: any) => acc + Number(l.total_ht), 0) || acompte.sous_total_ht || 0
+          
+          if (acompteTotalHt > 0) {
+            facture.value.lignes.push({
+              description: `Déduction ${acompte.objet_facture || 'Acompte'}`,
+              quantite: 1,
+              prix_unite_ht: -acompteTotalHt,
+              taux_tva: acompte.lignes?.[0]?.taux_tva || 20, // Default to 20% or acompte TVA
+              total_ht: -acompteTotalHt
+            })
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erreur lors de la récupération des acomptes:", e)
     }
     
     if (data.client?.id) {

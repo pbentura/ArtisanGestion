@@ -20,6 +20,7 @@ class Facture(Base):
     statut = Column(String, nullable=False, server_default="brouillon")  # brouillon, validée
     est_payee = Column(Boolean, nullable=False, server_default="false")
     est_avoir = Column(Boolean, nullable=False, server_default="false")
+    est_acompte = Column(Boolean, nullable=False, server_default="false")
     id_facture_source = Column(Integer, ForeignKey("factures.id"), nullable=True)
     conditions_particulieres = Column(Text, nullable=True)
 

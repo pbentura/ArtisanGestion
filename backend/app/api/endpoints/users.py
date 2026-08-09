@@ -19,10 +19,18 @@ async def read_user_me(
     Obtenir le profil de l'utilisateur connecté, avec ses sociétés.
     """
     result = await db.execute(
-        select(User).options(selectinload(User.societes)).where(User.id == current_user.id)
+        select(User)
+        .options(selectinload(User.societes), selectinload(User.societe_membre))
+        .where(User.id == current_user.id)
     )
     user = result.scalars().first()
-    return user
+    
+    user_data = UserReadWithSocietes.model_validate(user)
+    if not user.is_owner and user.societe_membre:
+        from app.schemas.societe import SocieteRead
+        user_data.societes = [SocieteRead.model_validate(user.societe_membre)]
+        
+    return user_data
 
 @router.patch("/me", response_model=UserReadWithSocietes)
 async def update_user_me(
@@ -51,7 +59,9 @@ async def update_user_me(
     
     # Re-fetch with societies
     result = await db.execute(
-        select(User).options(selectinload(User.societes)).where(User.id == current_user.id)
+        select(User)
+        .options(selectinload(User.societes), selectinload(User.societe_membre))
+        .where(User.id == current_user.id)
     )
     user = result.scalars().first()
     
@@ -61,7 +71,12 @@ async def update_user_me(
         "data": user.onboarding_draft
     })
     
-    return user
+    user_data = UserReadWithSocietes.model_validate(user)
+    if not user.is_owner and user.societe_membre:
+        from app.schemas.societe import SocieteRead
+        user_data.societes = [SocieteRead.model_validate(user.societe_membre)]
+        
+    return user_data
 
 @router.delete("/me")
 async def delete_user_me(

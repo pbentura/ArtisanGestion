@@ -7,6 +7,7 @@ import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.v
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import EmailModal from '@/components/EmailModal.vue'
+import AcompteModal from '@/components/AcompteModal.vue'
 
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
@@ -49,6 +50,9 @@ const emailDocumentId = ref<number | null>(null)
 const emailDocumentRef = ref('')
 const emailClientEmail = ref('')
 
+const showAcompteModal = ref(false)
+const acompteDevis = ref<Devis | null>(null)
+
 function openEmailModal(devis: Devis) {
   emailDocumentId.value = devis.id
   emailDocumentRef.value = devis.numero_devis
@@ -59,6 +63,11 @@ function openEmailModal(devis: Devis) {
 function openBottomSheet(devis: Devis) {
   selectedDevis.value = devis
   isBottomSheetOpen.value = true
+}
+
+function openAcompteModal(devis: Devis) {
+  acompteDevis.value = devis
+  showAcompteModal.value = true
 }
 
 function closeBottomSheet() {
@@ -352,6 +361,15 @@ onMounted(fetchDevis)
               <Receipt class="w-4 h-4" />
               <span class="text-xs font-semibold">Facturer</span>
             </button>
+            
+            <button
+              @click.stop="trialEnded ? uiStore.openSubscriptionModal() : openAcompteModal(devis)"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors border border-transparent hover:border-purple-200"
+              title="Générer un acompte"
+            >
+              <Euro class="w-4 h-4" />
+              <span class="text-xs font-semibold">Acompte</span>
+            </button>
 
             <button
               @click.stop="trialEnded ? uiStore.openSubscriptionModal() : openEmailModal(devis)"
@@ -456,6 +474,14 @@ onMounted(fetchDevis)
           <Receipt class="w-5 h-5 text-foreground" />
           <span class="font-medium">Transformer en facture <span v-if="trialEnded" class="text-xs text-red-500">(Essai terminé)</span></span>
         </button>
+        
+        <button 
+          @click="trialEnded ? uiStore.openSubscriptionModal() : openAcompteModal(selectedDevis); closeBottomSheet()"
+          class="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-muted transition-colors"
+        >
+          <Euro class="w-5 h-5 text-purple-600" />
+          <span class="font-medium text-purple-700">Générer un acompte <span v-if="trialEnded" class="text-xs text-red-500">(Essai terminé)</span></span>
+        </button>
 
         <button
           @click="shareDevis(selectedDevis); closeBottomSheet()"
@@ -498,6 +524,12 @@ onMounted(fetchDevis)
       :client-email="emailClientEmail"
       @close="showEmailModal = false"
       @success="fetchDevis"
+    />
+    <AcompteModal
+      :is-open="showAcompteModal"
+      :devis="acompteDevis"
+      @close="showAcompteModal = false"
+      @success="(id) => { showAcompteModal = false; fetchDevis(); }"
     />
   </div>
 </template>

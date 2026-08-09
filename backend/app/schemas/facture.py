@@ -21,6 +21,7 @@ class FactureBase(BaseModel):
     statut: str = "brouillon"
     est_payee: bool = False
     est_avoir: bool = False
+    est_acompte: bool = False
     id_facture_source: Optional[int] = None
 
 
@@ -54,6 +55,7 @@ class FactureUpdate(BaseModel):
     statut: Optional[str] = None
     est_payee: Optional[bool] = None
     est_avoir: Optional[bool] = None
+    est_acompte: Optional[bool] = None
     id_facture_source: Optional[int] = None
 
 
