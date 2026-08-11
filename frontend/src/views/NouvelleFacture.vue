@@ -767,11 +767,11 @@ function getReportHTML() {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11px;">
         <thead>
           <tr>
-            <th style="padding: 10px; text-align: left; background: #f8fafc; border-bottom: 2px solid #cbd5e1; font-weight: 700; color: #334155; width: 45%;">Description</th>
-            <th style="padding: 10px; text-align: right; background: #f8fafc; border-bottom: 2px solid #cbd5e1; font-weight: 700; color: #334155; min-width: 60px;">Qté</th>
-            <th style="padding: 10px; text-align: right; background: #f8fafc; border-bottom: 2px solid #cbd5e1; font-weight: 700; color: #334155; min-width: 80px;">Prix U. HT</th>
-            <th style="padding: 10px; text-align: right; background: #f8fafc; border-bottom: 2px solid #cbd5e1; font-weight: 700; color: #334155; min-width: 60px;">TVA</th>
-            <th style="padding: 10px; text-align: right; background: #f8fafc; border-bottom: 2px solid #cbd5e1; font-weight: 700; color: #334155; min-width: 80px;">Total HT</th>
+            <th style="padding: 10px; text-align: left; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; width: 45%;">Description</th>
+            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 60px;">Qté</th>
+            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 80px;">Prix U. HT</th>
+            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 60px;">TVA</th>
+            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 80px;">Total HT</th>
           </tr>
         </thead>
         <tbody>
@@ -792,18 +792,20 @@ function getReportHTML() {
 
       <!-- ENCART DES TOTAUX -->
       <div style="display: flex; justify-content: flex-end; margin-bottom: 40px; page-break-inside: avoid;">
-        <div style="width: 250px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #475569; font-weight: 600;">Total HT</span>
-            <span style="font-weight: 600;">${formattedSousTotalHt.value} €</span>
+        <div style="width: 250px; background: #ffffff; border: 2px solid #2563eb; border-radius: 8px; overflow: hidden;">
+          <div style="padding: 15px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: #475569; font-weight: 600;">Total HT</span>
+              <span style="font-weight: 600;">${formattedSousTotalHt.value} €</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #475569; font-weight: 600;">Total TVA</span>
+              <span style="font-weight: 600;">${formattedTotalTva.value} €</span>
+            </div>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-            <span style="color: #475569; font-weight: 600;">Total TVA</span>
-            <span style="font-weight: 600;">${formattedTotalTva.value} €</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px solid #e2e8f0;">
-            <span style="color: #0f172a; font-weight: 800; font-size: 14px;">Net à Payer (TTC)</span>
-            <span style="color: #2563eb; font-weight: 800; font-size: 14px;">${formattedTotalTtc.value} €</span>
+          <div style="display: flex; justify-content: space-between; padding: 12px 15px; background: #2563eb; color: #ffffff;">
+            <span style="font-weight: 800; font-size: 14px;">Net à Payer (TTC)</span>
+            <span style="font-weight: 800; font-size: 14px;">${formattedTotalTtc.value} €</span>
           </div>
         </div>
       </div>
@@ -828,12 +830,14 @@ async function saveAndGeneratePDF() {
 
   isGeneratingPDF.value = true
   try {
-    const clientId = await saveClientToDatabase()
-    if (!clientId) throw new Error("Impossible de créer le client")
-    
-    const saved = await saveFactureToDatabase(clientId)
-    facture.value.id = saved.id
-    facture.value.numero_facture = saved.numero_facture
+    if (!isLocked.value) {
+      const clientId = await saveClientToDatabase()
+      if (!clientId) throw new Error("Impossible de créer le client")
+      
+      const saved = await saveFactureToDatabase(clientId)
+      facture.value.id = saved.id
+      facture.value.numero_facture = saved.numero_facture
+    }
     
     const footerText = societe.value.texte_pied_page || ''
     const container = document.createElement('div')
@@ -888,11 +892,18 @@ async function saveAndGeneratePDF() {
         pdf.setFont('helvetica', 'bold')
         pdf.text(`Page ${i} / ${totalPages}`, pageWidth - 25, pageHeight - 10, { align: 'right' })
 
-        // 4. Petit branding (Bas Gauche)
-        pdf.setFontSize(6)
-        pdf.setTextColor(156, 163, 175) // COLOR_LIGHT_MUTED
-        pdf.setFont('helvetica', 'italic')
-        pdf.text("Généré via ArtisanGestion", 25, pageHeight - 10)
+        // 4. Branding (Minimalist)
+        const artisanLogoBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCABAAEADASIAAhEBAxEB/8QAGwAAAgMAAwAAAAAAAAAAAAAAAAgFBwkBBAb/xAAxEAABAgUCBQMDAgcAAAAAAAABAgMABAUGEQchCBIxUXETQWEiMrIJZBUjJGN0gvD/xAAbAQABBQEBAAAAAAAAAAAAAAAFAAEEBgcDAv/EACgRAAEDAwMDBAMBAAAAAAAAAAECAxEABAUhMVFBgdEGEnHBFRahYf/aAAwDAQACEQMRAD8A1TggghUqII6Fbr1OtunuT1UnGZGUb+515XKPA7n4G8LdqbxWvvh6RtFkyze6TUphP1n5Qg7J8qyfgQWsMXdZJftYTp1J2HfxrUG6vWbRMunXjrTQQQqum/F09IKakLxZM0xskVOWRhxI7uIGyvKcH4JhmLfuSl3XTGqjSJ9ioSbn2usLChnsex7g7iPWQxN3jFRcI06EbHv9HWla3rF2JaVrx1qSggggPU6iK61p1Te0wokq9KyaJucnFqbaLqiEN4GckDc9emR5ixYXnjBX6dFt0/33fxEGsNbt3V+0y6JSTqOxND8g6tm2W4gwR5pfbzvqsXpUDN1ifcnHBnkSo4Q2OyUjYDxEzL8PmolVkWJuVt1S2H20utqVNy6CUkZBwpwEbexEV1MzGMxorbyAu3aQSpY/omftdKR9g9sxqObyTmDaaFqhMGRBBgRG0Ec1TcdaIyK1l5RkR/fmaRyrcO2o1NYU9MW4pDYBJUJyXV0GfZwx4K0tR7g08qon6BUnZF7bnQk5bdHZaDsoeentGkdyOclrVfACvTk3Vp5jzHIQSD17xla87gdYnem8m7nmnk3iEwIEAGDM7yTxXLKWaMatssKMmevEcAVotw761P6z21OzM7T25GfkHUsvFhRLbpIyFJB3T4JPmLYhVuAhfPbV2H94z+BhqYybP2zVnk3mGBCQRA+QDV1xrq37RtxwyT5ohceM1z06FbZ/cO/iIY6Kt190imdWbelGJGdRJzsi4p1oPJJQ4SMcpI3HTrg+I54S4atci088YSDqexFPkGlvWq0NiSfNIVMv5zvGl9qISu1qMrAOZJnf/QRm9fVlV2wKkqRrtOekXcnkWoZbdHdKhsof8Yim9QLlkpdtiXuKqy7DSQlDTU66lKQOgACsARsWZwv59lpTDoAEmdwZjg/5VGsL78atYcQSTGm0RV7aqa43rT9RLgkP40qWQ1OOU6WttuU5vWYJwHFkpxyqbJVzBRVkjAA3CtvvZiXqd6V2oKWZmtVGZK0FtXqzbiuZJ6pOT0PaObL0+uLUmrCnW7S3qg/kc60DDbQPutZ2SPJ39sxL9P4X9eaeXcOgpVBnYCJ3n5oDDz7qpWpfuJIBkxPGp/kDTYU2v6f6ua17t/zWfwMNfFOcM+h03ola09LVCoNz1QqLqX3ksJIbaITgJSTuryQPEXHGL+oblm8yjz7CpSSIPwAK1XGtLYtG23BBHmiCCCK9ROom5bVpN4Ut2nVmQYqEm4PqafQFDyOx+RuIUnWHgsnJFL9SsZ8zjAyo0qZX/MSOzazsrwrB+TDmQQbxmZvMSv3Wy9OoOoPb7EGh93YsXqYdTrz1pK9IuCOdqhZqV9vmRltlCkyy8urHZxwbJ8JyfkQ3lrWhR7KpLVNolOYp0k0PpaYQEgnue5PuTuYmIIfJ5q9yy/dcr06JGiR2+zJpWlgxZJhpOvPWiCCCAdEK/9k="
+        pdf.addImage(artisanLogoBase64, 'JPEG', 25, pageHeight - 11, 4, 4)
+        
+        pdf.setFontSize(7)
+        pdf.setTextColor(100, 116, 139)
+        pdf.setFont('helvetica', 'normal')
+        pdf.text("Généré via", 30, pageHeight - 8)
+        
+        pdf.setTextColor(37, 99, 235)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text("ArtisanGestion", 44, pageHeight - 8)
       }
     }
 
