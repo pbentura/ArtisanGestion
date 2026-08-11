@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Numeric, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -25,6 +25,11 @@ class Societe(Base):
     dernier_numero_facture = Column(String, default="2024-001")
     objectif_mensuel_ca = Column(Numeric(15, 2), nullable=True) # in €
     texte_pied_page = Column(Text, nullable=True)
+
+    # Stripe Connect
+    stripe_connect_account_id = Column(String, nullable=True)
+    stripe_connect_enabled = Column(Boolean, nullable=False, server_default="false")
+    stripe_connect_onboarding_complete = Column(Boolean, nullable=False, server_default="false")
 
     id_user = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="societes", foreign_keys=[id_user])

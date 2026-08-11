@@ -178,6 +178,12 @@ const routes = [
         name: 'menu',
         component: () => import('@/views/MobileMenu.vue'),
         meta: { title: 'Menu' }
+      },
+      {
+        path: 'stripe-connect/return',
+        name: 'stripe-connect-return',
+        component: () => import('@/views/StripeConnectReturn.vue'),
+        meta: { title: 'Stripe Connect', hideMobileHeader: true, hideMobileNav: true }
       }
     ]
   },
@@ -228,6 +234,19 @@ const routes = [
     name: 'mentions-legales',
     component: MentionsLegales,
     meta: { title: 'Mentions Légales' }
+  },
+  // 404 catch-all
+  {
+    path: '/pay/success',
+    name: 'pay-success',
+    component: () => import('@/views/PayFacture.vue'),
+    meta: { title: 'Paiement réussi' }
+  },
+  {
+    path: '/pay/cancel',
+    name: 'pay-cancel',
+    component: () => import('@/views/PayFacture.vue'),
+    meta: { title: 'Paiement annulé' }
   },
   // 404 catch-all
   {

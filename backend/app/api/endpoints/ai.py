@@ -331,13 +331,10 @@
 #         headers={
 #             "Cache-Control": "no-cache",
 #             "X-Accel-Buffering": "no",
-#         }
-#     )
-
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from typing import List, Optional
 import httpx
 import json
 
@@ -347,7 +344,7 @@ from app.core.config import settings
 
 router = APIRouter()
 
-async def validate_input_with_ai(type_intervention: str, description: str) -> str | None:
+async def validate_input_with_ai(type_intervention: str, description: str) -> Optional[str]:
     """
     Vérifie si la saisie a du sens. Retourne une erreur (str) si invalide, ou None si valide.
     """
@@ -389,10 +386,10 @@ class GenerateRapportRequest(BaseModel):
     type_intervention: str
     description: str
     longueur: str = "normal"  # "court", "normal", "long"
-    nom_client: str | None = None
-    adresse: str | None = None
-    date_intervention: str | None = None
-    nom_technicien: str | None = None
+    nom_client: Optional[str] = None
+    adresse: Optional[str] = None
+    date_intervention: Optional[str] = None
+    nom_technicien: Optional[str] = None
 
 
 def build_rapport_prompt(request: GenerateRapportRequest) -> str:

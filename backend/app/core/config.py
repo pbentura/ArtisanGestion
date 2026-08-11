@@ -39,6 +39,8 @@ class Settings:
 
     # Stripe
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    STRIPE_CONNECT_COMMISSION_PERCENT: float = float(os.getenv("STRIPE_CONNECT_COMMISSION_PERCENT", "1.5"))
 
     @property
     def DATABASE_URI(self) -> str:

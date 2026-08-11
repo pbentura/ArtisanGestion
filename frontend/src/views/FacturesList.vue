@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical, Share2, Mail } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical, Share2, Mail, Link } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
@@ -47,6 +47,8 @@ const factureToValidate = ref<Facture | null>(null)
 const isUpdatingPayment = ref<number | null>(null)
 const isCreatingAvoir = ref<number | null>(null)
 const isDownloadingFacturX = ref<number | null>(null)
+const isGeneratingPaymentLink = ref<number | null>(null)
+const copiedPaymentLink = ref<number | null>(null)
 
 const searchQuery = ref('')
 const statusFilter = ref('tous') // tous, brouillon, validée
@@ -296,6 +298,45 @@ async function downloadFacturX(facture: Facture) {
     alert('Erreur réseau lors du téléchargement du Factur-X')
   } finally {
     isDownloadingFacturX.value = null
+  }
+}
+
+async function copyPaymentLink(facture: Facture) {
+  if (isGeneratingPaymentLink.value !== null) return
+  
+  // Si un lien existe déjà, on le copie directement
+  if ((facture as any).stripe_payment_url) {
+    try {
+      await navigator.clipboard.writeText((facture as any).stripe_payment_url)
+      copiedPaymentLink.value = facture.id
+      setTimeout(() => { copiedPaymentLink.value = null }, 2000)
+    } catch {
+      alert('Impossible de copier le lien.')
+    }
+    return
+  }
+  
+  // Sinon, on le génère d'abord
+  isGeneratingPaymentLink.value = facture.id
+  try {
+    const res = await apiFetch(`factures/${facture.id}/payment-link`, { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      // Mettre à jour la facture dans le store
+      dataStore.updateItem('factures', facture.id, { ...facture, stripe_payment_url: data.payment_url })
+      // Copier dans le presse-papier
+      await navigator.clipboard.writeText(data.payment_url)
+      copiedPaymentLink.value = facture.id
+      setTimeout(() => { copiedPaymentLink.value = null }, 2000)
+    } else {
+      const error = await res.json()
+      alert(error.detail || 'Erreur lors de la génération du lien de paiement')
+    }
+  } catch (e) {
+    console.error('Erreur génération lien de paiement:', e)
+    alert('Erreur réseau')
+  } finally {
+    isGeneratingPaymentLink.value = null
   }
 }
 
@@ -603,6 +644,30 @@ onMounted(fetchFactures)
                 <FileCheck2 class="w-4 h-4 group-hover:scale-110 transition-transform" />
               </template>
               <span class="text-xs font-semibold">Factur-X</span>
+            </button>
+
+            <button
+              v-if="facture.statut === 'validée' && !facture.est_payee && !facture.est_avoir"
+              @click.stop="copyPaymentLink(facture)"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group border border-transparent"
+              :class="[
+                copiedPaymentLink === facture.id 
+                  ? 'text-green-600 bg-green-50 border-green-200' 
+                  : 'text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200'
+              ]"
+              :title="copiedPaymentLink === facture.id ? 'Lien copié !' : 'Copier le lien de paiement'"
+              :disabled="isGeneratingPaymentLink === facture.id"
+            >
+              <template v-if="isGeneratingPaymentLink === facture.id">
+                <span class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              </template>
+              <template v-else-if="copiedPaymentLink === facture.id">
+                <CheckCircle2 class="w-4 h-4" />
+              </template>
+              <template v-else>
+                <Link class="w-4 h-4 group-hover:scale-110 transition-transform" />
+              </template>
+              <span class="text-xs font-semibold">{{ copiedPaymentLink === facture.id ? 'Copié !' : 'Lien paiement' }}</span>
             </button>
 
             <button

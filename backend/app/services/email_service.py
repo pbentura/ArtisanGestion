@@ -226,13 +226,38 @@ async def send_transactional_document(
     artisan_name: str,
     artisan_email: str,
     pdf_bytes: bytes,
-    filename: str
+    filename: str,
+    payment_url: str = None,
 ) -> bool:
     """
     Envoie un document transactionnel (devis, facture, rapport) par email à un client.
     L'expéditeur est générique, mais le Reply-To est l'email de l'artisan.
+    Si payment_url est fourni, ajoute un bouton de paiement en ligne.
     """
     _init_resend()
+
+    payment_button = ""
+    if payment_url:
+        payment_button = f"""
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td style="border-radius: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                                <a href="{payment_url}" target="_blank" style="display: inline-block; padding: 16px 36px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: 0.3px;">💳 Payer cette facture en ligne</a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td align="center" style="padding-top: 12px;">
+                    <p style="margin: 0; color: #6b7280; font-size: 12px;">Paiement sécurisé par carte bancaire via Stripe</p>
+                </td>
+            </tr>
+        </table>
+        """
 
     content = f"""
         <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 20px; font-weight: 700;">Nouveau document de {artisan_name}</h1>
@@ -241,6 +266,8 @@ async def send_transactional_document(
             {message}
         </div>
         
+        {payment_button}
+
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0; background-color: #eff6ff; border-radius: 12px; border-left: 4px solid #3b82f6;">
             <tr>
                 <td style="padding: 16px;">
@@ -277,3 +304,4 @@ async def send_transactional_document(
     except Exception as e:
         logger.error(f"Failed to send transactional document {filename} to {to}: {e}")
         return False
+

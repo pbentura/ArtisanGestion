@@ -66,6 +66,7 @@ class Facture(FactureBase):
     created_at: datetime
     client: Optional[ClientSchema] = None
     lignes: List[LigneFactureSchema] = []
+    stripe_payment_url: Optional[str] = None
 
     class Config:
         from_attributes = True

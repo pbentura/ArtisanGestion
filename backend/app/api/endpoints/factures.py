@@ -488,3 +488,165 @@ async def delete_facture(
     await db.delete(db_facture)
     await db.commit()
     return None
+
+
+@router.post("/{facture_id}/payment-link")
+async def create_payment_link(
+    facture_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+    societe_id: int = Depends(deps.get_user_societe_id),
+):
+    """
+    Génère un lien de paiement Stripe Checkout pour une facture validée.
+    Applique une commission de plateforme (application_fee) de 1,5 % du TTC.
+    """
+    import stripe
+    from app.core.config import settings
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    # 1. Charger la facture
+    result = await db.execute(
+        select(Facture)
+        .options(joinedload(Facture.client))
+        .where(Facture.id == facture_id, Facture.id_societe == societe_id)
+    )
+    db_facture = result.unique().scalars().first()
+
+    if not db_facture:
+        raise HTTPException(status_code=404, detail="Facture non trouvée")
+
+    if db_facture.statut != "validée":
+        raise HTTPException(
+            status_code=400,
+            detail="Seule une facture validée peut générer un lien de paiement."
+        )
+
+    if db_facture.est_payee:
+        raise HTTPException(status_code=400, detail="Cette facture est déjà payée.")
+
+    if db_facture.est_avoir:
+        raise HTTPException(
+            status_code=400,
+            detail="Impossible de générer un lien de paiement pour un avoir."
+        )
+
+    # 2. Vérifier le compte Connect de la société
+    societe_result = await db.execute(
+        select(Societe).where(Societe.id == societe_id)
+    )
+    societe = societe_result.scalars().first()
+
+    if not societe or not societe.stripe_connect_account_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Le paiement en ligne n'est pas activé. Connectez votre compte Stripe dans Mon Entreprise."
+        )
+
+    if not societe.stripe_connect_enabled:
+        raise HTTPException(
+            status_code=400,
+            detail="Votre compte Stripe est en cours de vérification. Réessayez plus tard."
+        )
+
+    # 3. Si un lien existe déjà, le retourner
+    if db_facture.stripe_payment_url:
+        return {
+            "payment_url": db_facture.stripe_payment_url,
+            "session_id": db_facture.stripe_checkout_session_id,
+        }
+
+    # 4. Calculer la commission (1,5 % par défaut)
+    total_cents = int(float(db_facture.total_ttc) * 100)
+    commission_percent = settings.STRIPE_CONNECT_COMMISSION_PERCENT
+    application_fee = int(total_cents * commission_percent / 100)
+
+    # 5. Créer la session Checkout
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "eur",
+                        "product_data": {
+                            "name": f"Facture {db_facture.numero_facture}",
+                            "description": db_facture.objet_facture or f"Facture de {societe.nom}",
+                        },
+                        "unit_amount": total_cents,
+                    },
+                    "quantity": 1,
+                }
+            ],
+            mode="payment",
+            payment_intent_data={
+                "application_fee_amount": application_fee,
+            },
+            metadata={
+                "type": "invoice_payment",
+                "facture_id": str(db_facture.id),
+                "societe_id": str(societe.id)
+            },
+            success_url=f"{settings.FRONTEND_URL}/pay/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.FRONTEND_URL}/pay/cancel",
+            stripe_account=societe.stripe_connect_account_id,
+            # Le paiement se fait sur le compte Connect de l'artisan
+        )
+
+        # 6. Stocker le lien dans la facture
+        db_facture.stripe_checkout_session_id = session.id
+        db_facture.stripe_payment_url = session.url
+        await db.commit()
+
+        return {
+            "payment_url": session.url,
+            "session_id": session.id,
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la création du lien de paiement: {str(e)}"
+        )
+
+@router.post("/verify-payment")
+async def verify_payment(
+    session_id: str,
+    db: AsyncSession = Depends(deps.get_db)
+):
+    """
+    Vérifie le statut d'une session de paiement Stripe.
+    Utile comme fallback au webhook, notamment quand l'utilisateur revient sur la page de succès.
+    """
+    import stripe
+    from sqlalchemy.orm import selectinload
+    try:
+        # Trouver la facture correspondant à cette session pour avoir le compte Connect
+        result = await db.execute(
+            select(Facture)
+            .options(selectinload(Facture.societe))
+            .where(Facture.stripe_checkout_session_id == session_id)
+        )
+        facture = result.scalars().first()
+        
+        if not facture:
+            raise HTTPException(status_code=404, detail="Facture non trouvée pour cette session")
+            
+        stripe_account = facture.societe.stripe_connect_account_id if facture.societe else None
+        
+        # Récupérer la session auprès de Stripe
+        if stripe_account:
+            session = stripe.checkout.Session.retrieve(session_id, stripe_account=stripe_account)
+        else:
+            session = stripe.checkout.Session.retrieve(session_id)
+        
+        if session.payment_status == "paid":
+            if not facture.est_payee:
+                facture.est_payee = True
+                await db.commit()
+                return {"status": "success", "facture_id": facture.id, "statut": "validée"}
+                        
+        return {"status": "pending_or_unpaid"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

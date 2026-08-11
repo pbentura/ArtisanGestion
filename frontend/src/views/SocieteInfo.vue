@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { 
   Building2, MapPin, Scale, Landmark, Save, 
-  Upload, Loader2, CheckCircle2, X, Info, AlertTriangle
+  Upload, Loader2, CheckCircle2, X, Info, AlertTriangle, CreditCard, Unplug, ExternalLink
 } from 'lucide-vue-next'
 
 const loading = ref(true)
@@ -150,6 +150,68 @@ const deleteAcknowledge = ref(false)
 const deleting = ref(false)
 const deleteError = ref('')
 
+// --- Stripe Connect ---
+const stripeConnect = ref({
+  connected: false,
+  enabled: false,
+  onboarding_complete: false,
+  account_id: null as string | null,
+})
+const stripeLoading = ref(false)
+const stripeDisconnecting = ref(false)
+
+async function fetchStripeStatus() {
+  try {
+    const res = await apiFetch('stripe-connect/status')
+    if (res.ok) {
+      stripeConnect.value = await res.json()
+    }
+  } catch (e) {
+    console.error('Failed to fetch Stripe Connect status', e)
+  }
+}
+
+async function handleStripeOnboarding() {
+  stripeLoading.value = true
+  try {
+    const res = await apiFetch('stripe-connect/onboarding', { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.onboarding_url) {
+        window.location.href = data.onboarding_url
+      } else if (data.status === 'already_connected') {
+        await fetchStripeStatus()
+      }
+    } else {
+      const error = await res.json()
+      alert(error.detail || 'Erreur lors de l\'activation Stripe')
+    }
+  } catch (e) {
+    console.error('Stripe onboarding error:', e)
+    alert('Erreur réseau')
+  } finally {
+    stripeLoading.value = false
+  }
+}
+
+async function handleStripeDisconnect() {
+  if (!confirm('Êtes-vous sûr de vouloir déconnecter votre compte Stripe ? Vos clients ne pourront plus payer en ligne.')) return
+  stripeDisconnecting.value = true
+  try {
+    const res = await apiFetch('stripe-connect/disconnect', { method: 'POST' })
+    if (res.ok) {
+      stripeConnect.value = { connected: false, enabled: false, onboarding_complete: false, account_id: null }
+    } else {
+      const error = await res.json()
+      alert(error.detail || 'Erreur lors de la déconnexion')
+    }
+  } catch (e) {
+    console.error('Stripe disconnect error:', e)
+  } finally {
+    stripeDisconnecting.value = false
+  }
+}
+
 async function handleDeleteSociete() {
   if (deleteConfirmName.value !== form.value.nom || !deleteAcknowledge.value) {
     return
@@ -183,7 +245,10 @@ const canEdit = computed(() => {
   return d.is_owner || d.can_edit_societe !== false
 })
 
-onMounted(fetchSociete)
+onMounted(() => {
+  fetchSociete()
+  fetchStripeStatus()
+})
 </script>
 
 <template>
@@ -413,7 +478,113 @@ onMounted(fetchSociete)
           </Card>
         </TabsContent>
         <!-- Settings Tab -->
-        <TabsContent value="settings">
+        <TabsContent value="settings" class="space-y-6">
+          <!-- Paiement en ligne -->
+          <Card class="border-border/50 shadow-sm overflow-hidden">
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2">
+                <CreditCard class="w-5 h-5 text-primary" />
+                Paiement en ligne
+              </CardTitle>
+              <CardDescription>Permettez à vos clients de payer vos factures directement par carte bancaire.</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <!-- État : Connecté et actif -->
+              <div v-if="stripeConnect.enabled" class="space-y-4">
+                <div class="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                  <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 class="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p class="font-semibold text-green-700 dark:text-green-400">Paiement en ligne actif</p>
+                    <p class="text-xs text-green-600/80 dark:text-green-500/80">Vos clients peuvent payer vos factures par carte bancaire. Un bouton de paiement sera automatiquement ajouté dans les emails de facture.</p>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div>
+                    <p class="text-xs text-muted-foreground">Commission plateforme</p>
+                    <p class="text-sm font-semibold text-foreground">1,5 % par transaction</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    @click="handleStripeDisconnect" 
+                    :disabled="stripeDisconnecting"
+                    class="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <Loader2 v-if="stripeDisconnecting" class="w-4 h-4 mr-2 animate-spin" />
+                    <Unplug v-else class="w-4 h-4 mr-2" />
+                    Déconnecter
+                  </Button>
+                </div>
+              </div>
+
+              <!-- État : Onboarding en cours (compte créé mais pas encore vérifié) -->
+              <div v-else-if="stripeConnect.connected && !stripeConnect.enabled" class="space-y-4">
+                <div class="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                  <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                    <Loader2 class="w-5 h-5 text-amber-600 animate-spin" />
+                  </div>
+                  <div>
+                    <p class="font-semibold text-amber-700 dark:text-amber-400">Vérification en cours</p>
+                    <p class="text-xs text-amber-600/80 dark:text-amber-500/80">Votre compte Stripe est en cours de vérification. Si vous n'avez pas terminé l'inscription, cliquez ci-dessous pour reprendre.</p>
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <Button @click="handleStripeOnboarding" :disabled="stripeLoading" class="flex-1">
+                    <Loader2 v-if="stripeLoading" class="w-4 h-4 mr-2 animate-spin" />
+                    <ExternalLink v-else class="w-4 h-4 mr-2" />
+                    Reprendre l'inscription Stripe
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    @click="handleStripeDisconnect" 
+                    :disabled="stripeDisconnecting"
+                    class="border-red-200 text-red-600 hover:bg-red-50"
+                  >
+                    <Unplug class="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <!-- État : Non connecté -->
+              <div v-else class="space-y-4">
+                <div class="p-4 bg-muted/30 rounded-xl space-y-3">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CreditCard class="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p class="font-semibold text-foreground">Activez le paiement par carte bancaire</p>
+                      <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Connectez votre compte Stripe pour permettre à vos clients de payer vos factures en ligne. Un bouton de paiement sera automatiquement ajouté dans les emails de facture.</p>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-2 ml-[52px]">
+                    <div class="text-xs text-muted-foreground flex items-center gap-2">
+                      <CheckCircle2 class="w-3.5 h-3.5 text-primary" />
+                      <span>Paiement sécurisé</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground flex items-center gap-2">
+                      <CheckCircle2 class="w-3.5 h-3.5 text-primary" />
+                      <span>Visa, Mastercard, Apple Pay</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground flex items-center gap-2">
+                      <CheckCircle2 class="w-3.5 h-3.5 text-primary" />
+                      <span>Commission : 1,5 %</span>
+                    </div>
+                  </div>
+                </div>
+                <Button @click="handleStripeOnboarding" :disabled="stripeLoading" class="w-full h-12">
+                  <Loader2 v-if="stripeLoading" class="w-5 h-5 mr-2 animate-spin" />
+                  <CreditCard v-else class="w-5 h-5 mr-2" />
+                  Activer le paiement en ligne par carte
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Zone Dangereuse -->
           <Card class="border-destructive/30 shadow-sm bg-destructive/5">
             <CardHeader>
               <CardTitle class="text-destructive flex items-center gap-2">

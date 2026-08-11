@@ -28,6 +28,9 @@ class SocieteCreate(SocieteBase):
 class SocieteRead(SocieteBase):
     id: int
     id_user: int
+    stripe_connect_account_id: Optional[str] = None
+    stripe_connect_enabled: bool = False
+    stripe_connect_onboarding_complete: bool = False
 
     class Config:
         from_attributes = True

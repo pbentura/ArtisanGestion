@@ -24,6 +24,10 @@ class Facture(Base):
     id_facture_source = Column(Integer, ForeignKey("factures.id"), nullable=True)
     conditions_particulieres = Column(Text, nullable=True)
 
+    # Stripe Connect payment
+    stripe_checkout_session_id = Column(String, nullable=True)
+    stripe_payment_url = Column(String, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     id_client = Column(Integer, ForeignKey("clients.id"), nullable=False)

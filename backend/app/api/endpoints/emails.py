@@ -60,6 +60,7 @@ async def generate_and_send_document(
 
             pdf_bytes = b""
             filename = "document.pdf"
+            payment_url = None
 
             if request.document_type == "facture":
                 result = await db.execute(
@@ -73,6 +74,65 @@ async def generate_and_send_document(
                     raise HTTPException(status_code=404, detail="Facture introuvable")
                 pdf_bytes = generate_invoice_pdf(facture, facture.client, societe, facture.lignes)
                 filename = f"Facture_{facture.numero_facture}.pdf"
+
+                # Générer un lien de paiement si le compte Connect est actif
+                if (
+                    societe.stripe_connect_enabled
+                    and societe.stripe_connect_account_id
+                    and facture.statut == "validée"
+                    and not facture.est_payee
+                    and not facture.est_avoir
+                ):
+                    if facture.stripe_payment_url:
+                        payment_url = facture.stripe_payment_url
+                    else:
+                        try:
+                            import stripe
+                            from app.core.config import settings
+
+                            stripe.api_key = settings.STRIPE_SECRET_KEY
+
+                            total_cents = int(float(facture.total_ttc) * 100)
+                            commission_percent = settings.STRIPE_CONNECT_COMMISSION_PERCENT
+                            application_fee = int(total_cents * commission_percent / 100)
+
+                            session = stripe.checkout.Session.create(
+                                payment_method_types=["card"],
+                                line_items=[
+                                    {
+                                        "price_data": {
+                                            "currency": "eur",
+                                            "product_data": {
+                                                "name": f"Facture {facture.numero_facture}",
+                                                "description": facture.objet_facture or f"Facture de {societe.nom}",
+                                            },
+                                            "unit_amount": total_cents,
+                                        },
+                                        "quantity": 1,
+                                    }
+                                ],
+                                mode="payment",
+                                payment_intent_data={
+                                    "application_fee_amount": application_fee,
+                                },
+                                metadata={
+                                    "type": "invoice_payment",
+                                    "facture_id": str(facture.id),
+                                    "societe_id": str(societe.id),
+                                    "user_id": str(user.id),
+                                },
+                                success_url=f"{settings.FRONTEND_URL}/pay/success?session_id={{CHECKOUT_SESSION_ID}}",
+                                cancel_url=f"{settings.FRONTEND_URL}/pay/cancel",
+                                stripe_account=societe.stripe_connect_account_id,
+                            )
+
+                            facture.stripe_checkout_session_id = session.id
+                            facture.stripe_payment_url = session.url
+                            payment_url = session.url
+                            await db.commit()
+                            logger.info(f"Payment link generated for facture {facture.id}: {session.url}")
+                        except Exception as stripe_err:
+                            logger.warning(f"Could not generate payment link for facture {facture.id}: {stripe_err}")
 
             elif request.document_type == "devis":
                 result = await db.execute(
@@ -116,7 +176,8 @@ async def generate_and_send_document(
                 artisan_name=artisan_name,
                 artisan_email=artisan_email,
                 pdf_bytes=pdf_bytes,
-                filename=filename
+                filename=filename,
+                payment_url=payment_url,
             )
             if success:
                 logger.info(f"Successfully sent {request.document_type} {request.document_id}")

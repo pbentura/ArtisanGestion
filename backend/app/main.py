@@ -16,7 +16,7 @@ from app.models.facture import Facture
 from app.models.ligne_facture import LigneFacture
 from app.models.invitation import Invitation
 
-from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai, devis, factures, dashboard, ws, subscriptions, emails, collaborateurs
+from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai, devis, factures, dashboard, ws, subscriptions, emails, collaborateurs, stripe_connect, webhooks
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,6 +48,8 @@ app.include_router(ws.router, prefix="/api/ws", tags=["websocket"])
 app.include_router(subscriptions.router, prefix="/api/subscriptions", tags=["subscriptions"])
 app.include_router(emails.router, prefix="/api/emails", tags=["emails"])
 app.include_router(collaborateurs.router, prefix="/api/collaborateurs", tags=["collaborateurs"])
+app.include_router(stripe_connect.router, prefix="/api/stripe-connect", tags=["stripe-connect"])
+app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 
 
 @app.get("/")
