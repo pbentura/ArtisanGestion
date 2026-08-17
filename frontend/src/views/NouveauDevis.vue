@@ -130,8 +130,34 @@ const societe = ref({
   ville: '',
   telephone: '',
   email: '',
-  texte_pied_page: ''
+  texte_pied_page: '',
+  couleur_document: ''
 })
+
+// Couleur dynamique du document
+const docColor = computed(() => societe.value.couleur_document || '#2563eb')
+const userRole = computed(() => dataStore.user.data?.role || 'USER')
+const trialDays = computed(() => dataStore.user.data?.trial_days_remaining ?? 0)
+const showBranding = computed(() => {
+  if (['TEAM', 'ADMIN'].includes(userRole.value)) return false
+  if (trialDays.value > 0) return false
+  return true
+})
+
+function hexToRgb(hex: string): { r: number, g: number, b: number } {
+  const h = hex.replace('#', '')
+  return {
+    r: parseInt(h.substring(0, 2), 16),
+    g: parseInt(h.substring(2, 4), 16),
+    b: parseInt(h.substring(4, 6), 16)
+  }
+}
+
+function darkenHex(hex: string, amount = 30): string {
+  const { r, g, b } = hexToRgb(hex)
+  const clamp = (v: number) => Math.max(0, Math.min(255, v - amount))
+  return `#${clamp(r).toString(16).padStart(2, '0')}${clamp(g).toString(16).padStart(2, '0')}${clamp(b).toString(16).padStart(2, '0')}`
+}
 
 // Autocomplete du client
 const clients = ref<any[]>([])
@@ -522,7 +548,7 @@ function getReportHTML() {
           <div style="margin-bottom: 15px;">
            ${societe.value.logo
               ? `<img src="${societe.value.logo}" style="max-width: 150px; max-height: 80px; object-fit: contain;" />`
-              : `<div style="font-size: 24px; font-weight: 800; color: #2563eb;">${societe.value.nom || 'Entreprise'}</div>`
+              : `<div style="font-size: 24px; font-weight: 800; color: ${docColor.value};">${societe.value.nom || 'Entreprise'}</div>`
             }
           </div>
           <div style="font-weight: 700; color: #1f2937;">${societe.value.nom}</div>
@@ -566,11 +592,11 @@ function getReportHTML() {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11px;">
         <thead>
           <tr>
-            <th style="padding: 10px; text-align: left; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; width: 45%;">Description</th>
-            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 60px;">Qté</th>
-            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 80px;">Prix U. HT</th>
-            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 60px;">TVA</th>
-            <th style="padding: 10px; text-align: right; background: #2563eb; border-bottom: 2px solid #1e40af; font-weight: 700; color: #ffffff; min-width: 80px;">Total HT</th>
+            <th style="padding: 10px; text-align: left; background: ${docColor.value}; border-bottom: 2px solid ${darkenHex(docColor.value)}; font-weight: 700; color: #ffffff; width: 45%;">Description</th>
+            <th style="padding: 10px; text-align: right; background: ${docColor.value}; border-bottom: 2px solid ${darkenHex(docColor.value)}; font-weight: 700; color: #ffffff; min-width: 60px;">Qté</th>
+            <th style="padding: 10px; text-align: right; background: ${docColor.value}; border-bottom: 2px solid ${darkenHex(docColor.value)}; font-weight: 700; color: #ffffff; min-width: 80px;">Prix U. HT</th>
+            <th style="padding: 10px; text-align: right; background: ${docColor.value}; border-bottom: 2px solid ${darkenHex(docColor.value)}; font-weight: 700; color: #ffffff; min-width: 60px;">TVA</th>
+            <th style="padding: 10px; text-align: right; background: ${docColor.value}; border-bottom: 2px solid ${darkenHex(docColor.value)}; font-weight: 700; color: #ffffff; min-width: 80px;">Total HT</th>
           </tr>
         </thead>
         <tbody>
@@ -579,7 +605,7 @@ function getReportHTML() {
       </table>
 
       <div style="margin-bottom: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; overflow: hidden; page-break-inside: avoid;">
-        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #2563eb;"></div>
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: ${docColor.value};"></div>
         <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Conditions & Informations</div>
         <div style="font-size: 10px; color: #1f2937; line-height: 1.5; white-space: pre-wrap; text-align: justify;">${devis.value.conditions_particulieres}</div>
         <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 9.5px; color: #475569; font-weight: 600;">
@@ -597,7 +623,7 @@ function getReportHTML() {
           ` : ''}
         </div>
 
-        <div style="width: 250px; background: #ffffff; border: 2px solid #2563eb; border-radius: 8px; overflow: hidden;">
+        <div style="width: 250px; background: #ffffff; border: 2px solid ${docColor.value}; border-radius: 8px; overflow: hidden;">
           <div style="padding: 15px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
               <span style="color: #475569; font-weight: 600;">Total HT</span>
@@ -608,7 +634,7 @@ function getReportHTML() {
               <span style="font-weight: 600;">${formattedTotalTva.value} €</span>
             </div>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 12px 15px; background: #2563eb; color: #ffffff;">
+          <div style="display: flex; justify-content: space-between; padding: 12px 15px; background: ${docColor.value}; color: #ffffff;">
             <span style="font-weight: 800; font-size: 14px;">Net à Payer (TTC)</span>
             <span style="font-weight: 800; font-size: 14px;">${formattedTotalTtc.value} €</span>
           </div>
@@ -673,7 +699,8 @@ async function saveAndGeneratePDF() {
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
         
-        pdf.setDrawColor(37, 99, 235)
+        const rgb = hexToRgb(docColor.value)
+        pdf.setDrawColor(rgb.r, rgb.g, rgb.b)
         pdf.setLineWidth(0.4)
         pdf.line(25, pageHeight - 20, pageWidth - 25, pageHeight - 20)
 
@@ -688,22 +715,24 @@ async function saveAndGeneratePDF() {
         }
 
         pdf.setFontSize(8)
-        pdf.setTextColor(37, 99, 235)
+        pdf.setTextColor(rgb.r, rgb.g, rgb.b)
         pdf.setFont('helvetica', 'bold')
         pdf.text(`Page ${i} / ${totalPages}`, pageWidth - 25, pageHeight - 10, { align: 'right' })
 
-        // 4. Branding (Minimalist)
-        const artisanLogoBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCABAAEADASIAAhEBAxEB/8QAGwAAAgMAAwAAAAAAAAAAAAAAAAgFBwkBBAb/xAAxEAABAgUCBQMDAgcAAAAAAAABAgMABAUGEQchCBIxUXETQWEiMrIJZBUjJGN0gvD/xAAbAQABBQEBAAAAAAAAAAAAAAAFAAEEBgcDAv/EACgRAAEDAwMDBAMBAAAAAAAAAAECAxEABAUhMVFBgdEGEnHBFRahYf/aAAwDAQACEQMRAD8A1TggghUqII6Fbr1OtunuT1UnGZGUb+515XKPA7n4G8LdqbxWvvh6RtFkyze6TUphP1n5Qg7J8qyfgQWsMXdZJftYTp1J2HfxrUG6vWbRMunXjrTQQQqum/F09IKakLxZM0xskVOWRhxI7uIGyvKcH4JhmLfuSl3XTGqjSJ9ioSbn2usLChnsex7g7iPWQxN3jFRcI06EbHv9HWla3rF2JaVrx1qSggggPU6iK61p1Te0wokq9KyaJucnFqbaLqiEN4GckDc9emR5ixYXnjBX6dFt0/33fxEGsNbt3V+0y6JSTqOxND8g6tm2W4gwR5pfbzvqsXpUDN1ifcnHBnkSo4Q2OyUjYDxEzL8PmolVkWJuVt1S2H20utqVNy6CUkZBwpwEbexEV1MzGMxorbyAu3aQSpY/omftdKR9g9sxqObyTmDaaFqhMGRBBgRG0Ec1TcdaIyK1l5RkR/fmaRyrcO2o1NYU9MW4pDYBJUJyXV0GfZwx4K0tR7g08qon6BUnZF7bnQk5bdHZaDsoeentGkdyOclrVfACvTk3Vp5jzHIQSD17xla87gdYnem8m7nmnk3iEwIEAGDM7yTxXLKWaMatssKMmevEcAVotw761P6z21OzM7T25GfkHUsvFhRLbpIyFJB3T4JPmLYhVuAhfPbV2H94z+BhqYybP2zVnk3mGBCQRA+QDV1xrq37RtxwyT5ohceM1z06FbZ/cO/iIY6Kt190imdWbelGJGdRJzsi4p1oPJJQ4SMcpI3HTrg+I54S4atci088YSDqexFPkGlvWq0NiSfNIVMv5zvGl9qISu1qMrAOZJnf/QRm9fVlV2wKkqRrtOekXcnkWoZbdHdKhsof8Yim9QLlkpdtiXuKqy7DSQlDTU66lKQOgACsARsWZwv59lpTDoAEmdwZjg/5VGsL78atYcQSTGm0RV7aqa43rT9RLgkP40qWQ1OOU6WttuU5vWYJwHFkpxyqbJVzBRVkjAA3CtvvZiXqd6V2oKWZmtVGZK0FtXqzbiuZJ6pOT0PaObL0+uLUmrCnW7S3qg/kc60DDbQPutZ2SPJ39sxL9P4X9eaeXcOgpVBnYCJ3n5oDDz7qpWpfuJIBkxPGp/kDTYU2v6f6ua17t/zWfwMNfFOcM+h03ola09LVCoNz1QqLqX3ksJIbaITgJSTuryQPEXHGL+oblm8yjz7CpSSIPwAK1XGtLYtG23BBHmiCCCK9ROom5bVpN4Ut2nVmQYqEm4PqafQFDyOx+RuIUnWHgsnJFL9SsZ8zjAyo0qZX/MSOzazsrwrB+TDmQQbxmZvMSv3Wy9OoOoPb7EGh93YsXqYdTrz1pK9IuCOdqhZqV9vmRltlCkyy8urHZxwbJ8JyfkQ3lrWhR7KpLVNolOYp0k0PpaYQEgnue5PuTuYmIIfJ5q9yy/dcr06JGiR2+zJpWlgxZJhpOvPWiCCCAdEK/9k="
-        pdf.addImage(artisanLogoBase64, 'JPEG', 25, pageHeight - 11, 4, 4)
-        
-        pdf.setFontSize(7)
-        pdf.setTextColor(100, 116, 139)
-        pdf.setFont('helvetica', 'normal')
-        pdf.text("Généré via", 30, pageHeight - 8)
-        
-        pdf.setTextColor(37, 99, 235)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text("ArtisanGestion", 44, pageHeight - 8)
+        // Branding (masqué pour Plan Équipe)
+        if (showBranding.value) {
+          const artisanLogoBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCABAAEADASIAAhEBAxEB/8QAGwAAAgMAAwAAAAAAAAAAAAAAAAgFBwkBBAb/xAAxEAABAgUCBQMDAgcAAAAAAAABAgMABAUGEQchCBIxUXETQWEiMrIJZBUjJGN0gvD/xAAbAQABBQEBAAAAAAAAAAAAAAAFAAEEBgcDAv/EACgRAAEDAwMDBAMBAAAAAAAAAAECAxEABAUhMVFBgdEGEnHBFRahYf/aAAwDAQACEQMRAD8A1TggghUqII6Fbr1OtunuT1UnGZGUb+515XKPA7n4G8LdqbxWvvh6RtFkyze6TUphP1n5Qg7J8qyfgQWsMXdZJftYTp1J2HfxrUG6vWbRMunXjrTQQQqum/F09IKakLxZM0xskVOWRhxI7uIGyvKcH4JhmLfuSl3XTGqjSJ9ioSbn2usLChnsex7g7iPWQxN3jFRcI06EbHv9HWla3rF2JaVrx1qSggggPU6iK61p1Te0wokq9KyaJucnFqbaLqiEN4GckDc9emR5ixYXnjBX6dFt0/33fxEGsNbt3V+0y6JSTqOxND8g6tm2W4gwR5pfbzvqsXpUDN1ifcnHBnkSo4Q2OyUjYDxEzL8PmolVkWJuVt1S2H20utqVNy6CUkZBwpwEbexEV1MzGMxorbyAu3aQSpY/omftdKR9g9sxqObyTmDaaFqhMGRBBgRG0Ec1TcdaIyK1l5RkR/fmaRyrcO2o1NYU9MW4pDYBJUJyXV0GfZwx4K0tR7g08qon6BUnZF7bnQk5bdHZaDsoeentGkdyOclrVfACvTk3Vp5jzHIQSD17xla87gdYnem8m7nmnk3iEwIEAGDM7yTxXLKWaMatssKMmevEcAVotw761P6z21OzM7T25GfkHUsvFhRLbpIyFJB3T4JPmLYhVuAhfPbV2H94z+BhqYybP2zVnk3mGBCQRA+QDV1xrq37RtxwyT5ohceM1z06FbZ/cO/iIY6Kt190imdWbelGJGdRJzsi4p1oPJJQ4SMcpI3HTrg+I54S4atci088YSDqexFPkGlvWq0NiSfNIVMv5zvGl9qISu1qMrAOZJnf/QRm9fVlV2wKkqRrtOekXcnkWoZbdHdKhsof8Yim9QLlkpdtiXuKqy7DSQlDTU66lKQOgACsARsWZwv59lpTDoAEmdwZjg/5VGsL78atYcQSTGm0RV7aqa43rT9RLgkP40qWQ1OOU6WttuU5vWYJwHFkpxyqbJVzBRVkjAA3CtvvZiXqd6V2oKWZmtVGZK0FtXqzbiuZJ6pOT0PaObL0+uLUmrCnW7S3qg/kc60DDbQPutZ2SPJ39sxL9P4X9eaeXcOgpVBnYCJ3n5oDDz7qpWpfuJIBkxPGp/kDTYU2v6f6ua17t/zWfwMNfFOcM+h03ola09LVCoNz1QqLqX3ksJIbaITgJSTuryQPEXHGL+oblm8yjz7CpSSIPwAK1XGtLYtG23BBHmiCCCK9ROom5bVpN4Ut2nVmQYqEm4PqafQFDyOx+RuIUnWHgsnJFL9SsZ8zjAyo0qZX/MSOzazsrwrB+TDmQQbxmZvMSv3Wy9OoOoPb7EGh93YsXqYdTrz1pK9IuCOdqhZqV9vmRltlCkyy8urHZxwbJ8JyfkQ3lrWhR7KpLVNolOYp0k0PpaYQEgnue5PuTuYmIIfJ5q9yy/dcr06JGiR2+zJpWlgxZJhpOvPWiCCCAdEK/9k="
+          pdf.addImage(artisanLogoBase64, 'JPEG', 25, pageHeight - 11, 4, 4)
+          
+          pdf.setFontSize(7)
+          pdf.setTextColor(100, 116, 139)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text("Généré via", 30, pageHeight - 8)
+          
+          pdf.setTextColor(rgb.r, rgb.g, rgb.b)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text("ArtisanGestion", 44, pageHeight - 8)
+        }
       }
     }
 

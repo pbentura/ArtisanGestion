@@ -6,7 +6,7 @@ from typing import Any
 from app.api.deps import get_db, get_current_user, is_admin, get_user_societe_id, require_permission
 from app.models.societe import Societe
 from app.models.user import User
-from app.schemas.societe import SocieteCreate, SocieteRead
+from app.schemas.societe import SocieteCreate, SocieteRead, SocieteUpdate
 
 router = APIRouter()
 
@@ -54,6 +54,42 @@ async def update_my_societe(
     
     # Mettre à jour tous les champs
     for field, value in societe_update.model_dump().items():
+        setattr(societe, field, value)
+    
+    await db.commit()
+    await db.refresh(societe)
+    
+    from app.core.websockets import manager
+    await manager.broadcast_to_user(current_user.id, {
+        "type": "SYNC_SOCIETE",
+    })
+    
+    return societe
+
+@router.patch("/me", response_model=SocieteRead)
+async def patch_my_societe(
+    societe_update: SocieteUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("can_edit_societe")),
+    societe_id: int = Depends(get_user_societe_id),
+) -> Any:
+    """
+    Mettre à jour partiellement la société de l'utilisateur connecté.
+    """
+    result = await db.execute(
+        select(Societe).where(Societe.id == societe_id)
+    )
+    societe = result.scalars().first()
+    
+    if not societe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aucune société trouvée pour cet utilisateur"
+        )
+    
+    # Mettre à jour uniquement les champs fournis
+    update_data = societe_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
         setattr(societe, field, value)
     
     await db.commit()

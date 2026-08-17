@@ -137,8 +137,28 @@ const societe = ref({
   ville: '',
   telephone: '',
   email: '',
-  texte_pied_page: ''
+  texte_pied_page: '',
+  couleur_document: ''
 })
+
+// Couleur dynamique du document
+const docColor = computed(() => societe.value.couleur_document || '#2563eb')
+const userRole = computed(() => dataStore.user.data?.role || 'USER')
+const trialDays = computed(() => dataStore.user.data?.trial_days_remaining ?? 0)
+const showBranding = computed(() => {
+  if (['TEAM', 'ADMIN'].includes(userRole.value)) return false
+  if (trialDays.value > 0) return false
+  return true
+})
+
+function hexToRgb(hex: string): { r: number, g: number, b: number } {
+  const h = hex.replace('#', '')
+  return {
+    r: parseInt(h.substring(0, 2), 16),
+    g: parseInt(h.substring(2, 4), 16),
+    b: parseInt(h.substring(4, 6), 16)
+  }
+}
 
 const clients = ref<any[]>([])
 const selectedClientId = ref<number | null>(null)
@@ -538,18 +558,18 @@ function getReportHTML() {
 
   return `
     <style>
-      .rapport-content h3 { color: #2563eb; font-size: 14px; font-weight: 600; margin-top: 16px; margin-bottom: 6px; }
+      .rapport-content h3 { color: ${docColor.value}; font-size: 14px; font-weight: 600; margin-top: 16px; margin-bottom: 6px; }
       .rapport-content ul { margin: 4px 0; padding-left: 20px; list-style-type: disc; }
     </style>
     <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; padding: 15px; background: white; font-size: 12px;">
 
       <!-- EN-TÊTE : Logo + Infos société -->
-      <div style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 15px; border-bottom: 3px solid #2563eb; margin-bottom: 15px;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 15px; border-bottom: 3px solid ${docColor.value}; margin-bottom: 15px;">
         <!-- Logo -->
         <div style="flex-shrink: 0; width: 120px; height: 70px; display: flex; align-items: center; justify-content: flex-start;">
           ${societe.value.logo
             ? `<img src="${societe.value.logo}" style="max-width: 120px; max-height: 70px; object-fit: contain;" />`
-            : `<div style="width: 70px; height: 70px; background: #2563eb; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            : `<div style="width: 70px; height: 70px; background: ${docColor.value}; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                 <span style="color: white; font-size: 24px; font-weight: 700;">${(societe.value.nom || 'E').charAt(0).toUpperCase()}</span>
                </div>`
           }
@@ -601,10 +621,10 @@ function getReportHTML() {
       </div>
 
       <div style="margin-bottom: 20px;">
-        <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Rapport d'intervention</h2>
+        <h2 style="color: ${docColor.value}; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Rapport d'intervention</h2>
         <div class="rapport-content" style="font-size: 12px; line-height: 1.8;">${
           (rapport.value.contenu || '<p>Aucun contenu</p>')
-            .replace(/<h3/gi, '<h3 style="color: #2563eb; font-size: 14px; font-weight: 600; margin-top: 16px; margin-bottom: 6px; display: block;"')
+            .replace(/<h3/gi, `<h3 style="color: ${docColor.value}; font-size: 14px; font-weight: 600; margin-top: 16px; margin-bottom: 6px; display: block;"`)
             .replace(/<ul/gi, '<ul style="margin: 4px 0; padding-left: 25px; list-style-type: disc; list-style-position: outside; display: block;"')
             .replace(/<li/gi, '<li style="margin-bottom: 4px; display: list-item;"')
         }</div>
@@ -612,7 +632,7 @@ function getReportHTML() {
 
       ${rapport.value.photos && rapport.value.photos.length > 0 ? `
       <div style="margin-top: 20px;">
-        <h2 style="color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 15px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photos (${rapport.value.photos.length})</h2>
+        <h2 style="color: ${docColor.value}; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 15px; font-size: 13px; font-weight: 600; text-transform: uppercase;">Photos (${rapport.value.photos.length})</h2>
         <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
           ${rapport.value.photos.map(p => `
             <div style="margin-bottom: 10px; page-break-inside: avoid;">
@@ -665,40 +685,40 @@ async function generatePDF(shouldShare = false) {
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
         
-        // 1. Ligne de séparation élégante (Bleu Primaire #2563eb)
-        pdf.setDrawColor(37, 99, 235)
+        const rgb = hexToRgb(docColor.value)
+        pdf.setDrawColor(rgb.r, rgb.g, rgb.b)
         pdf.setLineWidth(0.4)
         pdf.line(25, pageHeight - 20, pageWidth - 25, pageHeight - 20)
 
-        // 2. Informations société (Centrées)
         if (footerText) {
           pdf.setFontSize(7)
-          pdf.setTextColor(107, 114, 128) // COLOR_GRAY
-          const lines = pdf.splitTextToSize(footerText, pageWidth - 60) // Marges plus larges pour les infos
+          pdf.setTextColor(107, 114, 128)
+          const lines = pdf.splitTextToSize(footerText, pageWidth - 60)
           const startY = pageHeight - 15
           lines.forEach((line: string, idx: number) => {
             pdf.text(line, pageWidth / 2, startY + (idx * 3.5), { align: 'center' })
           })
         }
 
-        // 3. Numérotation de page (Bas Droite)
         pdf.setFontSize(8)
-        pdf.setTextColor(37, 99, 235) // COLOR_PRIMARY
+        pdf.setTextColor(rgb.r, rgb.g, rgb.b)
         pdf.setFont('helvetica', 'bold')
         pdf.text(`Page ${i} / ${totalPages}`, pageWidth - 25, pageHeight - 10, { align: 'right' })
 
-        // 4. Branding (Minimalist)
-        const artisanLogoBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCABAAEADASIAAhEBAxEB/8QAGwAAAgMAAwAAAAAAAAAAAAAAAAgFBwkBBAb/xAAxEAABAgUCBQMDAgcAAAAAAAABAgMABAUGEQchCBIxUXETQWEiMrIJZBUjJGN0gvD/xAAbAQABBQEBAAAAAAAAAAAAAAAFAAEEBgcDAv/EACgRAAEDAwMDBAMBAAAAAAAAAAECAxEABAUhMVFBgdEGEnHBFRahYf/aAAwDAQACEQMRAD8A1TggghUqII6Fbr1OtunuT1UnGZGUb+515XKPA7n4G8LdqbxWvvh6RtFkyze6TUphP1n5Qg7J8qyfgQWsMXdZJftYTp1J2HfxrUG6vWbRMunXjrTQQQqum/F09IKakLxZM0xskVOWRhxI7uIGyvKcH4JhmLfuSl3XTGqjSJ9ioSbn2usLChnsex7g7iPWQxN3jFRcI06EbHv9HWla3rF2JaVrx1qSggggPU6iK61p1Te0wokq9KyaJucnFqbaLqiEN4GckDc9emR5ixYXnjBX6dFt0/33fxEGsNbt3V+0y6JSTqOxND8g6tm2W4gwR5pfbzvqsXpUDN1ifcnHBnkSo4Q2OyUjYDxEzL8PmolVkWJuVt1S2H20utqVNy6CUkZBwpwEbexEV1MzGMxorbyAu3aQSpY/omftdKR9g9sxqObyTmDaaFqhMGRBBgRG0Ec1TcdaIyK1l5RkR/fmaRyrcO2o1NYU9MW4pDYBJUJyXV0GfZwx4K0tR7g08qon6BUnZF7bnQk5bdHZaDsoeentGkdyOclrVfACvTk3Vp5jzHIQSD17xla87gdYnem8m7nmnk3iEwIEAGDM7yTxXLKWaMatssKMmevEcAVotw761P6z21OzM7T25GfkHUsvFhRLbpIyFJB3T4JPmLYhVuAhfPbV2H94z+BhqYybP2zVnk3mGBCQRA+QDV1xrq37RtxwyT5ohceM1z06FbZ/cO/iIY6Kt190imdWbelGJGdRJzsi4p1oPJJQ4SMcpI3HTrg+I54S4atci088YSDqexFPkGlvWq0NiSfNIVMv5zvGl9qISu1qMrAOZJnf/QRm9fVlV2wKkqRrtOekXcnkWoZbdHdKhsof8Yim9QLlkpdtiXuKqy7DSQlDTU66lKQOgACsARsWZwv59lpTDoAEmdwZjg/5VGsL78atYcQSTGm0RV7aqa43rT9RLgkP40qWQ1OOU6WttuU5vWYJwHFkpxyqbJVzBRVkjAA3CtvvZiXqd6V2oKWZmtVGZK0FtXqzbiuZJ6pOT0PaObL0+uLUmrCnW7S3qg/kc60DDbQPutZ2SPJ39sxL9P4X9eaeXcOgpVBnYCJ3n5oDDz7qpWpfuJIBkxPGp/kDTYU2v6f6ua17t/zWfwMNfFOcM+h03ola09LVCoNz1QqLqX3ksJIbaITgJSTuryQPEXHGL+oblm8yjz7CpSSIPwAK1XGtLYtG23BBHmiCCCK9ROom5bVpN4Ut2nVmQYqEm4PqafQFDyOx+RuIUnWHgsnJFL9SsZ8zjAyo0qZX/MSOzazsrwrB+TDmQQbxmZvMSv3Wy9OoOoPb7EGh93YsXqYdTrz1pK9IuCOdqhZqV9vmRltlCkyy8urHZxwbJ8JyfkQ3lrWhR7KpLVNolOYp0k0PpaYQEgnue5PuTuYmIIfJ5q9yy/dcr06JGiR2+zJpWlgxZJhpOvPWiCCCAdEK/9k="
-        pdf.addImage(artisanLogoBase64, 'JPEG', 25, pageHeight - 11, 4, 4)
-        
-        pdf.setFontSize(7)
-        pdf.setTextColor(100, 116, 139)
-        pdf.setFont('helvetica', 'normal')
-        pdf.text("Généré via", 30, pageHeight - 8)
-        
-        pdf.setTextColor(37, 99, 235)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text("ArtisanGestion", 44, pageHeight - 8)
+        // Branding (masqué pour Plan Équipe)
+        if (showBranding.value) {
+          const artisanLogoBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCABAAEADASIAAhEBAxEB/8QAGwAAAgMAAwAAAAAAAAAAAAAAAAgFBwkBBAb/xAAxEAABAgUCBQMDAgcAAAAAAAABAgMABAUGEQchCBIxUXETQWEiMrIJZBUjJGN0gvD/xAAbAQABBQEBAAAAAAAAAAAAAAAFAAEEBgcDAv/EACgRAAEDAwMDBAMBAAAAAAAAAAECAxEABAUhMVFBgdEGEnHBFRahYf/aAAwDAQACEQMRAD8A1TggghUqII6Fbr1OtunuT1UnGZGUb+515XKPA7n4G8LdqbxWvvh6RtFkyze6TUphP1n5Qg7J8qyfgQWsMXdZJftYTp1J2HfxrUG6vWbRMunXjrTQQQqum/F09IKakLxZM0xskVOWRhxI7uIGyvKcH4JhmLfuSl3XTGqjSJ9ioSbn2usLChnsex7g7iPWQxN3jFRcI06EbHv9HWla3rF2JaVrx1qSggggPU6iK61p1Te0wokq9KyaJucnFqbaLqiEN4GckDc9emR5ixYXnjBX6dFt0/33fxEGsNbt3V+0y6JSTqOxND8g6tm2W4gwR5pfbzvqsXpUDN1ifcnHBnkSo4Q2OyUjYDxEzL8PmolVkWJuVt1S2H20utqVNy6CUkZBwpwEbexEV1MzGMxorbyAu3aQSpY/omftdKR9g9sxqObyTmDaaFqhMGRBBgRG0Ec1TcdaIyK1l5RkR/fmaRyrcO2o1NYU9MW4pDYBJUJyXV0GfZwx4K0tR7g08qon6BUnZF7bnQk5bdHZaDsoeentGkdyOclrVfACvTk3Vp5jzHIQSD17xla87gdYnem8m7nmnk3iEwIEAGDM7yTxXLKWaMatssKMmevEcAVotw761P6z21OzM7T25GfkHUsvFhRLbpIyFJB3T4JPmLYhVuAhfPbV2H94z+BhqYybP2zVnk3mGBCQRA+QDV1xrq37RtxwyT5ohceM1z06FbZ/cO/iIY6Kt190imdWbelGJGdRJzsi4p1oPJJQ4SMcpI3HTrg+I54S4atci088YSDqexFPkGlvWq0NiSfNIVMv5zvGl9qISu1qMrAOZJnf/QRm9fVlV2wKkqRrtOekXcnkWoZbdHdKhsof8Yim9QLlkpdtiXuKqy7DSQlDTU66lKQOgACsARsWZwv59lpTDoAEmdwZjg/5VGsL78atYcQSTGm0RV7aqa43rT9RLgkP40qWQ1OOU6WttuU5vWYJwHFkpxyqbJVzBRVkjAA3CtvvZiXqd6V2oKWZmtVGZK0FtXqzbiuZJ6pOT0PaObL0+uLUmrCnW7S3qg/kc60DDbQPutZ2SPJ39sxL9P4X9eaeXcOgpVBnYCJ3n5oDDz7qpWpfuJIBkxPGp/kDTYU2v6f6ua17t/zWfwMNfFOcM+h03ola09LVCoNz1QqLqX3ksJIbaITgJSTuryQPEXHGL+oblm8yjz7CpSSIPwAK1XGtLYtG23BBHmiCCCK9ROom5bVpN4Ut2nVmQYqEm4PqafQFDyOx+RuIUnWHgsnJFL9SsZ8zjAyo0qZX/MSOzazsrwrB+TDmQQbxmZvMSv3Wy9OoOoPb7EGh93YsXqYdTrz1pK9IuCOdqhZqV9vmRltlCkyy8urHZxwbJ8JyfkQ3lrWhR7KpLVNolOYp0k0PpaYQEgnue5PuTuYmIIfJ5q9yy/dcr06JGiR2+zJpWlgxZJhpOvPWiCCCAdEK/9k="
+          pdf.addImage(artisanLogoBase64, 'JPEG', 25, pageHeight - 11, 4, 4)
+          
+          pdf.setFontSize(7)
+          pdf.setTextColor(100, 116, 139)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text("Généré via", 30, pageHeight - 8)
+          
+          pdf.setTextColor(rgb.r, rgb.g, rgb.b)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text("ArtisanGestion", 44, pageHeight - 8)
+        }
       }
     }
 

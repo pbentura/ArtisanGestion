@@ -329,6 +329,8 @@ async def download_facturx(
         client=db_facture.client,
         societe=db_societe,
         lignes=list(db_facture.lignes),
+        user_role=current_user.role or "USER",
+        trial_days_remaining=deps.get_trial_days_remaining(current_user),
     )
 
     # 4. Générer le XML CII

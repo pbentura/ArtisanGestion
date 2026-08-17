@@ -26,6 +26,9 @@ class Societe(Base):
     objectif_mensuel_ca = Column(Numeric(15, 2), nullable=True) # in €
     texte_pied_page = Column(Text, nullable=True)
 
+    # Personnalisation documents (Plan Équipe)
+    couleur_document = Column(String, nullable=True)  # Hex color, e.g. "#2563eb"
+
     # Stripe Connect
     stripe_connect_account_id = Column(String, nullable=True)
     stripe_connect_enabled = Column(Boolean, nullable=False, server_default="false")

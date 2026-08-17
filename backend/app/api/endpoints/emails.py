@@ -72,7 +72,8 @@ async def generate_and_send_document(
                 if not facture:
                     logger.error(f"Facture {request.document_id} not found")
                     raise HTTPException(status_code=404, detail="Facture introuvable")
-                pdf_bytes = generate_invoice_pdf(facture, facture.client, societe, facture.lignes)
+                trial_days = deps.get_trial_days_remaining(user)
+                pdf_bytes = generate_invoice_pdf(facture, facture.client, societe, facture.lignes, user_role=user.role or "USER", trial_days_remaining=trial_days)
                 filename = f"Facture_{facture.numero_facture}.pdf"
 
                 # Générer un lien de paiement si le compte Connect est actif
@@ -145,7 +146,8 @@ async def generate_and_send_document(
                     logger.error(f"Devis {request.document_id} not found")
                     raise HTTPException(status_code=404, detail="Devis introuvable")
                 adapted_devis = DevisAdapter(devis)
-                pdf_bytes = generate_invoice_pdf(adapted_devis, devis.client, societe, devis.lignes)
+                trial_days = deps.get_trial_days_remaining(user)
+                pdf_bytes = generate_invoice_pdf(adapted_devis, devis.client, societe, devis.lignes, user_role=user.role or "USER", trial_days_remaining=trial_days)
                 filename = f"Devis_{devis.numero_devis}.pdf"
 
             elif request.document_type == "rapport":
@@ -161,7 +163,8 @@ async def generate_and_send_document(
                     logger.error(f"Rapport {request.document_id} not found")
                     raise HTTPException(status_code=404, detail="Rapport introuvable")
                 
-                pdf_bytes = generate_rapport_pdf(rapport, rapport.client, societe)
+                trial_days = deps.get_trial_days_remaining(user)
+                pdf_bytes = generate_rapport_pdf(rapport, rapport.client, societe, user_role=user.role or "USER", trial_days_remaining=trial_days)
                 filename = f"Rapport_{rapport.id}.pdf"
             
             else:

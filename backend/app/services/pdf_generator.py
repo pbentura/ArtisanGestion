@@ -62,10 +62,21 @@ COLOR_TEXT = colors.HexColor("#1f2937")
 COLOR_MUTED = colors.HexColor("#475569")
 COLOR_LIGHT_MUTED = colors.HexColor("#64748b")
 COLOR_GRAY = colors.HexColor("#6b7280")
-COLOR_PRIMARY = colors.HexColor("#2563eb")
+COLOR_PRIMARY_DEFAULT = colors.HexColor("#2563eb")
 COLOR_BORDER = colors.HexColor("#e2e8f0")
 COLOR_BG_LIGHT = colors.HexColor("#f8fafc")
 COLOR_HEADER_BORDER = colors.HexColor("#cbd5e1")
+
+
+def _get_primary_color(societe: Any) -> colors.HexColor:
+    """Retourne la couleur primaire personnalisée ou la couleur par défaut."""
+    custom = getattr(societe, "couleur_document", None)
+    if custom and isinstance(custom, str) and custom.startswith("#") and len(custom) in (4, 7):
+        try:
+            return colors.HexColor(custom)
+        except Exception:
+            pass
+    return COLOR_PRIMARY_DEFAULT
 
 
 def _format_date(d: Any) -> str:
@@ -87,6 +98,8 @@ def generate_invoice_pdf(
     client: Any,
     societe: Any,
     lignes: List[Any],
+    user_role: str = "USER",
+    trial_days_remaining: int = 0,
 ) -> bytes:
     """
     Génère un PDF de facture côté serveur avec ReportLab.
@@ -96,11 +109,17 @@ def generate_invoice_pdf(
         client: Objet Client
         societe: Objet Societe
         lignes: Liste des LigneFacture
+        user_role: Rôle de l'utilisateur (pour masquer le badge ArtisanGestion)
+        trial_days_remaining: Nombre de jours d'essai restants (badge masqué pendant l'essai)
 
     Returns:
         bytes: Le contenu PDF
     """
     buffer = BytesIO()
+    COLOR_PRIMARY = _get_primary_color(societe)
+    is_team_or_admin = user_role in ("TEAM", "ADMIN")
+    is_in_trial = trial_days_remaining > 0
+    show_branding = not (is_team_or_admin or is_in_trial)
 
     # Pied de page société
     texte_pied = getattr(societe, "texte_pied_page", None) or ""
@@ -444,10 +463,11 @@ def generate_invoice_pdf(
         canvas.setFillColor(COLOR_PRIMARY)
         canvas.drawRightString(page_width - 15 * mm, 10 * mm, f"Page {page_num}")
 
-        # 4. Petit branding (Bas Gauche - optionnel mais pro)
-        canvas.setFont("Helvetica-Oblique", 6)
-        canvas.setFillColor(COLOR_LIGHT_MUTED)
-        canvas.drawString(15 * mm, 10 * mm, "Généré via ArtisanGestion")
+        # 4. Petit branding (Bas Gauche - masqué pour Plan Équipe)
+        if show_branding:
+            canvas.setFont("Helvetica-Oblique", 6)
+            canvas.setFillColor(COLOR_LIGHT_MUTED)
+            canvas.drawString(15 * mm, 10 * mm, "Généré via ArtisanGestion")
 
         canvas.restoreState()
 
@@ -460,11 +480,17 @@ def generate_rapport_pdf(
     rapport: Any,
     client: Any,
     societe: Any,
+    user_role: str = "USER",
+    trial_days_remaining: int = 0,
 ) -> bytes:
     """
     Génère un PDF de rapport côté serveur avec ReportLab.
     """
     buffer = BytesIO()
+    COLOR_PRIMARY = _get_primary_color(societe)
+    is_team_or_admin = user_role in ("TEAM", "ADMIN")
+    is_in_trial = trial_days_remaining > 0
+    show_branding = not (is_team_or_admin or is_in_trial)
 
     texte_pied = getattr(societe, "texte_pied_page", None) or ""
     bottom_margin = 25 * mm if texte_pied else 15 * mm
@@ -686,9 +712,10 @@ def generate_rapport_pdf(
         canvas.setFont("Helvetica-Bold", 8)
         canvas.setFillColor(COLOR_PRIMARY)
         canvas.drawRightString(page_width - 15 * mm, 10 * mm, f"Page {page_num}")
-        canvas.setFont("Helvetica-Oblique", 6)
-        canvas.setFillColor(COLOR_LIGHT_MUTED)
-        canvas.drawString(15 * mm, 10 * mm, "Généré via ArtisanGestion")
+        if show_branding:
+            canvas.setFont("Helvetica-Oblique", 6)
+            canvas.setFillColor(COLOR_LIGHT_MUTED)
+            canvas.drawString(15 * mm, 10 * mm, "Généré via ArtisanGestion")
         canvas.restoreState()
 
     doc.build(elements, onFirstPage=footer_callback, onLaterPages=footer_callback)
