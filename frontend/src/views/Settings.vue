@@ -10,12 +10,13 @@ import { Label } from '@/components/ui/label'
 import { 
   User, Settings, CreditCard, Receipt, LifeBuoy, Loader2, Save, CheckCircle2,
   LogOut, Trash2, AlertTriangle, X, Check, Sparkles, Zap, Palette,
-  Lock, RotateCcw, Eye, EyeOff, ShieldCheck, KeyRound, Info
+  Lock, RotateCcw, Eye, EyeOff, ShieldCheck, KeyRound, Info, ChevronDown
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 const activeTab = ref((route.query.tab as string) || 'compte')
+const isMobileMenuOpen = ref(false)
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isDeleting = ref(false)
@@ -23,6 +24,33 @@ const showSuccess = ref(false)
 const confirmDelete = ref(false)
 const isAnnual = ref(false)
 const loadingPlan = ref<string | null>(null)
+
+const allTabs = [
+  { value: 'compte', label: 'Mon Compte', icon: User, description: 'Profil, sécurité & mot de passe', ownerOnly: false },
+  { value: 'preferences', label: 'Préférences', icon: Settings, description: 'Personnalisation des devis & PDF', ownerOnly: false },
+  { value: 'abonnement', label: 'Abonnement', icon: CreditCard, description: 'Forfait & gestion des accès', ownerOnly: true },
+  { value: 'facturation', label: 'Facturation', icon: Receipt, description: 'Historique & coordonnées bancaires', ownerOnly: false },
+  { value: 'support', label: 'Support & Aide', icon: LifeBuoy, description: 'Centre d\'aide & assistance', ownerOnly: false },
+]
+
+const availableTabs = computed(() => {
+  return allTabs.filter(tab => !tab.ownerOnly || user.value.is_owner)
+})
+
+const currentTabInfo = computed(() => {
+  return availableTabs.value.find(tab => tab.value === activeTab.value) || availableTabs.value[0] || {
+    value: 'compte',
+    label: 'Mon Compte',
+    icon: User,
+    description: 'Profil, sécurité & mot de passe'
+  }
+})
+
+function selectTab(val: string) {
+  activeTab.value = val
+  isMobileMenuOpen.value = false
+  router.replace({ query: { ...route.query, tab: val } })
+}
 
 // Préférences documents
 const societe = ref<any>(null)
@@ -397,8 +425,90 @@ onMounted(() => {
     </div>
 
     <Tabs v-model="activeTab" defaultValue="compte" class="space-y-6">
-      <div class="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-        <TabsList class="bg-muted/50 p-1 rounded-xl w-full md:w-auto h-auto inline-flex min-w-max">
+      <!-- Mobile Dropdown Selector (< md) -->
+      <div class="block md:hidden relative">
+        <!-- Backdrop -->
+        <div 
+          v-if="isMobileMenuOpen" 
+          class="fixed inset-0 z-30 bg-background/50 backdrop-blur-xs transition-opacity" 
+          @click="isMobileMenuOpen = false"
+        />
+
+        <!-- Trigger Button Card -->
+        <button
+          type="button"
+          @click="isMobileMenuOpen = !isMobileMenuOpen"
+          class="w-full relative z-40 flex items-center justify-between p-3.5 bg-card border border-border/80 rounded-2xl shadow-xs active:scale-[0.99] transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-primary/20"
+          :class="{ 'ring-2 ring-primary/20 border-primary/50 shadow-md': isMobileMenuOpen }"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+              <component :is="currentTabInfo.icon" class="w-5 h-5" />
+            </div>
+            <div class="min-w-0">
+              <div class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Onglet actif</div>
+              <div class="text-sm font-bold text-foreground truncate">{{ currentTabInfo.label }}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0 ml-2">
+            <span class="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">Changer</span>
+            <ChevronDown 
+              class="w-4 h-4 text-muted-foreground transition-transform duration-300"
+              :class="{ 'rotate-180 text-primary': isMobileMenuOpen }" 
+            />
+          </div>
+        </button>
+
+        <!-- Dropdown Popup Menu -->
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="transform scale-95 opacity-0 -translate-y-2"
+          enter-to-class="transform scale-100 opacity-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="transform scale-100 opacity-100 translate-y-0"
+          leave-to-class="transform scale-95 opacity-0 -translate-y-2"
+        >
+          <div 
+            v-if="isMobileMenuOpen" 
+            class="absolute z-40 left-0 right-0 mt-2 p-1.5 bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-xl space-y-1 overflow-hidden ring-1 ring-black/5 dark:ring-white/5"
+          >
+            <button
+              v-for="item in availableTabs"
+              :key="item.value"
+              type="button"
+              @click="selectTab(item.value)"
+              class="w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left group"
+              :class="activeTab === item.value 
+                ? 'bg-primary/10 text-primary font-medium' 
+                : 'hover:bg-muted/70 text-muted-foreground hover:text-foreground active:bg-muted'"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <div 
+                  class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                  :class="activeTab === item.value ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-muted text-muted-foreground group-hover:text-foreground'"
+                >
+                  <component :is="item.icon" class="w-4 h-4" />
+                </div>
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold truncate" :class="activeTab === item.value ? 'text-primary' : 'text-foreground'">
+                    {{ item.label }}
+                  </div>
+                  <div class="text-xs text-muted-foreground line-clamp-1">
+                    {{ item.description }}
+                  </div>
+                </div>
+              </div>
+              <div v-if="activeTab === item.value" class="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 ml-2">
+                <Check class="w-3 h-3 stroke-[2.5]" />
+              </div>
+            </button>
+          </div>
+        </Transition>
+      </div>
+
+      <!-- Desktop TabsList (md+) -->
+      <div class="hidden md:block">
+        <TabsList class="bg-muted/50 p-1 rounded-xl w-auto h-auto inline-flex border border-border/40">
           <TabsTrigger value="compte" class="rounded-lg py-2 px-4 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <User class="w-4 h-4 mr-2" /> Compte
           </TabsTrigger>
