@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { 
   User, Settings, CreditCard, Receipt, LifeBuoy, Loader2, Save, CheckCircle2,
   LogOut, Trash2, AlertTriangle, X, Check, Sparkles, Zap, Palette,
-  Lock, RotateCcw, Eye, ShieldCheck
+  Lock, RotateCcw, Eye, EyeOff, ShieldCheck, KeyRound, Info
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -149,7 +149,8 @@ const user = ref({
   email: '',
   role: '',
   trial_days_remaining: 0,
-  is_owner: true
+  is_owner: true,
+  has_password: false
 })
 
 const form = ref({
@@ -157,6 +158,19 @@ const form = ref({
   prenom: '',
   email: ''
 })
+
+// Gestion du mot de passe
+const passwordForm = ref({
+  current_password: '',
+  new_password: '',
+  confirm_password: ''
+})
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+const isSavingPassword = ref(false)
+const passwordError = ref('')
+const showPasswordSuccess = ref(false)
 
 const initials = computed(() => {
   const f = form.value.prenom?.charAt(0) || ''
@@ -211,6 +225,63 @@ async function handleSave() {
     alert("Une erreur est survenue")
   } finally {
     isSaving.value = false
+  }
+}
+
+async function handleUpdatePassword() {
+  passwordError.value = ''
+  showPasswordSuccess.value = false
+
+  if (user.value.has_password && !passwordForm.value.current_password) {
+    passwordError.value = "Veuillez saisir votre mot de passe actuel."
+    return
+  }
+
+  if (!passwordForm.value.new_password) {
+    passwordError.value = "Veuillez saisir un nouveau mot de passe."
+    return
+  }
+
+  if (passwordForm.value.new_password.length < 6) {
+    passwordError.value = "Le mot de passe doit contenir au moins 6 caractères."
+    return
+  }
+
+  if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
+    passwordError.value = "Les mots de passe ne correspondent pas."
+    return
+  }
+
+  isSavingPassword.value = true
+  try {
+    const res = await apiFetch('users/me/password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: user.value.has_password ? passwordForm.value.current_password : null,
+        new_password: passwordForm.value.new_password
+      })
+    })
+
+    if (res.ok) {
+      user.value.has_password = true
+      passwordForm.value = {
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      }
+      showPasswordSuccess.value = true
+      setTimeout(() => {
+        showPasswordSuccess.value = false
+      }, 4000)
+    } else {
+      const errorData = await res.json()
+      passwordError.value = errorData.detail || "Erreur lors de la mise à jour du mot de passe."
+    }
+  } catch (error) {
+    console.error('Error updating password:', error)
+    passwordError.value = "Une erreur inattendue est survenue."
+  } finally {
+    isSavingPassword.value = false
   }
 }
 
@@ -432,6 +503,159 @@ onMounted(() => {
                     Enregistrer
                   </template>
                 </button>
+              </div>
+
+              <!-- Section Sécurité & Mot de passe -->
+              <div class="border-t border-border/50 pt-8 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <KeyRound class="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-semibold text-foreground">
+                        {{ user.has_password ? 'Modifier mon mot de passe' : 'Définir un mot de passe' }}
+                      </h4>
+                      <p class="text-xs text-muted-foreground mt-0.5">
+                        {{ user.has_password 
+                          ? 'Mettez à jour votre mot de passe pour sécuriser l\'accès à votre compte.' 
+                          : 'Ajoutez un mot de passe pour pouvoir vous connecter avec votre email sans passer par Google.' 
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div v-if="!user.has_password" class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-medium border border-amber-500/20 self-start sm:self-auto shrink-0">
+                    <Sparkles class="w-3.5 h-3.5" />
+                    Compte Google sans mot de passe
+                  </div>
+                  <div v-else class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-medium border border-emerald-500/20 self-start sm:self-auto shrink-0">
+                    <ShieldCheck class="w-3.5 h-3.5" />
+                    Mot de passe actif
+                  </div>
+                </div>
+
+                <div v-if="!user.has_password" class="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40 flex items-start gap-3">
+                  <Info class="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                  <p class="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                    Votre compte a été initialisé via Google OAuth. En définissant un mot de passe ici, vous pourrez vous connecter au choix avec Google ou avec votre identifiant email et mot de passe.
+                  </p>
+                </div>
+
+                <form @submit.prevent="handleUpdatePassword" class="space-y-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Ancien mot de passe (si mot de passe existant) -->
+                    <div v-if="user.has_password" class="space-y-2 md:col-span-2">
+                      <Label for="current_password" class="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">
+                        Ancien mot de passe
+                      </Label>
+                      <div class="relative">
+                        <Input 
+                          id="current_password" 
+                          v-model="passwordForm.current_password" 
+                          :type="showCurrentPassword ? 'text' : 'password'" 
+                          placeholder="Saisissez votre ancien mot de passe" 
+                          class="h-11 bg-muted/20 focus:bg-background transition-all pr-10"
+                          autocomplete="current-password"
+                        />
+                        <button 
+                          type="button" 
+                          @click="showCurrentPassword = !showCurrentPassword" 
+                          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                          tabindex="-1"
+                        >
+                          <EyeOff v-if="showCurrentPassword" class="w-4 h-4" />
+                          <Eye v-else class="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Nouveau mot de passe -->
+                    <div class="space-y-2" :class="{ 'md:col-span-1': true }">
+                      <Label for="new_password" class="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">
+                        Nouveau mot de passe
+                      </Label>
+                      <div class="relative">
+                        <Input 
+                          id="new_password" 
+                          v-model="passwordForm.new_password" 
+                          :type="showNewPassword ? 'text' : 'password'" 
+                          placeholder="Au moins 6 caractères" 
+                          class="h-11 bg-muted/20 focus:bg-background transition-all pr-10"
+                          autocomplete="new-password"
+                        />
+                        <button 
+                          type="button" 
+                          @click="showNewPassword = !showNewPassword" 
+                          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                          tabindex="-1"
+                        >
+                          <EyeOff v-if="showNewPassword" class="w-4 h-4" />
+                          <Eye v-else class="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Confirmer le mot de passe -->
+                    <div class="space-y-2" :class="{ 'md:col-span-1': true }">
+                      <Label for="confirm_password" class="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">
+                        Confirmer le mot de passe
+                      </Label>
+                      <div class="relative">
+                        <Input 
+                          id="confirm_password" 
+                          v-model="passwordForm.confirm_password" 
+                          :type="showConfirmPassword ? 'text' : 'password'" 
+                          placeholder="Confirmez le mot de passe" 
+                          class="h-11 bg-muted/20 focus:bg-background transition-all pr-10"
+                          autocomplete="new-password"
+                        />
+                        <button 
+                          type="button" 
+                          @click="showConfirmPassword = !showConfirmPassword" 
+                          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                          tabindex="-1"
+                        >
+                          <EyeOff v-if="showConfirmPassword" class="w-4 h-4" />
+                          <Eye v-else class="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Message d'erreur -->
+                  <div v-if="passwordError" class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                    <AlertTriangle class="w-4 h-4 shrink-0" />
+                    <span>{{ passwordError }}</span>
+                  </div>
+
+                  <!-- Actions et succès -->
+                  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                    <div>
+                      <transition name="fade">
+                        <div v-if="showPasswordSuccess" class="flex items-center text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
+                          <CheckCircle2 class="w-4 h-4 mr-2" />
+                          {{ user.has_password ? 'Mot de passe mis à jour !' : 'Mot de passe créé avec succès !' }}
+                        </div>
+                      </transition>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      :disabled="isSavingPassword || !passwordForm.new_password || !passwordForm.confirm_password"
+                      class="min-w-[190px]"
+                    >
+                      <template v-if="isSavingPassword">
+                        <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+                        Enregistrement...
+                      </template>
+                      <template v-else>
+                        <Lock class="w-4 h-4 mr-2" />
+                        {{ user.has_password ? 'Modifier le mot de passe' : 'Définir le mot de passe' }}
+                      </template>
+                    </Button>
+                  </div>
+                </form>
               </div>
             </CardContent>
           </Card>

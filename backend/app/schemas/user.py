@@ -14,6 +14,7 @@ class UserCreate(UserBase):
 
 class UserRead(UserBase):
     id: int
+    has_password: bool = False
     onboarding_draft: Optional[dict] = None
     date_inscription: Optional[datetime] = None
     
@@ -50,6 +51,10 @@ class UserUpdate(BaseModel):
     prenom: Optional[str] = None
     email: Optional[EmailStr] = None
     onboarding_draft: Optional[dict] = None
+
+class UserPasswordUpdate(BaseModel):
+    current_password: Optional[str] = None
+    new_password: str
 
 class UserReadWithSocietes(UserRead):
     societes: List[SocieteRead] = []

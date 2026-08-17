@@ -46,3 +46,7 @@ class User(Base):
     # Relation vers la société en tant que membre
     societe_membre = relationship("Societe", foreign_keys=[id_societe], backref="membres")
 
+    @property
+    def has_password(self) -> bool:
+        return bool(self.mdp and self.mdp.strip())
+

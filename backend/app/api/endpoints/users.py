@@ -6,7 +6,8 @@ from sqlalchemy.future import select
 
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
-from app.schemas.user import UserReadWithSocietes, UserUpdate
+from app.schemas.user import UserReadWithSocietes, UserUpdate, UserPasswordUpdate
+from app.core.security import get_password_hash, verify_password
 
 router = APIRouter()
 
@@ -117,6 +118,50 @@ async def switch_societe(
         user_data.societes.append(SocieteRead.model_validate(reloaded_user.societe_membre))
         
     return user_data
+
+
+@router.put("/me/password")
+async def update_password_me(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    password_data: UserPasswordUpdate,
+) -> Any:
+    """
+    Définir ou modifier le mot de passe de l'utilisateur connecté.
+    Si l'utilisateur a déjà un mot de passe, l'ancien mot de passe est obligatoire et vérifié.
+    Si l'utilisateur n'a pas de mot de passe (compte Google), l'ancien mot de passe n'est pas requis.
+    """
+    if not password_data.new_password or len(password_data.new_password) < 6:
+        raise HTTPException(
+            status_code=400,
+            detail="Le nouveau mot de passe doit contenir au moins 6 caractères."
+        )
+
+    # Si l'utilisateur a déjà un mot de passe configuré
+    if current_user.has_password:
+        if not password_data.current_password:
+            raise HTTPException(
+                status_code=400,
+                detail="Veuillez saisir votre mot de passe actuel."
+            )
+        if not verify_password(password_data.current_password, current_user.mdp):
+            raise HTTPException(
+                status_code=400,
+                detail="Le mot de passe actuel est incorrect."
+            )
+
+    # Définir le nouveau mot de passe
+    current_user.mdp = get_password_hash(password_data.new_password)
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+
+    return {
+        "status": "success",
+        "message": "Mot de passe mis à jour avec succès",
+        "has_password": True
+    }
 
 
 @router.delete("/me")
