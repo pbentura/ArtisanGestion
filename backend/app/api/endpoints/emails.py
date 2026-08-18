@@ -10,12 +10,17 @@ from app.models.user import User
 from app.models.societe import Societe
 from app.models.facture import Facture
 from app.models.devis import Devis
-from app.services.email_service import send_transactional_document
+from app.services.email_service import send_transactional_document, send_support_email
 from app.services.pdf_generator import generate_invoice_pdf
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+class SupportEmailRequest(BaseModel):
+    subject: str
+    message: str
+    category: str = "Question générale"
 
 class DocumentEmailRequest(BaseModel):
     to_email: EmailStr
@@ -206,3 +211,42 @@ async def send_document(
         raise HTTPException(status_code=500, detail="Erreur lors de l'envoi de l'email")
         
     return {"message": "Email envoyé avec succès", "status": "success"}
+
+
+@router.post("/support")
+async def contact_support(
+    request: SupportEmailRequest,
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Envoie une question ou demande de support depuis le formulaire de contact.
+    """
+    if not request.subject.strip():
+        raise HTTPException(status_code=400, detail="Veuillez indiquer un sujet.")
+    if not request.message.strip():
+        raise HTTPException(status_code=400, detail="Veuillez rédiger votre message.")
+
+    async with AsyncSessionLocal() as db:
+        societe_result = await db.execute(select(Societe).where(Societe.id_user == current_user.id))
+        societe = societe_result.scalars().first()
+        societe_name = societe.nom if societe else None
+
+    user_name = f"{current_user.prenom or ''} {current_user.nom or ''}".strip() or current_user.email
+
+    success = await send_support_email(
+        user_name=user_name,
+        user_email=current_user.email,
+        subject=request.subject.strip(),
+        message=request.message.strip(),
+        category=request.category,
+        societe_name=societe_name,
+    )
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Impossible d'envoyer votre message pour le moment. Veuillez vérifier la configuration d'envoi ou contacter directement contact@artisangestion.com.")
+
+    return {
+        "message": "Votre message a bien été envoyé. Notre équipe vous répondra dans les plus brefs délais !",
+        "status": "success"
+    }
+

@@ -305,3 +305,91 @@ async def send_transactional_document(
         logger.error(f"Failed to send transactional document {filename} to {to}: {e}")
         return False
 
+
+async def send_support_email(
+    user_name: str,
+    user_email: str,
+    subject: str,
+    message: str,
+    category: str = "Question générale",
+    societe_name: str = None,
+) -> bool:
+    """
+    Envoie un message de support ou une question formulée par un utilisateur vers l'adresse support.
+    """
+    _init_resend()
+
+    societe_html = f"""
+    <tr>
+        <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;"><strong>Société :</strong></td>
+        <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 500;">{societe_name}</td>
+    </tr>
+    """ if societe_name else ""
+
+    content = f"""
+        <div style="width: 56px; height: 56px; background-color: #eff6ff; border-radius: 50%; margin: 0 auto 20px auto; text-align: center; line-height: 56px;">
+            <span style="font-size: 26px;">💬</span>
+        </div>
+
+        <h1 style="margin: 0 0 8px 0; color: #111827; font-size: 22px; font-weight: 700; text-align: center;">Nouveau message de support</h1>
+        <p style="margin: 0 0 24px 0; color: #64748b; font-size: 14px; text-align: center;">Reçu depuis l'espace paramètres de l'application</p>
+        
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 20px;">
+            <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;"><strong>Expéditeur :</strong></td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">{user_name}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;"><strong>Email :</strong></td>
+                <td style="padding: 6px 0; color: #2563eb; font-size: 14px; font-weight: 500;">
+                    <a href="mailto:{user_email}" style="color: #2563eb; text-decoration: none;">{user_email}</a>
+                </td>
+            </tr>
+            {societe_html}
+            <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;"><strong>Catégorie :</strong></td>
+                <td style="padding: 6px 0;">
+                    <span style="display: inline-block; background-color: #dbeafe; color: #1e40af; padding: 3px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;">
+                        {category}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;"><strong>Sujet :</strong></td>
+                <td style="padding: 6px 0; color: #0f172a; font-size: 14px; font-weight: 600;">{subject}</td>
+            </tr>
+        </table>
+
+        <div style="margin: 0 0 24px 0; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Message transmis :</h3>
+            <div style="color: #1e293b; font-size: 15px; line-height: 1.6; white-space: pre-wrap; font-family: inherit;">{message}</div>
+        </div>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <tr>
+                <td style="padding: 14px 18px;">
+                    <p style="margin: 0; color: #1e40af; font-size: 13px; line-height: 1.5;">
+                        💡 <strong>Action rapide :</strong> Cliquez simplement sur <strong>« Répondre »</strong> dans votre messagerie pour écrire directement à {user_email}.
+                    </p>
+                </td>
+            </tr>
+        </table>
+    """
+
+    support_destination = getattr(settings, "SUPPORT_EMAIL", "pinhasbent@gmail.com")
+
+    try:
+        resend.Emails.send({
+            "from": f"Support ArtisanGestion <{settings.EMAIL_FROM}>",
+            "to": [support_destination],
+            "reply_to": user_email,
+            "subject": f"[Support ArtisanGestion - {category}] {subject}",
+            "html": _base_template(content),
+        })
+        logger.info(f"Support message from {user_email} successfully sent to {support_destination}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send support email from {user_email}: {e}")
+        return False
+
+

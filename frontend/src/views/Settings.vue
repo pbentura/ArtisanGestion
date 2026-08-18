@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label'
 import { 
   User, Settings, CreditCard, Receipt, LifeBuoy, Loader2, Save, CheckCircle2,
   LogOut, Trash2, AlertTriangle, X, Check, Sparkles, Zap, Palette,
-  Lock, RotateCcw, Eye, EyeOff, ShieldCheck, KeyRound, Info, ChevronDown
+  Lock, RotateCcw, Eye, EyeOff, ShieldCheck, KeyRound, Info, ChevronDown,
+  Mail, Send, MessageSquare, HelpCircle, Lightbulb, Clock
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -406,6 +407,92 @@ async function handleSavePreferences() {
     alert("Une erreur est survenue")
   } finally {
     isSavingPreferences.value = false
+  }
+}
+
+// Support & Formulaire de contact
+const supportForm = ref({
+  category: 'Question générale',
+  subject: '',
+  message: ''
+})
+const isSendingSupport = ref(false)
+const supportSuccess = ref(false)
+const supportError = ref('')
+
+const supportCategories = [
+  { id: 'Question générale', label: 'Question générale', icon: HelpCircle, desc: 'Aide à l\'utilisation' },
+  { id: 'Problème technique', label: 'Problème technique', icon: AlertTriangle, desc: 'Bug ou dysfonctionnement' },
+  { id: 'Suggestion', label: 'Suggestion', icon: Lightbulb, desc: 'Idée d\'amélioration' },
+  { id: 'Facturation & Compte', label: 'Facturation & Compte', icon: Receipt, desc: 'Abonnement, factures' },
+  { id: 'Autre', label: 'Autre demande', icon: MessageSquare, desc: 'Autre question' }
+]
+
+const openFaqIndex = ref<number | null>(null)
+const faqList = [
+  {
+    q: "Comment personnaliser la couleur et l'apparence de mes devis et factures ?",
+    a: "Dans l'onglet Préférences, vous pouvez choisir la couleur de marque de vos documents. Avec le forfait Équipe ou pendant la période d'essai, vos devis et factures sont générés à vos couleurs sans aucune mention ArtisanGestion."
+  },
+  {
+    q: "Comment activer le paiement en ligne par carte bancaire pour mes clients ?",
+    a: "Connectez votre compte Stripe Connect dans les paramètres de votre société. Dès lors, vos factures validées comporteront automatiquement un bouton de paiement sécurisé en ligne pour vos clients."
+  },
+  {
+    q: "Comment faire signer un devis ou rapport à un client ?",
+    a: "Vous pouvez faire signer le document sur place directement sur votre smartphone ou tablette, ou l'envoyer par e-mail avec un lien de signature électronique à distance sécurisé."
+  },
+  {
+    q: "Quel est le délai de réponse du support ?",
+    a: "Notre équipe vous répond généralement en moins de 24h ouvrées par e-mail. Vous pouvez également nous écrire directement à contact@artisangestion.com."
+  }
+]
+
+function toggleFaq(index: number) {
+  openFaqIndex.value = openFaqIndex.value === index ? null : index
+}
+
+async function handleSendSupport() {
+  supportError.value = ''
+  supportSuccess.value = false
+
+  if (!supportForm.value.subject.trim()) {
+    supportError.value = "Veuillez préciser le sujet de votre message."
+    return
+  }
+
+  if (!supportForm.value.message.trim()) {
+    supportError.value = "Veuillez rédiger votre message."
+    return
+  }
+
+  isSendingSupport.value = true
+  try {
+    const res = await apiFetch('emails/support', {
+      method: 'POST',
+      body: JSON.stringify({
+        subject: supportForm.value.subject.trim(),
+        message: supportForm.value.message.trim(),
+        category: supportForm.value.category
+      })
+    })
+
+    if (res.ok) {
+      supportSuccess.value = true
+      supportForm.value = {
+        category: 'Question générale',
+        subject: '',
+        message: ''
+      }
+    } else {
+      const errorData = await res.json()
+      supportError.value = errorData.detail || "Erreur lors de l'envoi de votre message. Veuillez réessayer."
+    }
+  } catch (error) {
+    console.error('Error sending support message:', error)
+    supportError.value = "Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter directement à contact@artisangestion.com."
+  } finally {
+    isSendingSupport.value = false
   }
 }
 
@@ -1476,21 +1563,259 @@ onMounted(() => {
         </div>
       </TabsContent>
 
-      <!-- Placeholder content for remaining tabs -->
-      <TabsContent v-for="tab in ['facturation', 'support']" :key="tab" :value="tab">
+      <!-- Facturation Tab (Placeholder) -->
+      <TabsContent value="facturation">
         <Card class="border-border/50 shadow-sm">
           <CardHeader>
-            <CardTitle class="capitalize">{{ tab }}</CardTitle>
-            <CardDescription>Cette section est en cours de développement.</CardDescription>
+            <CardTitle>Facturation</CardTitle>
+            <CardDescription>Historique de facturation et coordonnées de paiement.</CardDescription>
           </CardHeader>
           <CardContent class="py-12 flex flex-col items-center justify-center text-center">
             <div class="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Receipt v-if="tab === 'facturation'" class="w-8 h-8 text-muted-foreground" />
-              <LifeBuoy v-if="tab === 'support'" class="w-8 h-8 text-muted-foreground" />
+              <Receipt class="w-8 h-8 text-muted-foreground" />
             </div>
-            <p class="text-muted-foreground max-w-xs">Nous travaillons activement sur cette fonctionnalité pour vous offrir la meilleure expérience possible.</p>
+            <p class="text-muted-foreground max-w-xs">Gérez vos factures d'abonnement et coordonnées bancaires depuis le portail Stripe dans l'onglet <strong>Abonnement</strong>.</p>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <!-- Support & Aide Tab -->
+      <TabsContent value="support" class="space-y-6">
+        <!-- Bandeau Assistance & Contact rapide -->
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-6 md:p-8">
+          <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-2 max-w-xl">
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">
+                <LifeBuoy class="w-3.5 h-3.5" />
+                Centre d'assistance ArtisanGestion
+              </div>
+              <h2 class="text-2xl font-bold tracking-tight text-foreground">Besoin d'aide ou une question ?</h2>
+              <p class="text-sm text-muted-foreground leading-relaxed">
+                Notre équipe est à votre écoute pour vous accompagner, résoudre un blocage ou étudier vos suggestions pour améliorer votre quotidien.
+              </p>
+            </div>
+
+            <!-- Quick contact pills -->
+            <div class="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
+              <a 
+                href="mailto:contact@artisangestion.com" 
+                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card/80 hover:bg-card border border-border/80 text-foreground text-xs font-medium shadow-xs transition-all hover:border-primary/40 group"
+              >
+                <div class="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Mail class="w-4 h-4" />
+                </div>
+                <div>
+                  <div class="text-[10px] text-muted-foreground">Email direct</div>
+                  <div class="font-semibold text-primary">contact@artisangestion.com</div>
+                </div>
+              </a>
+
+              <div class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card/80 border border-border/80 text-xs shadow-xs">
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <Clock class="w-4 h-4" />
+                </div>
+                <div>
+                  <div class="text-[10px] text-muted-foreground">Délai moyen</div>
+                  <div class="font-semibold text-emerald-600">&lt; 24h ouvrées</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Formulaire de contact (Col 7 / 12) -->
+          <div class="lg:col-span-7 space-y-6">
+            <Card class="border-border/50 shadow-sm">
+              <CardHeader class="pb-4">
+                <CardTitle class="text-xl flex items-center gap-2">
+                  <MessageSquare class="w-5 h-5 text-primary" />
+                  Envoyer un message au support
+                </CardTitle>
+                <CardDescription>
+                  Remplissez ce formulaire pour nous transmettre directement vos questions ou remarques.
+                </CardDescription>
+              </CardHeader>
+              <CardContent class="space-y-6">
+                <!-- Succès message -->
+                <transition name="fade">
+                  <div v-if="supportSuccess" class="p-6 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center space-y-3">
+                    <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                      <CheckCircle2 class="w-6 h-6" />
+                    </div>
+                    <h3 class="text-base font-bold text-emerald-900 dark:text-emerald-200">Message envoyé avec succès !</h3>
+                    <p class="text-xs text-emerald-700 dark:text-emerald-300 max-w-md mx-auto">
+                      Nous avons bien reçu votre message. Notre équipe va vous répondre par e-mail à l'adresse <strong>{{ user.email }}</strong> dans les meilleurs délais.
+                    </p>
+                    <div class="pt-2">
+                      <Button variant="outline" size="sm" @click="supportSuccess = false" class="border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100">
+                        Envoyer un autre message
+                      </Button>
+                    </div>
+                  </div>
+                </transition>
+
+                <!-- Form -->
+                <form v-if="!supportSuccess" @submit.prevent="handleSendSupport" class="space-y-5">
+                  <!-- Catégorie de demande -->
+                  <div class="space-y-2">
+                    <Label class="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">
+                      Type de demande
+                    </Label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <button
+                        v-for="cat in supportCategories"
+                        :key="cat.id"
+                        type="button"
+                        @click="supportForm.category = cat.id"
+                        class="p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 focus:outline-none"
+                        :class="supportForm.category === cat.id 
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/20' 
+                          : 'border-border/60 bg-muted/20 hover:bg-muted/50 text-muted-foreground hover:text-foreground'"
+                      >
+                        <div class="flex items-center gap-1.5 font-semibold text-xs" :class="supportForm.category === cat.id ? 'text-primary' : 'text-foreground'">
+                          <component :is="cat.icon" class="w-3.5 h-3.5 shrink-0" />
+                          <span class="truncate">{{ cat.label }}</span>
+                        </div>
+                        <span class="text-[10px] text-muted-foreground line-clamp-1">{{ cat.desc }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Expéditeur Info (automatique) -->
+                  <div class="p-3 rounded-xl bg-muted/30 border border-border/40 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[11px]">
+                        {{ initials }}
+                      </div>
+                      <span class="text-muted-foreground">
+                        Expéditeur : <strong class="text-foreground">{{ form.prenom }} {{ form.nom }}</strong> ({{ user.email }})
+                      </span>
+                    </div>
+                    <span class="text-[10px] text-muted-foreground bg-background px-2 py-0.5 rounded border border-border/40">
+                      Réponse par email
+                    </span>
+                  </div>
+
+                  <!-- Sujet -->
+                  <div class="space-y-2">
+                    <Label for="support_subject" class="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">
+                      Sujet <span class="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="support_subject"
+                      v-model="supportForm.subject"
+                      placeholder="Ex: Question sur la facturation, suggestion pour l'agenda..."
+                      class="h-11 bg-muted/20 focus:bg-background transition-all"
+                      required
+                    />
+                  </div>
+
+                  <!-- Message -->
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <Label for="support_message" class="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">
+                        Votre message / question <span class="text-destructive">*</span>
+                      </Label>
+                      <span class="text-[10px] text-muted-foreground">{{ supportForm.message.length }} caractères</span>
+                    </div>
+                    <textarea
+                      id="support_message"
+                      v-model="supportForm.message"
+                      rows="5"
+                      placeholder="Décrivez votre situation, votre question ou votre idée avec le plus de précisions possible..."
+                      class="w-full rounded-md border border-input bg-muted/20 focus:bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all resize-y min-h-[120px]"
+                      required
+                    />
+                  </div>
+
+                  <!-- Error message -->
+                  <div v-if="supportError" class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                    <AlertTriangle class="w-4 h-4 shrink-0" />
+                    <span>{{ supportError }}</span>
+                  </div>
+
+                  <!-- Submit button -->
+                  <div class="flex items-center justify-end pt-2">
+                    <Button
+                      type="submit"
+                      :disabled="isSendingSupport || !supportForm.subject.trim() || !supportForm.message.trim()"
+                      class="min-w-[180px] h-11"
+                    >
+                      <template v-if="isSendingSupport">
+                        <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+                        Envoi en cours...
+                      </template>
+                      <template v-else>
+                        <Send class="w-4 h-4 mr-2" />
+                        Envoyer ma demande
+                      </template>
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          <!-- FAQ & Raccourcis (Col 5 / 12) -->
+          <div class="lg:col-span-5 space-y-6">
+            <Card class="border-border/50 shadow-sm">
+              <CardHeader class="pb-3">
+                <CardTitle class="text-lg flex items-center gap-2">
+                  <HelpCircle class="w-5 h-5 text-primary" />
+                  Questions fréquentes (FAQ)
+                </CardTitle>
+                <CardDescription>
+                  Trouvez rapidement une réponse à vos interrogations.
+                </CardDescription>
+              </CardHeader>
+              <CardContent class="space-y-3 pt-1">
+                <div 
+                  v-for="(item, idx) in faqList" 
+                  :key="idx" 
+                  class="rounded-xl border border-border/60 bg-muted/10 overflow-hidden transition-all duration-200"
+                  :class="{ 'border-primary/30 bg-primary/[0.02]': openFaqIndex === idx }"
+                >
+                  <button
+                    type="button"
+                    @click="toggleFaq(idx)"
+                    class="w-full p-3.5 text-left flex items-start justify-between gap-3 text-xs font-semibold text-foreground hover:text-primary transition-colors focus:outline-none"
+                  >
+                    <span>{{ item.q }}</span>
+                    <ChevronDown
+                      class="w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 mt-0.5"
+                      :class="{ 'rotate-180 text-primary': openFaqIndex === idx }"
+                    />
+                  </button>
+                  <div
+                    v-if="openFaqIndex === idx"
+                    class="px-3.5 pb-3.5 text-xs text-muted-foreground leading-relaxed border-t border-border/30 mt-1 pt-2.5 animate-in fade-in duration-200"
+                  >
+                    <p>{{ item.a }}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <!-- Suggestion Card -->
+            <Card class="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card shadow-sm">
+              <CardContent class="p-5 space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <Sparkles class="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-foreground">Une suggestion ?</h4>
+                    <p class="text-xs text-muted-foreground">Nous développons l'application avec vous.</p>
+                  </div>
+                </div>
+                <p class="text-xs text-muted-foreground leading-relaxed">
+                  Vous avez une idée pour simplifier votre quotidien d'artisan ? Sélectionnez « Suggestion » dans le formulaire ci-contre pour nous la transmettre directement.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </TabsContent>
     </Tabs>
 
