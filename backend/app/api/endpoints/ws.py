@@ -14,9 +14,10 @@ async def get_user_from_token(token: str) -> Optional[User]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         
-        # Only allow access_token (no purpose) or waiting_token
+        # Seuls un jeton d'accès ("access", ou absent pour les jetons historiques)
+        # et le jeton d'attente de vérification ouvrent une connexion.
         purpose = payload.get("purpose")
-        if purpose and purpose != "waiting_verify":
+        if purpose not in (None, "access", "waiting_verify"):
             return None
             
         username: str = payload.get("sub")

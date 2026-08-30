@@ -47,10 +47,10 @@ async function handleSubscribe(plan: any) {
   try {
     const res = await apiFetch('subscriptions/create-checkout-session', {
       method: 'POST',
+      // Le montant est fixé côté serveur à partir du plan : ne rien envoyer ici.
       body: JSON.stringify({
         plan_name: plan.name,
-        is_annual: isAnnual.value,
-        price: isAnnual.value ? parseFloat(plan.priceAnnual) * 12 : parseFloat(plan.priceMonthly)
+        is_annual: isAnnual.value
       })
     })
 

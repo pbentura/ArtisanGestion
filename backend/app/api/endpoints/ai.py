@@ -331,7 +331,7 @@
 #         headers={
 #             "Cache-Control": "no-cache",
 #             "X-Accel-Buffering": "no",
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -341,6 +341,7 @@ import json
 from app.api import deps
 from app.models.user import User
 from app.core.config import settings
+from app.core.rate_limit import limiter
 
 router = APIRouter()
 
@@ -547,9 +548,11 @@ class GenerateRapportResponse(BaseModel):
 
 
 @router.post("/generate-rapport", response_model=GenerateRapportResponse)
+@limiter.limit("20/hour")
 async def generate_rapport(
-    request: GenerateRapportRequest,
-    current_user: User = Depends(deps.get_current_user)
+    request: Request,
+    payload: GenerateRapportRequest,
+    current_user: User = Depends(deps.check_trial_active)
 ):
     """
     Génère le contenu d'un rapport d'intervention via l'API Mistral AI.
@@ -558,12 +561,12 @@ async def generate_rapport(
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
 
     # --- Validation de la saisie ---
-    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+    validation_error = await validate_input_with_ai(payload.type_intervention, payload.description)
     if validation_error:
         raise HTTPException(status_code=400, detail=validation_error)
 
-    prompt = build_rapport_prompt(request)
-    max_tokens = get_max_tokens_for_longueur(request.longueur)
+    prompt = build_rapport_prompt(payload)
+    max_tokens = get_max_tokens_for_longueur(payload.longueur)
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -613,9 +616,11 @@ async def generate_rapport(
 
 
 @router.post("/generate-rapport-stream")
+@limiter.limit("20/hour")
 async def generate_rapport_stream(
-    request: GenerateRapportRequest,
-    current_user: User = Depends(deps.get_current_user)
+    request: Request,
+    payload: GenerateRapportRequest,
+    current_user: User = Depends(deps.check_trial_active)
 ):
     """
     Génère le contenu d'un rapport via Mistral AI en streaming SSE.
@@ -625,12 +630,12 @@ async def generate_rapport_stream(
         raise HTTPException(status_code=500, detail="Clé API Mistral non configurée")
 
     # --- Validation de la saisie ---
-    validation_error = await validate_input_with_ai(request.type_intervention, request.description)
+    validation_error = await validate_input_with_ai(payload.type_intervention, payload.description)
     if validation_error:
         raise HTTPException(status_code=400, detail=validation_error)
 
-    prompt = build_rapport_prompt(request)
-    max_tokens = get_max_tokens_for_longueur(request.longueur)
+    prompt = build_rapport_prompt(payload)
+    max_tokens = get_max_tokens_for_longueur(payload.longueur)
 
     async def event_stream():
         try:

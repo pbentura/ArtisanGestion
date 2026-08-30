@@ -14,7 +14,7 @@ class Settings:
     
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "b443ad5a4bc032128711bd420fc28ddfd30431ae18742d48dce6db3cbeedb95f")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
@@ -47,4 +47,42 @@ class Settings:
     def DATABASE_URI(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
+    def validate(self) -> None:
+        """
+        Vérifie au démarrage que la configuration est exploitable.
+        Mieux vaut refuser de démarrer que tourner avec des secrets de repli.
+        """
+        if not self.SECRET_KEY:
+            raise RuntimeError(
+                "SECRET_KEY est absente de l'environnement. "
+                "Générez-en une avec `openssl rand -hex 32` et ajoutez-la au fichier .env."
+            )
+
+        if self.ENVIRONMENT != "production":
+            return
+
+        # Variables sans lesquelles la production est cassée ou non sécurisée
+        requises = {
+            "STRIPE_SECRET_KEY": self.STRIPE_SECRET_KEY,
+            "STRIPE_WEBHOOK_SECRET": self.STRIPE_WEBHOOK_SECRET,
+            "RESEND_API_KEY": self.RESEND_API_KEY,
+            "GOOGLE_CLIENT_ID": self.GOOGLE_CLIENT_ID,
+            "GOOGLE_CLIENT_SECRET": self.GOOGLE_CLIENT_SECRET,
+        }
+        manquantes = [nom for nom, valeur in requises.items() if not valeur]
+        if manquantes:
+            raise RuntimeError(
+                "Variables d'environnement manquantes en production : "
+                + ", ".join(manquantes)
+            )
+
+        if len(self.SECRET_KEY) < 32:
+            raise RuntimeError("SECRET_KEY doit faire au moins 32 caractères en production.")
+
+        if self.STRIPE_SECRET_KEY.startswith("sk_test_"):
+            raise RuntimeError(
+                "STRIPE_SECRET_KEY est une clé de test alors que ENVIRONMENT=production."
+            )
+
 settings = Settings()
+settings.validate()

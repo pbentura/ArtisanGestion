@@ -7,12 +7,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-artisangestion_db}
-      POSTGRES_USER: ${POSTGRES_USER:-artisangestion}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Poulet5*}
-    ports:
-      - "5432:5432"
+    # Pas de valeurs de repli ici : les identifiants viennent de .env.production,
+    # qui n'est pas versionné.
+    # Pas de section "ports" non plus — la base ne doit être joignable que depuis
+    # le réseau Docker interne. Pour y accéder depuis votre poste, passez par un
+    # tunnel SSH :
+    #   ssh -L 5433:localhost:5432 <utilisateur>@<votre-vps>
+    #   puis connectez-vous sur localhost:5433
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:

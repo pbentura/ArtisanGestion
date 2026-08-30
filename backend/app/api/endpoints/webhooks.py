@@ -21,18 +21,16 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     event = None
 
+    if not endpoint_secret:
+        # Sans secret, n'importe qui peut forger un événement de paiement.
+        # On refuse plutôt que de retomber sur un parsing non vérifié.
+        logger.error("STRIPE_WEBHOOK_SECRET non configuré : webhook refusé.")
+        raise HTTPException(status_code=503, detail="Webhook non configuré")
+
     try:
-        if endpoint_secret:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, endpoint_secret
-            )
-        else:
-            # Si pas de secret configuré (ex: dev local sans stripe-cli configuré), on parse juste le JSON
-            # Note: En production, le secret est OBLIGATOIRE pour des raisons de sécurité.
-            import json
-            data = json.loads(payload)
-            event = stripe.Event.construct_from(data, stripe.api_key)
-            
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
     except ValueError as e:
         logger.error(f"Invalid payload: {e}")
         raise HTTPException(status_code=400, detail="Invalid payload")

@@ -25,3 +25,6 @@ Thumbs.db
 postgres_data/
 
 
+
+# Base SQLite héritée
+*.db

@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.api.deps import get_db
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.core.security import (
     create_access_token,
     get_password_hash,
@@ -120,9 +121,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     )
     
     # Rediriger vers le frontend avec le token
-    frontend_url = "https://artisangestion.com"
-    if "localhost" in str(request.base_url):
-        frontend_url = "http://localhost:5173"
+    frontend_url = settings.FRONTEND_URL.rstrip('/') if settings.FRONTEND_URL else "http://localhost:5173"
         
     # Récupérer la plateforme depuis la session
     platform = request.session.pop('auth_platform', 'web')
@@ -179,9 +178,9 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
             try {{
                 // Si ouvert dans une popup, on envoie le token à la fenêtre parente
                 if (window.opener && window.opener !== window) {{
-                    window.opener.postMessage({{ type: 'google-auth-success', token: token }}, frontendUrl);
+                    window.opener.postMessage({{ type: 'google-auth-success', token: token }}, '*');
                     // On laisse un petit délai pour être sûr que le message est envoyé avant de fermer
-                    setTimeout(() => window.close(), 200);
+                    setTimeout(() => window.close(), 300);
                 }} else {{
                     // Sinon (redirection classique), on redirige directement
                     window.location.href = frontendUrl + "/app/dashboard?token=" + token;
@@ -200,7 +199,8 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
 # ── Registration ──
 
 @router.post("/register", response_model=UserRegisterResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> Any:
+@limiter.limit("5/hour")
+async def register(request: Request, user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Créer un nouvel utilisateur et envoyer les emails de bienvenue et de vérification.
     """
@@ -243,8 +243,11 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> A
 # ── Login ──
 
 @router.post("/login", response_model=Token)
+@limiter.limit("10/minute")
 async def login(
-    db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
     """
     Connecter un utilisateur et obtenir un jeton JWT.
@@ -334,8 +337,9 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/resend-verification")
+@limiter.limit("3/hour")
 async def resend_verification(
-    body: ResendVerificationRequest, db: AsyncSession = Depends(get_db)
+    request: Request, body: ResendVerificationRequest, db: AsyncSession = Depends(get_db)
 ):
     """
     Renvoie l'email de vérification si l'utilisateur n'est pas encore vérifié.
@@ -358,8 +362,9 @@ async def resend_verification(
 # ── Password Reset ──
 
 @router.post("/forgot-password")
+@limiter.limit("3/hour")
 async def forgot_password(
-    body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+    request: Request, body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
 ):
     """
     Envoie un email de réinitialisation de mot de passe.
@@ -384,8 +389,9 @@ async def forgot_password(
 
 
 @router.post("/reset-password")
+@limiter.limit("10/hour")
 async def reset_password(
-    body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+    request: Request, body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
 ):
     """
     Réinitialise le mot de passe de l'utilisateur avec un nouveau mot de passe.
@@ -452,10 +458,22 @@ async def register_collaborateur(
     if invitation.status != "pending":
         raise HTTPException(400, "Cette invitation a déjà été utilisée.")
 
-    if invitation.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+    expires_at = invitation.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
         invitation.status = "expired"
         await db.commit()
         raise HTTPException(400, "Cette invitation a expiré.")
+
+    # 1 bis. Si l'invitation cible une adresse précise, l'inscription doit s'y
+    # conformer : sinon toute personne disposant du lien pourrait rejoindre
+    # l'entreprise avec l'adresse de son choix.
+    if invitation.email and invitation.email.strip().lower() != body.email.strip().lower():
+        raise HTTPException(
+            400,
+            "Cette invitation est réservée à l'adresse email à laquelle elle a été envoyée.",
+        )
 
     # 2. Vérifier que l'email n'est pas déjà utilisé
     result = await db.execute(select(User).where(User.email == body.email))

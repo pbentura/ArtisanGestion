@@ -30,6 +30,15 @@ async def get_current_user(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
+
+        # Les jetons à usage unique (vérification d'email, réinitialisation de mot de
+        # passe, attente de vérification) sont signés avec la même clé : sans ce
+        # contrôle ils feraient office de jeton d'accès complet.
+        # Les jetons d'accès historiques n'ont pas de champ "purpose" : on les accepte.
+        purpose = payload.get("purpose")
+        if purpose not in (None, "access"):
+            raise credentials_exception
+
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception

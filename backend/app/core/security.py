@@ -30,7 +30,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    # "purpose" distingue un jeton d'accès des jetons à usage unique signés avec la
+    # même clé (vérification d'email, réinitialisation de mot de passe, attente).
+    to_encode.update({"exp": expire, "purpose": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 

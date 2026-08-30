@@ -382,24 +382,25 @@ async function handleGoogleAuth() {
     window.removeEventListener('message', authMessageListener)
   }
 
-  const popup = window.open(
-    loginUrl,
-    'google-login',
-    `width=${width},height=${height},top=${top},left=${left},status=no,menubar=no,toolbar=no`
-  )
-
-  if (!popup) {
-    // Si la popup est bloquée, on se rabat sur la redirection classique
-    window.location.href = loginUrl
-    return
-  }
-
   authMessageListener = (event: MessageEvent) => {
     // Vérifier l'origine du message par sécurité
-    const apiOrigin = new URL(API_BASE_URL).origin
-    if (event.origin !== window.location.origin && event.origin !== apiOrigin) return
+    let isAllowed = false
+    try {
+      const apiOrigin = new URL(API_BASE_URL).origin
+      isAllowed =
+        event.origin === window.location.origin ||
+        event.origin === apiOrigin ||
+        (import.meta.env.DEV && (
+          event.origin.includes('localhost') ||
+          event.origin.includes('127.0.0.1')
+        ))
+    } catch {
+      isAllowed = false
+    }
 
-    if (event.data?.type === 'google-auth-success') {
+    if (!isAllowed) return
+
+    if (event.data?.type === 'google-auth-success' && event.data?.token) {
       const token = event.data.token
       localStorage.setItem('token', token)
       router.push('/app')
@@ -412,6 +413,18 @@ async function handleGoogleAuth() {
   }
 
   window.addEventListener('message', authMessageListener)
+
+  const popup = window.open(
+    loginUrl,
+    'google-login',
+    `width=${width},height=${height},top=${top},left=${left},status=no,menubar=no,toolbar=no`
+  )
+
+  if (!popup) {
+    // Si la popup est bloquée, on se rabat sur la redirection classique
+    window.location.href = loginUrl
+    return
+  }
 }
 
 onUnmounted(() => {

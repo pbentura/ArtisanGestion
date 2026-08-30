@@ -133,8 +133,9 @@ async def create_facture_from_devis(
     devis_id: int,
     facture_in: FactureCreateFromDevis,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.check_trial_active),
+    current_user: User = Depends(deps.require_permission("can_create_factures")),
     societe_id: int = Depends(deps.get_user_societe_id),
+    _: User = Depends(deps.check_trial_active),
 ):
     """
     Crée une facture à partir d'un devis existant.
@@ -210,8 +211,9 @@ async def create_facture_from_devis(
 async def create_avoir_from_facture(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.check_trial_active),
+    current_user: User = Depends(deps.require_permission("can_create_factures")),
     societe_id: int = Depends(deps.get_user_societe_id),
+    _: User = Depends(deps.check_trial_active),
 ):
     """
     Crée un avoir à partir d'une facture existante.
@@ -311,9 +313,12 @@ async def download_facturx(
             detail="Seule une facture validée peut être exportée au format Factur-X"
         )
 
-    # 2. Charger la société de l'utilisateur
+    # 2. Charger la société active (celle qui a émis la facture), et non la
+    # première société possédée par l'utilisateur : un collaborateur n'en possède
+    # aucune, et un propriétaire multi-entreprises obtiendrait la mauvaise entité
+    # sur un document à valeur légale.
     societe_result = await db.execute(
-        select(Societe).where(Societe.id_user == current_user.id)
+        select(Societe).where(Societe.id == societe_id)
     )
     db_societe = societe_result.scalars().first()
 
@@ -472,10 +477,12 @@ async def update_facture(
 async def delete_facture(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("can_create_factures")),
     societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """
-    Supprime une facture.
+    Supprime une facture. Seuls les brouillons peuvent être supprimés :
+    une facture validée est une pièce comptable et doit être annulée par un avoir.
     """
     result = await db.execute(
         select(Facture).where(
@@ -487,6 +494,15 @@ async def delete_facture(
     if not db_facture:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
 
+    if db_facture.statut != "brouillon":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Une facture validée ne peut pas être supprimée. Conformément à la loi "
+                "anti-fraude à la TVA, créez un avoir pour l'annuler."
+            ),
+        )
+
     await db.delete(db_facture)
     await db.commit()
     return None
@@ -496,7 +512,7 @@ async def delete_facture(
 async def create_payment_link(
     facture_id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(deps.require_permission("can_create_factures")),
     societe_id: int = Depends(deps.get_user_societe_id),
 ):
     """

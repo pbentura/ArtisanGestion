@@ -14,7 +14,35 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 class CheckoutRequest(BaseModel):
     plan_name: str
     is_annual: bool
-    price: float
+    # Note : le champ "price" éventuellement envoyé par le frontend est ignoré.
+    # Les montants sont définis côté serveur (voir PLANS ci-dessous).
+
+
+# Catalogue tarifaire — source de vérité côté serveur.
+# Montants en centimes, facturés par période (mois ou année).
+PLANS = {
+    "indépendant": {"label": "Indépendant", "mensuel": 1900, "annuel": 18600},
+    "équipe":      {"label": "Équipe",      "mensuel": 3900, "annuel": 39000},
+}
+
+# Tolère les saisies sans accent envoyées par le client
+_ALIAS_PLANS = {
+    "independant": "indépendant",
+    "equipe": "équipe",
+}
+
+
+def _resoudre_plan(plan_name: str) -> tuple[str, dict]:
+    """Retourne (clé, plan) pour un nom de plan, ou lève une 400."""
+    cle = (plan_name or "").strip().lower()
+    cle = _ALIAS_PLANS.get(cle, cle)
+    plan = PLANS.get(cle)
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Plan inconnu : {plan_name}",
+        )
+    return cle, plan
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(request: CheckoutRequest, current_user: User = Depends(get_current_user)):
@@ -26,6 +54,12 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
             detail="La clé secrète Stripe n'est pas configurée. Veuillez l'ajouter dans le fichier .env (STRIPE_SECRET_KEY)."
         )
 
+    # Le montant est déterminé par le serveur à partir du catalogue, jamais
+    # par le client : sinon n'importe qui pourrait s'abonner à un centime.
+    _, plan = _resoudre_plan(request.plan_name)
+    montant_centimes = plan["annuel"] if request.is_annual else plan["mensuel"]
+    periode = "Annuel" if request.is_annual else "Mensuel"
+
     try:
         # Création d'une session de paiement Stripe
         # Nous utilisons price_data pour créer le prix à la volée, sans avoir besoin
@@ -36,9 +70,9 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
                 'price_data': {
                     'currency': 'eur',
                     'product_data': {
-                        'name': f"Abonnement {request.plan_name} ({'Annuel' if request.is_annual else 'Mensuel'})",
+                        'name': f"Abonnement {plan['label']} ({periode})",
                     },
-                    'unit_amount': int(request.price * 100),
+                    'unit_amount': montant_centimes,
                     'recurring': {
                         'interval': 'year' if request.is_annual else 'month',
                     }
@@ -46,7 +80,7 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
                 'quantity': 1,
             }],
             mode='subscription',
-            metadata={"plan": request.plan_name},
+            metadata={"plan": plan["label"]},
             success_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement&session_id={CHECKOUT_SESSION_ID}",
             cancel_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement",
             client_reference_id=str(current_user.id),
@@ -83,18 +117,19 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        # Sans secret, un tiers pourrait forger un "checkout.session.completed"
+        # et s'attribuer un abonnement ou marquer une facture comme payée.
+        raise HTTPException(status_code=503, detail="Webhook non configuré")
+
     try:
-        if settings.STRIPE_WEBHOOK_SECRET:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-            )
-        else:
-            # Fallback pour le dev local sans webhook secret
-            event = stripe.Event.construct_from(
-                stripe.util.json.loads(payload), stripe.api_key
-            )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Signature invalide")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Payload invalide")
 
     if event.type == 'checkout.session.completed':
         session = event.data.object

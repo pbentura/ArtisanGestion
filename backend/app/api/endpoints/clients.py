@@ -92,6 +92,7 @@ async def update_client(
 async def delete_client(
     client_id: int,
     db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("can_create_clients")),
     societe_id: int = Depends(deps.get_user_societe_id)
 ):
     """
