@@ -28,3 +28,6 @@ postgres_data/
 
 # Base SQLite héritée
 *.db
+
+# Sauvegardes locales
+backups/

@@ -1,5 +1,6 @@
+import re
 from datetime import timedelta
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -62,13 +63,36 @@ class ResendVerificationRequest(BaseModel):
 
 # ── Google OAuth ──
 
+def _origine_autorisee(origine: str) -> Optional[str]:
+    """
+    Ne retient une origine que si elle figure dans la liste CORS (ou si c'est un
+    localhost en développement). Le jeton d'accès est renvoyé à cette origine
+    précise : accepter n'importe laquelle reviendrait à le diffuser à tous.
+    """
+    if not origine:
+        return None
+    origine = origine.rstrip("/")
+    autorisees = {o.rstrip("/") for o in settings.CORS_ORIGINS if o}
+    if origine in autorisees:
+        return origine
+    if settings.ENVIRONMENT != "production" and re.match(
+        r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$", origine
+    ):
+        return origine
+    return None
+
+
 @router.get("/google/login")
-async def google_login(request: Request, platform: str = "web"):
+async def google_login(request: Request, platform: str = "web", origin: str = ""):
     """
     Initie le flux de connexion Google.
+
+    `origin` est l'origine de la page qui a ouvert la popup. Elle est validée ici
+    puis réutilisée au retour pour cibler le postMessage.
     """
     # Stocker la plateforme dans la session pour s'en souvenir lors du callback
     request.session['auth_platform'] = platform
+    request.session['auth_origin'] = _origine_autorisee(origin) or ""
     return await oauth.google.authorize_redirect(request, settings.GOOGLE_REDIRECT_URI)
 
 @router.get("/google/callback")
@@ -120,11 +144,16 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     
-    # Rediriger vers le frontend avec le token
-    frontend_url = settings.FRONTEND_URL.rstrip('/') if settings.FRONTEND_URL else "http://localhost:5173"
-        
-    # Récupérer la plateforme depuis la session
+    # Récupérer la plateforme et l'origine validée depuis la session
     platform = request.session.pop('auth_platform', 'web')
+    origine_validee = request.session.pop('auth_origin', '') or ''
+
+    # Origine cible du postMessage : celle d'où vient l'utilisateur si elle a été
+    # validée à l'aller, sinon le frontend configuré. Jamais "*".
+    frontend_url = (
+        origine_validee
+        or (settings.FRONTEND_URL.rstrip('/') if settings.FRONTEND_URL else "http://localhost:5173")
+    )
     
     # Si on est sur mobile, on redirige vers le schéma d'URL personnalisé de l'app
     if platform == 'mobile':
@@ -178,7 +207,9 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
             try {{
                 // Si ouvert dans une popup, on envoie le token à la fenêtre parente
                 if (window.opener && window.opener !== window) {{
-                    window.opener.postMessage({{ type: 'google-auth-success', token: token }}, '*');
+                    // Origine explicite : avec '*', le jeton serait remis à
+                    // n'importe quelle page ayant ouvert cette popup.
+                    window.opener.postMessage({{ type: 'google-auth-success', token: token }}, frontendUrl);
                     // On laisse un petit délai pour être sûr que le message est envoyé avant de fermer
                     setTimeout(() => window.close(), 300);
                 }} else {{

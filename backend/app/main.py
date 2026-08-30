@@ -1,3 +1,4 @@
+import logging
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -23,6 +24,14 @@ from app.models.invitation import Invitation
 
 from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai, devis, factures, dashboard, ws, subscriptions, emails, collaborateurs, stripe_connect, webhooks
 
+# Les messages des modules applicatifs (webhooks Stripe, emails) doivent
+# apparaître dans `docker compose logs`, pas seulement ceux d'uvicorn.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(name)s | %(message)s",
+)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Base.metadata.create_all is now handled by Alembic migrations
@@ -35,10 +44,19 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+# En développement, on accepte n'importe quel port localhost pour ne pas avoir à
+# lister chaque port de Vite. En production, seule la liste CORS_ORIGINS compte :
+# combiné à allow_credentials, un joker localhost laisserait toute page servie en
+# local sur la machine d'un utilisateur appeler l'API en son nom.
+_cors_regex = (
+    None if settings.ENVIRONMENT == "production"
+    else r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$"
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

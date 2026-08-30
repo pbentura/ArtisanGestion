@@ -363,7 +363,10 @@ let authMessageListener: ((event: MessageEvent) => void) | null = null
 async function handleGoogleAuth() {
   const isNative = Capacitor.isNativePlatform()
   const platform = isNative ? 'mobile' : 'web'
+  // On transmet notre origine : le backend la valide puis s'en sert comme cible
+  // du postMessage de retour, au lieu de diffuser le jeton à tout le monde.
   const loginUrl = `${API_BASE_URL}/api/auth/google/login?platform=${platform}`
+    + `&origin=${encodeURIComponent(window.location.origin)}`
 
   if (isNative) {
     // Sur mobile natif, on utilise le plugin Browser pour ouvrir une modale In-App

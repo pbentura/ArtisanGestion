@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -7,6 +9,7 @@ from app.core.config import settings
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -120,6 +123,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     if not settings.STRIPE_WEBHOOK_SECRET:
         # Sans secret, un tiers pourrait forger un "checkout.session.completed"
         # et s'attribuer un abonnement ou marquer une facture comme payée.
+        logger.error("STRIPE_WEBHOOK_SECRET non configuré : webhook refusé.")
         raise HTTPException(status_code=503, detail="Webhook non configuré")
 
     try:
@@ -127,8 +131,19 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except stripe.error.SignatureVerificationError:
+        # Cause la plus fréquente : le secret vient d'un autre endpoint ou d'un
+        # autre mode (test/live) que la clé API utilisée. Sans abonnement activé
+        # après paiement, c'est ici qu'il faut regarder en premier.
+        mode_cle = "live" if settings.STRIPE_SECRET_KEY.startswith("sk_live_") else "test"
+        logger.error(
+            "Signature webhook Stripe invalide. Clé API en mode %s ; vérifiez que "
+            "STRIPE_WEBHOOK_SECRET provient bien de l'endpoint %s en mode %s "
+            "(Dashboard Stripe > Developers > Webhooks).",
+            mode_cle, request.url.path, mode_cle,
+        )
         raise HTTPException(status_code=400, detail="Signature invalide")
     except ValueError:
+        logger.error("Payload webhook Stripe illisible.")
         raise HTTPException(status_code=400, detail="Payload invalide")
 
     if event.type == 'checkout.session.completed':
