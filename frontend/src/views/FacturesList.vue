@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical, Share2, Mail, Link } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, CreditCard, Receipt, Undo2, FileCheck2, MoreVertical, Share2, Mail, Link, BellRing } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
@@ -378,6 +378,52 @@ async function shareFacture(facture: Facture) {
   }
 }
 
+// ── Relance d'une facture impayée ──
+
+const relanceEnCours = ref<number | null>(null)
+
+function estEchue(f: Facture): boolean {
+  if (!f.date_echeance || f.est_payee || f.est_avoir || f.statut !== 'validée') return false
+  const echeance = new Date(f.date_echeance)
+  echeance.setHours(0, 0, 0, 0)
+  const aujourdhui = new Date()
+  aujourdhui.setHours(0, 0, 0, 0)
+  return echeance < aujourdhui
+}
+
+function joursDeRetard(f: Facture): number {
+  if (!f.date_echeance) return 0
+  const ms = Date.now() - new Date(f.date_echeance).getTime()
+  return Math.max(0, Math.floor(ms / 86400000))
+}
+
+async function relancerFacture(facture: Facture) {
+  if (!facture.client?.email) {
+    alert(`Renseignez l'email de ${facture.client?.nom || 'ce client'} dans sa fiche pour pouvoir le relancer.`)
+    return
+  }
+
+  const retard = joursDeRetard(facture)
+  if (!confirm(`Envoyer une relance à ${facture.client.email} pour la facture ${facture.numero_facture} (${retard} jours de retard) ?`)) {
+    return
+  }
+
+  relanceEnCours.value = facture.id
+  try {
+    const res = await apiFetch(`factures/${facture.id}/relancer`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(data.detail || "La relance n'a pas pu être envoyée.")
+      return
+    }
+    alert(`Relance n°${data.niveau} envoyée à ${data.destinataire}.`)
+  } catch {
+    alert('Erreur réseau. Vérifiez votre connexion et réessayez.')
+  } finally {
+    relanceEnCours.value = null
+  }
+}
+
 onMounted(fetchFactures)
 </script>
 
@@ -587,6 +633,20 @@ onMounted(fetchFactures)
                 <CheckCircle2 class="w-4 h-4 group-hover:scale-110 transition-transform" />
               </template>
               <span class="text-xs font-semibold">Valider</span>
+            </button>
+
+            <!-- Relance d'un impayé -->
+            <button
+              v-if="estEchue(facture) && canCreate"
+              @click.stop="relancerFacture(facture)"
+              :disabled="relanceEnCours === facture.id"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group text-orange-600 hover:bg-orange-50 border border-transparent hover:border-orange-200 disabled:opacity-60"
+              :title="`Relancer le client — ${joursDeRetard(facture)} jours de retard`"
+            >
+              <span v-if="relanceEnCours === facture.id"
+                    class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              <BellRing v-else class="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span class="text-xs font-semibold">Relancer</span>
             </button>
 
             <button

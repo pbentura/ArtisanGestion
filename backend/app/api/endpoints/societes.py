@@ -10,6 +10,11 @@ from app.schemas.societe import SocieteCreate, SocieteRead, SocieteUpdate
 
 router = APIRouter()
 
+# Colonnes déclarées NOT NULL en base : elles ne doivent jamais recevoir None
+# depuis une mise à jour partielle déguisée en objet complet.
+COLONNES_NON_NULLABLES = {"nom", "relances_actives", "relances_jours"}
+
+
 @router.get("/me", response_model=SocieteRead)
 async def get_my_societe(
     db: AsyncSession = Depends(get_db),
@@ -52,10 +57,15 @@ async def update_my_societe(
             detail="Aucune société trouvée pour cet utilisateur"
         )
     
-    # Mettre à jour tous les champs
+    # Mettre à jour tous les champs.
+    # Ce PUT envoie l'objet complet : un client qui ignore un champ le
+    # transmet à None. Pour les colonnes NOT NULL, on conserve alors la
+    # valeur existante plutôt que de tenter d'y écrire NULL.
     for field, value in societe_update.model_dump().items():
+        if value is None and field in COLONNES_NON_NULLABLES:
+            continue
         setattr(societe, field, value)
-    
+
     await db.commit()
     await db.refresh(societe)
     

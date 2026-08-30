@@ -43,3 +43,10 @@ class Facture(Base):
     devis = relationship("Devis", back_populates="factures")
 
     lignes = relationship("LigneFacture", back_populates="facture", cascade="all, delete-orphan")
+
+    relances = relationship(
+        "RelanceFacture",
+        back_populates="facture",
+        cascade="all, delete-orphan",
+        order_by="RelanceFacture.niveau",
+    )

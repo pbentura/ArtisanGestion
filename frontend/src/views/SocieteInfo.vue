@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { 
   Building2, MapPin, Scale, Landmark, Save, 
-  Upload, Loader2, CheckCircle2, X, Info, AlertTriangle, CreditCard, Unplug, ExternalLink
+  Upload, Loader2, CheckCircle2, X, Info, AlertTriangle, CreditCard, Unplug, ExternalLink, BellRing
 } from 'lucide-vue-next'
 
 const loading = ref(true)
@@ -35,8 +35,37 @@ const form = ref({
   bic: '',
   nom_banque: '',
   objectif_mensuel_ca: undefined as number | undefined,
-  texte_pied_page: ''
+  texte_pied_page: '',
+  relances_actives: false,
+  relances_jours: '3,10,21'
 })
+
+// Plan Équipe requis pour l'automatisation des relances.
+const peutAutomatiserRelances = computed(
+  () => ['TEAM', 'ADMIN'].includes(dataStore.user.data?.role || '')
+)
+
+// Saisie confortable des paliers : trois champs numériques plutôt qu'une chaîne.
+const paliers = computed({
+  get: () => {
+    const v = (form.value.relances_jours || '3,10,21')
+      .split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n))
+    return [v[0] ?? 3, v[1] ?? 10, v[2] ?? 21]
+  },
+  set: (v: number[]) => {
+    // Toujours croissants et strictement positifs : le backend refuserait
+    // silencieusement une valeur incohérente en retombant sur ses défauts.
+    const propres = v.map(n => Math.max(1, Math.min(365, Math.round(n || 1))))
+                     .sort((a, b) => a - b)
+    form.value.relances_jours = propres.join(',')
+  }
+})
+
+function majPalier(index: number, valeur: string) {
+  const copie = [...paliers.value]
+  copie[index] = parseInt(valeur, 10) || 1
+  paliers.value = copie
+}
 
 function generateDefaultFooter() {
   const parts = []
@@ -479,6 +508,73 @@ onMounted(() => {
         </TabsContent>
         <!-- Settings Tab -->
         <TabsContent value="settings" class="space-y-6">
+          <!-- Relances impayés -->
+          <Card class="border-border/50 shadow-sm overflow-hidden">
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2">
+                <BellRing class="w-5 h-5 text-primary" />
+                Relances des impayés
+              </CardTitle>
+              <CardDescription>
+                Relancez automatiquement vos clients dont la facture est échue, sans y penser.
+              </CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <!-- Réservé au plan Équipe -->
+              <div v-if="!peutAutomatiserRelances"
+                   class="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                <Info class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div class="text-sm">
+                  <p class="font-medium text-foreground">Disponible avec le plan Équipe</p>
+                  <p class="text-muted-foreground mt-1">
+                    L'envoi automatique est réservé au plan Équipe. Vous pouvez toujours
+                    relancer une facture à la main depuis la liste de vos factures.
+                  </p>
+                </div>
+              </div>
+
+              <div v-else class="space-y-4">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="form.relances_actives"
+                    class="mt-1 w-4 h-4 rounded border-input flex-shrink-0"
+                  />
+                  <span class="text-sm">
+                    <span class="font-medium text-foreground">Activer les relances automatiques</span>
+                    <span class="block text-muted-foreground mt-0.5">
+                      Un email part chaque matin pour les factures échues non réglées.
+                      Le ton reste courtois et se durcit progressivement.
+                    </span>
+                  </span>
+                </label>
+
+                <div v-if="form.relances_actives" class="pl-7 space-y-3">
+                  <Label class="text-xs">Envoyer une relance après (jours de retard)</Label>
+                  <div class="flex flex-wrap items-center gap-3">
+                    <div v-for="(jour, i) in paliers" :key="i" class="flex items-center gap-2">
+                      <span class="text-xs text-muted-foreground w-14">
+                        {{ ['1re', '2e', '3e'][i] }} relance
+                      </span>
+                      <Input
+                        type="number" min="1" max="365"
+                        :value="jour"
+                        @input="majPalier(i, ($event.target as HTMLInputElement).value)"
+                        class="w-20 h-9 text-center"
+                      />
+                      <span class="text-xs text-muted-foreground">j</span>
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-muted-foreground">
+                    La dernière relance rappelle les pénalités de retard prévues par
+                    l'article L441-10 du code de commerce. Une facture ne reçoit jamais
+                    deux fois la même relance, et tout s'arrête dès qu'elle est marquée payée.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <!-- Paiement en ligne -->
           <Card class="border-border/50 shadow-sm overflow-hidden">
             <CardHeader>

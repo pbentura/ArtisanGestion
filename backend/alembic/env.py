@@ -32,6 +32,8 @@ from app.models.devis import Devis
 from app.models.ligne_devis import LigneDevis
 from app.models.facture import Facture
 from app.models.ligne_facture import LigneFacture
+from app.models.invitation import Invitation
+from app.models.relance import RelanceFacture
 
 target_metadata = Base.metadata
 

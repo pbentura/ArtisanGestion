@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt, MoreVertical, Share2, Mail } from 'lucide-vue-next'
+import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, Receipt, MoreVertical, Share2, Mail, PenLine, Copy, Check, X } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import MobileSegmentedControl from '@/components/mobile/MobileSegmentedControl.vue'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
@@ -27,6 +27,9 @@ interface Devis {
   client?: Client
   statut: string
   created_at: string
+  signature_nom?: string | null
+  signature_le?: string | null
+  est_en_attente_signature?: boolean
 }
 
 const router = useRouter()
@@ -190,11 +193,90 @@ async function shareDevis(devis: Devis) {
   alert("Le partage direct sera disponible bientôt. Utilisez l'aperçu PDF.")
 }
 
+// ── Signature électronique à distance ──
+
+const envoiSignature = ref<number | null>(null)
+const lienSignature = ref<{ url: string; email: string | null } | null>(null)
+
+const lienCopie = ref(false)
+
+async function demanderSignature(devis: Devis) {
+  if (devis.signature_le) return
+
+  if (!devis.client?.email) {
+    alert(`Renseignez l'email de ${devis.client?.nom || 'ce client'} dans sa fiche pour lui envoyer le devis à signer.`)
+    return
+  }
+
+  envoiSignature.value = devis.id
+  lienSignature.value = null
+  try {
+    const res = await apiFetch(`devis/${devis.id}/demande-signature`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      alert(data.detail || "La demande de signature n'a pas pu être envoyée.")
+      return
+    }
+
+    lienSignature.value = { url: data.url, email: data.email_envoye_a }
+    lienCopie.value = false
+    // force : le store met les devis en cache 30 s, sinon le statut et le
+    // bouton resteraient sur leur état d'avant la demande.
+    await dataStore.fetchDevis(true)
+  } catch {
+    alert('Erreur réseau. Vérifiez votre connexion et réessayez.')
+  } finally {
+    envoiSignature.value = null
+  }
+}
+
+async function copierLien() {
+  if (!lienSignature.value) return
+  try {
+    await navigator.clipboard.writeText(lienSignature.value.url)
+    lienCopie.value = true
+    setTimeout(() => { lienCopie.value = false }, 2000)
+  } catch {
+    /* le lien reste affiché et sélectionnable à la main */
+  }
+}
+
 onMounted(fetchDevis)
 </script>
 
 <template>
   <div class="max-w-6xl mx-auto">
+    <!-- Lien de signature généré : l'artisan peut le transmettre lui-même -->
+    <div v-if="lienSignature"
+         class="mb-6 rounded-xl border border-violet-200 bg-violet-50 p-4 flex flex-wrap items-start gap-3">
+      <PenLine class="w-5 h-5 text-violet-600 shrink-0 mt-0.5" />
+      <div class="flex-1 min-w-[220px]">
+        <p class="text-sm font-semibold text-violet-900">
+          {{ lienSignature.email
+             ? `Demande de signature envoyée à ${lienSignature.email}`
+             : "Lien de signature prêt — l'email n'a pas pu partir, transmettez-le vous-même" }}
+        </p>
+        <p class="text-xs text-violet-700/80 mt-1 break-all font-mono">{{ lienSignature.url }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="copierLien"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-violet-700 bg-white border border-violet-200 hover:bg-violet-100 transition-colors">
+          <Check v-if="lienCopie" class="w-3.5 h-3.5" />
+          <Copy v-else class="w-3.5 h-3.5" />
+          {{ lienCopie ? 'Copié' : 'Copier' }}
+        </button>
+        <button @click="lienSignature = null"
+                class="p-1.5 rounded-lg text-violet-500 hover:bg-violet-100 transition-colors"
+                title="Masquer">
+          <X class="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+
     <!-- Mobile Segmented Control for Facturation -->
     <div class="mobile-component lg:hidden mb-6">
       <MobileSegmentedControl 
@@ -353,6 +435,33 @@ onMounted(fetchDevis)
               <span class="text-xs font-semibold">{{ devis.statut === 'envoyé' ? 'Envoyé' : 'Envoyer' }}</span>
             </button>
 
+            <!-- Signature électronique à distance -->
+            <span
+              v-if="devis.signature_le"
+              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 border border-emerald-200"
+              :title="`Signé par ${devis.signature_nom} le ${new Date(devis.signature_le).toLocaleDateString('fr-FR')}`"
+            >
+              <PenLine class="w-4 h-4" />
+              <span class="text-xs font-semibold">Signé</span>
+            </span>
+
+            <button
+              v-else-if="devis.statut !== 'facturé' && canCreate"
+              @click.stop="demanderSignature(devis)"
+              :disabled="envoiSignature === devis.id"
+              class="inline-flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg group border border-transparent text-violet-600 hover:bg-violet-50 hover:border-violet-200 disabled:opacity-60"
+              :title="devis.est_en_attente_signature
+                ? 'Renvoyer la demande de signature au client'
+                : 'Envoyer au client pour signature en ligne'"
+            >
+              <span v-if="envoiSignature === devis.id"
+                    class="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              <PenLine v-else class="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span class="text-xs font-semibold">
+                {{ devis.est_en_attente_signature ? 'Relancer' : 'Faire signer' }}
+              </span>
+            </button>
+
             <button
               v-if="devis.statut !== 'facturé'"
               @click.stop="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${devis.id}`)"
@@ -468,7 +577,27 @@ onMounted(fetchDevis)
           <span class="font-medium">{{ selectedDevis.statut === 'envoyé' ? 'Marquer comme brouillon' : 'Marquer comme envoyé' }}</span>
         </button>
 
-        <button 
+        <div v-if="selectedDevis.signature_le"
+             class="flex items-center gap-3 p-4 rounded-xl text-emerald-700 bg-emerald-50">
+          <PenLine class="w-5 h-5" />
+          <span class="font-medium">
+            Signé par {{ selectedDevis.signature_nom }}
+            le {{ formatDate(selectedDevis.signature_le) }}
+          </span>
+        </div>
+
+        <button
+          v-else-if="selectedDevis.statut !== 'facturé' && canCreate"
+          @click="demanderSignature(selectedDevis); closeBottomSheet()"
+          class="flex items-center gap-3 p-4 rounded-xl transition-colors text-left text-violet-600 bg-violet-50"
+        >
+          <PenLine class="w-5 h-5" />
+          <span class="font-medium">
+            {{ selectedDevis.est_en_attente_signature ? 'Relancer pour signature' : 'Faire signer le devis' }}
+          </span>
+        </button>
+
+        <button
           @click="trialEnded ? uiStore.openSubscriptionModal() : router.push(`/app/factures/new?fromDevis=${selectedDevis.id}`); closeBottomSheet()"
           class="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-muted transition-colors"
         >

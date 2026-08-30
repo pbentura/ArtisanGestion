@@ -197,6 +197,16 @@ const routes = [
       description: 'Rejoignez l\'équipe de votre entreprise sur ArtisanGestion.'
     }
   },
+  // Signature d'un devis à distance (accès public par jeton, sans compte)
+  {
+    path: '/signer/:token',
+    name: 'signer-devis',
+    component: () => import('@/views/SignerDevis.vue'),
+    meta: {
+      title: 'Signer un devis',
+      description: 'Consultez et signez électroniquement le devis de votre artisan.'
+    }
+  },
   // Email verification & password reset
   {
     path: '/verify-email',

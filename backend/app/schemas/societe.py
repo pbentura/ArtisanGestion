@@ -23,6 +23,10 @@ class SocieteBase(BaseModel):
     texte_pied_page: Optional[str] = None
     couleur_document: Optional[str] = None
 
+    # Relances impayés (automatisation réservée au plan Équipe)
+    relances_actives: Optional[bool] = None
+    relances_jours: Optional[str] = None
+
 class SocieteCreate(SocieteBase):
     pass
 
@@ -46,6 +50,10 @@ class SocieteUpdate(BaseModel):
     objectif_mensuel_ca: Optional[Decimal] = None
     texte_pied_page: Optional[str] = None
     couleur_document: Optional[str] = None
+
+    # Relances impayés (automatisation réservée au plan Équipe)
+    relances_actives: Optional[bool] = None
+    relances_jours: Optional[str] = None
 
 class SocieteRead(SocieteBase):
     id: int

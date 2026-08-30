@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.api import deps
 from app.models.facture import Facture
@@ -15,14 +15,17 @@ from app.models.user import User
 from app.models.devis import Devis
 from app.models.ligne_devis import LigneDevis
 from app.models.societe import Societe
+from app.models.relance import RelanceFacture
 from app.services.facturx_generator import generate_cii_xml
 from app.services.pdf_generator import generate_invoice_pdf
 from app.services.numbering import get_next_invoice_number
+from app.services import relances as relances_service
 from app.schemas.facture import (
     Facture as FactureSchema,
     FactureCreate,
     FactureUpdate,
     FactureCreateFromDevis,
+    Relance as RelanceSchema,
 )
 
 router = APIRouter()
@@ -668,3 +671,86 @@ async def verify_payment(
         return {"status": "pending_or_unpaid"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===========================================================================
+# Relances des factures impayées
+# ===========================================================================
+
+@router.get("/{facture_id}/relances", response_model=List[RelanceSchema])
+async def lister_relances(
+    facture_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    societe_id: int = Depends(deps.get_user_societe_id),
+):
+    """Historique des relances envoyées pour une facture."""
+    result = await db.execute(
+        select(Facture)
+        .options(selectinload(Facture.relances))
+        .where(Facture.id == facture_id, Facture.id_societe == societe_id)
+    )
+    facture = result.unique().scalars().first()
+    if not facture:
+        raise HTTPException(status_code=404, detail="Facture non trouvée")
+    return facture.relances
+
+
+@router.post("/{facture_id}/relancer", response_model=RelanceSchema)
+async def relancer_facture(
+    facture_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("can_create_factures")),
+    societe_id: int = Depends(deps.get_user_societe_id),
+    _: User = Depends(deps.check_trial_active),
+):
+    """
+    Envoie immédiatement la prochaine relance pour une facture impayée.
+
+    Disponible sur tous les plans : c'est l'automatisation qui est réservée au
+    plan Équipe, pas la relance elle-même.
+    """
+    result = await db.execute(
+        select(Facture)
+        .options(
+            joinedload(Facture.client),
+            joinedload(Facture.societe),
+            selectinload(Facture.relances),
+        )
+        .where(Facture.id == facture_id, Facture.id_societe == societe_id)
+    )
+    facture = result.unique().scalars().first()
+
+    if not facture:
+        raise HTTPException(status_code=404, detail="Facture non trouvée")
+    if facture.statut != "validée":
+        raise HTTPException(status_code=400, detail="Seule une facture validée peut être relancée.")
+    if facture.est_payee:
+        raise HTTPException(status_code=400, detail="Cette facture est déjà payée.")
+    if facture.est_avoir:
+        raise HTTPException(status_code=400, detail="Un avoir ne se relance pas.")
+    if not facture.date_echeance or facture.date_echeance >= date.today():
+        raise HTTPException(
+            status_code=400, detail="Cette facture n'est pas encore échue."
+        )
+    if not facture.client or not (facture.client.email or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Aucune adresse email pour ce client. Renseignez-la dans sa fiche.",
+        )
+
+    jours = (date.today() - facture.date_echeance).days
+    deja = {r.niveau for r in facture.relances}
+    niveau = next(n for n in range(1, len(deja) + 2) if n not in deja)
+
+    envoyee = await relances_service.envoyer_relance(
+        db, facture, niveau=niveau, jours_de_retard=jours, automatique=False
+    )
+    if not envoyee:
+        raise HTTPException(status_code=409, detail="Cette relance a déjà été envoyée.")
+
+    result = await db.execute(
+        select(RelanceFacture).where(
+            RelanceFacture.id_facture == facture.id, RelanceFacture.niveau == niveau
+        )
+    )
+    return result.scalars().first()

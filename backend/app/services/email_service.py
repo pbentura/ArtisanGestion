@@ -393,3 +393,216 @@ async def send_support_email(
         return False
 
 
+
+
+async def send_signature_request(
+    to: str,
+    client_nom: str,
+    artisan_nom: str,
+    artisan_email: str,
+    numero_devis: str,
+    montant_ttc: str,
+    objet: str,
+    token: str,
+    jours_validite: int,
+) -> bool:
+    """
+    Envoie au client le lien lui permettant de signer un devis à distance.
+    Le Reply-To est l'email de l'artisan pour que les réponses lui parviennent.
+    """
+    _init_resend()
+
+    url_signature = f"{settings.FRONTEND_URL}/signer/{token}"
+    ligne_objet = f"<br><em>{objet}</em>" if objet else ""
+
+    content = f"""
+        <div style="width: 64px; height: 64px; background-color: #eff6ff; border-radius: 50%; margin: 0 auto 24px auto; text-align: center; line-height: 64px;">
+            <span style="font-size: 28px;">✍️</span>
+        </div>
+
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">Votre devis est prêt à être signé</h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+            Bonjour {client_nom},<br><br>
+            {artisan_nom} vous a transmis le devis <strong>{numero_devis}</strong> pour un montant de
+            <strong>{montant_ttc} € TTC</strong>.{ligne_objet}
+        </p>
+
+        <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+            Vous pouvez le consulter et le signer en ligne, depuis votre ordinateur ou votre téléphone.
+        </p>
+
+        {_button(url_signature, 'Consulter et signer le devis')}
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0; background-color: #f9fafb; border-radius: 12px; border-left: 4px solid #3b82f6;">
+            <tr>
+                <td style="padding: 16px;">
+                    <p style="margin: 0; color: #4b5563; font-size: 14px; line-height: 1.5;">
+                        Ce lien est personnel et valable {jours_validite} jours. Votre signature vaut
+                        acceptation du devis. Pour toute question, répondez simplement à cet email.
+                    </p>
+                </td>
+            </tr>
+        </table>
+    """
+
+    try:
+        resend.Emails.send({
+            "from": f"{artisan_nom} via ArtisanGestion <{settings.EMAIL_FROM}>",
+            "to": [to],
+            "reply_to": artisan_email or settings.SUPPORT_EMAIL,
+            "subject": f"Devis {numero_devis} à signer — {artisan_nom}",
+            "html": _base_template(content),
+        })
+        logger.info("Signature request sent to %s for devis %s", to, numero_devis)
+        return True
+    except Exception as e:
+        logger.error("Failed to send signature request to %s: %s", to, e)
+        return False
+
+
+async def send_signature_confirmation(
+    to: str,
+    artisan_nom: str,
+    client_nom: str,
+    numero_devis: str,
+    signataire: str,
+) -> bool:
+    """Prévient l'artisan que son devis vient d'être signé."""
+    _init_resend()
+
+    content = f"""
+        <div style="width: 64px; height: 64px; background-color: #ecfdf5; border-radius: 50%; margin: 0 auto 24px auto; text-align: center; line-height: 64px;">
+            <span style="font-size: 28px;">✅</span>
+        </div>
+
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">Devis signé</h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+            Bonne nouvelle {artisan_nom},<br><br>
+            Le devis <strong>{numero_devis}</strong> destiné à <strong>{client_nom}</strong> vient d'être
+            signé par <strong>{signataire}</strong>.
+        </p>
+
+        {_button(f"{settings.FRONTEND_URL}/app/devis", 'Voir le devis signé')}
+
+        <p style="margin: 0 0 32px 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            Vous pouvez maintenant le transformer en facture en un clic.
+        </p>
+    """
+
+    try:
+        resend.Emails.send({
+            "from": f"ArtisanGestion <{settings.EMAIL_FROM}>",
+            "to": [to],
+            "subject": f"Devis {numero_devis} signé par {signataire}",
+            "html": _base_template(content),
+        })
+        return True
+    except Exception as e:
+        logger.error("Failed to send signature confirmation to %s: %s", to, e)
+        return False
+
+
+async def send_relance_facture(
+    to: str,
+    client_nom: str,
+    artisan_nom: str,
+    artisan_email: str,
+    numero_facture: str,
+    montant_ttc: str,
+    date_echeance: str,
+    jours_de_retard: int,
+    niveau: int,
+    payment_url: str = None,
+) -> bool:
+    """
+    Relance pour une facture impayée.
+
+    Le ton se durcit progressivement selon le niveau, sans jamais devenir
+    agressif : la première relance suppose un oubli, la dernière rappelle les
+    pénalités légales.
+    """
+    _init_resend()
+
+    if niveau <= 1:
+        emoji, fond = "🔔", "#eff6ff"
+        titre = "Petit rappel"
+        intro = (
+            f"Sauf erreur de notre part, la facture <strong>{numero_facture}</strong> "
+            f"d'un montant de <strong>{montant_ttc} € TTC</strong>, échue le {date_echeance}, "
+            f"n'a pas encore été réglée."
+        )
+        note = "Il s'agit peut-être d'un simple oubli. Si le règlement a déjà été effectué, merci d'ignorer ce message."
+        couleur_note = "#3b82f6"
+        objet = f"Rappel — facture {numero_facture}"
+    elif niveau == 2:
+        emoji, fond = "⏰", "#fffbeb"
+        titre = "Facture toujours en attente de règlement"
+        intro = (
+            f"La facture <strong>{numero_facture}</strong> d'un montant de "
+            f"<strong>{montant_ttc} € TTC</strong> est échue depuis le {date_echeance}, "
+            f"soit <strong>{jours_de_retard} jours de retard</strong>."
+        )
+        note = "Nous vous remercions de bien vouloir procéder au règlement dans les meilleurs délais."
+        couleur_note = "#f59e0b"
+        objet = f"Relance — facture {numero_facture} échue depuis {jours_de_retard} jours"
+    else:
+        emoji, fond = "⚠️", "#fef2f2"
+        titre = "Dernier rappel avant recouvrement"
+        intro = (
+            f"Malgré nos précédentes relances, la facture <strong>{numero_facture}</strong> "
+            f"d'un montant de <strong>{montant_ttc} € TTC</strong> reste impayée, "
+            f"avec <strong>{jours_de_retard} jours de retard</strong>."
+        )
+        note = (
+            "Conformément à l'article L441-10 du code de commerce, tout retard de paiement "
+            "entraîne de plein droit des pénalités de retard ainsi qu'une indemnité forfaitaire "
+            "de 40 € pour frais de recouvrement. Nous vous invitons à régulariser cette situation "
+            "sous huitaine."
+        )
+        couleur_note = "#ef4444"
+        objet = f"Dernier rappel — facture {numero_facture}"
+
+    bouton = _button(payment_url, 'Régler la facture en ligne') if payment_url else ""
+
+    content = f"""
+        <div style="width: 64px; height: 64px; background-color: {fond}; border-radius: 50%; margin: 0 auto 24px auto; text-align: center; line-height: 64px;">
+            <span style="font-size: 28px;">{emoji}</span>
+        </div>
+
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">{titre}</h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+            Bonjour {client_nom},<br><br>
+            {intro}
+        </p>
+
+        {bouton}
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0; background-color: {fond}; border-radius: 12px; border-left: 4px solid {couleur_note};">
+            <tr>
+                <td style="padding: 16px;">
+                    <p style="margin: 0; color: #4b5563; font-size: 14px; line-height: 1.5;">{note}</p>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            {artisan_nom} — pour toute question, répondez directement à cet email.
+        </p>
+    """
+
+    try:
+        resend.Emails.send({
+            "from": f"{artisan_nom} via ArtisanGestion <{settings.EMAIL_FROM}>",
+            "to": [to],
+            "reply_to": artisan_email or settings.SUPPORT_EMAIL,
+            "subject": objet,
+            "html": _base_template(content),
+        })
+        logger.info("Relance niveau %s envoyée à %s pour %s", niveau, to, numero_facture)
+        return True
+    except Exception as e:
+        logger.error("Échec de la relance pour %s (%s): %s", numero_facture, to, e)
+        return False

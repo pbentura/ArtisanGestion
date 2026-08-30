@@ -29,6 +29,11 @@ class Societe(Base):
     # Personnalisation documents (Plan Équipe)
     couleur_document = Column(String, nullable=True)  # Hex color, e.g. "#2563eb"
 
+    # Relances impayés automatiques (Plan Équipe)
+    relances_actives = Column(Boolean, nullable=False, server_default="false")
+    # Jours de retard déclenchant chaque relance, du plus tôt au plus tard.
+    relances_jours = Column(String, nullable=False, server_default="3,10,21")
+
     # Stripe Connect
     stripe_connect_account_id = Column(String, nullable=True)
     stripe_connect_enabled = Column(Boolean, nullable=False, server_default="false")

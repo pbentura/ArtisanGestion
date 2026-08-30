@@ -21,6 +21,7 @@ from app.models.ligne_devis import LigneDevis
 from app.models.facture import Facture
 from app.models.ligne_facture import LigneFacture
 from app.models.invitation import Invitation
+from app.models.relance import RelanceFacture
 
 from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai, devis, factures, dashboard, ws, subscriptions, emails, collaborateurs, stripe_connect, webhooks
 
@@ -35,7 +36,12 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Base.metadata.create_all is now handled by Alembic migrations
-    yield
+    from app.core import scheduler
+    scheduler.demarrer()
+    try:
+        yield
+    finally:
+        scheduler.arreter()
 
 app = FastAPI(title="ArtisanGestion API", lifespan=lifespan)
 

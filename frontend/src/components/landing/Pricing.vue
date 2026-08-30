@@ -34,9 +34,9 @@ const plans = [
     priceAnnual: '32.50',
     features: [
       'Équipe avec gestion des droits',
-      'Signature électronique à distance',
+      'Signature électronique à distance (lien envoyé au client)',
       'Personnalisation des PDF (couleurs et sans logo)',
-      'Relances impayés automatiques',
+      'Relances impayés automatiques et paramétrables',
     ],
     cta: 'Essai gratuit 14 jours',
     popular: true,

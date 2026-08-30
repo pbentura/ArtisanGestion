@@ -59,6 +59,19 @@ class FactureUpdate(BaseModel):
     id_facture_source: Optional[int] = None
 
 
+class Relance(BaseModel):
+    """Trace d'une relance envoyée pour une facture impayée."""
+    id: int
+    niveau: int
+    jours_de_retard: int
+    destinataire: str
+    envoyee_le: datetime
+    automatique: bool
+
+    class Config:
+        from_attributes = True
+
+
 class Facture(FactureBase):
     id: int
     id_user: int
@@ -67,6 +80,10 @@ class Facture(FactureBase):
     client: Optional[ClientSchema] = None
     lignes: List[LigneFactureSchema] = []
     stripe_payment_url: Optional[str] = None
+    # `relances` n'est volontairement pas exposé ici : les requêtes qui
+    # renvoient une Facture ne préchargent pas cette relation, et y accéder
+    # à la sérialisation déclencherait un chargement paresseux interdit en
+    # async. L'historique se récupère via GET /factures/{id}/relances.
 
     class Config:
         from_attributes = True

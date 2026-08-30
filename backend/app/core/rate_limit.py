@@ -32,5 +32,10 @@ def _cle_client(request: Request) -> str:
 limiter = Limiter(
     key_func=_cle_client,
     storage_uri=os.getenv("REDIS_URL") or "memory://",
-    headers_enabled=True,
+    # headers_enabled=True ferait échouer toute route décorée qui renvoie un
+    # modèle Pydantic plutôt qu'un objet Response : slowapi tente d'y injecter
+    # ses en-têtes X-RateLimit et lève « parameter `response` must be an
+    # instance of starlette.responses.Response ». Le comptage, lui, fonctionne
+    # de la même façon sans ces en-têtes.
+    headers_enabled=False,
 )
