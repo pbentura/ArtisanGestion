@@ -35,6 +35,22 @@ export const uiStore = reactive({
   },
   closeSubscriptionModal() {
     this.showSubscriptionModal = false
+  },
+
+  // L'onboarding est entièrement facultatif : un artisan peut atteindre l'app
+  // sans avoir créé d'entreprise. On la lui demande au moment où il crée son
+  // premier document — le seul instant où elle devient réellement nécessaire.
+  showSocieteModal: false,
+  societeModalDocument: 'document',
+  onSocieteCreated: null as null | (() => void),
+  openSocieteModal(document: string, onCreated?: () => void) {
+    this.societeModalDocument = document
+    this.onSocieteCreated = onCreated || null
+    this.showSocieteModal = true
+  },
+  closeSocieteModal() {
+    this.showSocieteModal = false
+    this.onSocieteCreated = null
   }
 })
 

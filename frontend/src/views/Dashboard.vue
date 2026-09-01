@@ -7,7 +7,7 @@ import {
   Receipt, FileText, Users, AlertTriangle,
   Clock, CheckCircle2, ArrowRight, Plus,
   Wallet, BarChart3, Target, ClipboardList,
-  Camera, Calendar, RefreshCw
+  Camera, Calendar, RefreshCw, Building2
 } from 'lucide-vue-next'
 import { dataStore, uiStore } from '@/lib/store'
 
@@ -45,6 +45,30 @@ interface DashboardData {
 
 const data = computed<DashboardData | null>(() => dataStore.dashboard.data)
 const trialEnded = computed(() => dataStore.user.data?.trial_days_remaining === 0)
+
+// L'onboarding n'exige plus que le nom de l'entreprise, pour ne pas bloquer un
+// artisan qui découvre le produit. Les mentions légalement obligatoires sur un
+// devis ou une facture (art. L441-9 du code de commerce) sont donc réclamées
+// ici, une fois qu'il est dans l'app et qu'il a vu la valeur du produit.
+const societeActive = computed<any>(() => dataStore.user.data?.societes?.[0] || null)
+
+// L'onboarding étant facultatif, un artisan peut arriver ici sans entreprise.
+const sansSociete = computed(() => {
+  const u = dataStore.user.data
+  return !!u && !(u.societes && u.societes.length > 0) && !u.id_societe
+})
+
+const champsProfilManquants = computed<string[]>(() => {
+  const s = societeActive.value
+  if (!s) return []
+  const manquants: string[] = []
+  if (!s.adresse) manquants.push('adresse')
+  if (!s.code_postal || !s.ville) manquants.push('code postal et ville')
+  if (!s.siret) manquants.push('SIRET')
+  return manquants
+})
+
+const profilIncomplet = computed(() => champsProfilManquants.value.length > 0)
 const { isMobileView } = useMobile()
 
 function formatMoney(value: number): string {
@@ -111,10 +135,11 @@ const monthLabels = computed(() => {
 async function fetchDashboard() {
   error.value = false
   try {
-    await Promise.all([
-      dataStore.fetchUser(),
-      dataStore.fetchDashboard()
-    ])
+    await dataStore.fetchUser()
+    // Sans entreprise, /api/dashboard répond 400. Ce n'est pas une panne :
+    // c'est un artisan qui a passé l'onboarding et n'a encore rien créé.
+    if (sansSociete.value) return
+    await dataStore.fetchDashboard()
     if (!dataStore.dashboard.data) {
       error.value = true
     }
@@ -142,6 +167,21 @@ onMounted(fetchDashboard)
       </div>
     </div>
 
+    <!-- Aucune entreprise : l'artisan a passé l'onboarding -->
+    <div v-else-if="sansSociete" class="dashboard-welcome">
+      <div class="welcome-icon">
+        <Building2 class="w-7 h-7" />
+      </div>
+      <h3>Bienvenue{{ userName ? ', ' + userName : '' }}</h3>
+      <p>
+        Créez votre entreprise pour éditer vos devis, factures et rapports d'intervention.
+        Un nom suffit — vous compléterez le reste plus tard.
+      </p>
+      <button class="retry-btn" @click="uiStore.openSocieteModal('document', fetchDashboard)">
+        <Plus class="w-4 h-4" /> Créer mon entreprise
+      </button>
+    </div>
+
     <!-- Error State -->
     <div v-else-if="error" class="dashboard-error">
       <AlertTriangle class="w-12 h-12 text-amber-500 mb-4" />
@@ -154,6 +194,24 @@ onMounted(fetchDashboard)
 
     <!-- Dashboard Content -->
     <div v-else-if="data" class="dashboard-content">
+
+      <!-- Rappel non bloquant : les rapports d'intervention fonctionnent déjà,
+           seuls les devis et factures ont besoin de ces mentions légales. -->
+      <div v-if="profilIncomplet" class="profil-banner">
+        <div class="profil-banner-icon">
+          <AlertTriangle class="w-5 h-5" />
+        </div>
+        <div class="profil-banner-text">
+          <strong>Complétez votre entreprise pour vos devis et factures</strong>
+          <span>
+            Il manque {{ champsProfilManquants.join(', ') }}. Ces mentions sont obligatoires
+            sur un devis ou une facture. Vos rapports d'intervention, eux, fonctionnent déjà.
+          </span>
+        </div>
+        <button class="profil-banner-btn" @click="router.push('/app/entreprise')">
+          Compléter <ArrowRight class="w-4 h-4" />
+        </button>
+      </div>
 
       <!-- Header + Shortcuts -->
       <div v-if="!isMobileView" class="dashboard-header">
@@ -537,6 +595,93 @@ onMounted(fetchDashboard)
 </template>
 
 <style scoped>
+/* ── Accueil sans entreprise ── */
+.dashboard-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+.welcome-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+.dashboard-welcome h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 8px;
+}
+.dashboard-welcome p {
+  color: var(--muted-foreground);
+  margin-bottom: 24px;
+  max-width: 420px;
+  line-height: 1.55;
+}
+
+/* ── Bandeau profil incomplet ── */
+.profil-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+  background: color-mix(in srgb, #f59e0b 10%, var(--card));
+  border-radius: 14px;
+  animation: fadeSlideUp 0.5s ease-out;
+}
+.profil-banner-icon {
+  flex-shrink: 0;
+  color: #d97706;
+}
+.profil-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 220px;
+}
+.profil-banner-text strong {
+  font-size: 0.9rem;
+  color: var(--foreground);
+}
+.profil-banner-text span {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+.profil-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.profil-banner-btn:hover { opacity: 0.9; }
+
+@media (max-width: 640px) {
+  .profil-banner-btn { width: 100%; justify-content: center; }
+}
+
 /* ── Base ── */
 .dashboard-root {
   max-width: 1200px;

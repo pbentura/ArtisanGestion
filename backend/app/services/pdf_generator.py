@@ -100,6 +100,7 @@ def generate_invoice_pdf(
     lignes: List[Any],
     user_role: str = "USER",
     trial_days_remaining: int = 0,
+    is_devis: bool = False,
 ) -> bytes:
     """
     Génère un PDF de facture côté serveur avec ReportLab.
@@ -111,6 +112,8 @@ def generate_invoice_pdf(
         lignes: Liste des LigneFacture
         user_role: Rôle de l'utilisateur (pour masquer le badge ArtisanGestion)
         trial_days_remaining: Nombre de jours d'essai restants (badge masqué pendant l'essai)
+        is_devis: True quand le document est un devis (via DevisAdapter). Un devis
+            n'appelle aucun règlement : le bloc de coordonnées bancaires est omis.
 
     Returns:
         bytes: Le contenu PDF
@@ -411,6 +414,49 @@ def generate_invoice_pdf(
     ]))
     elements.append(wrapper)
     elements.append(Spacer(1, 10 * mm))
+
+    # ── RÈGLEMENT PAR VIREMENT ──────────────────────────────────────
+    # Sans ces coordonnées, le client ne sait tout simplement pas comment payer.
+    # Uniquement sur les factures : un devis n'appelle aucun règlement.
+    iban = (getattr(societe, "iban", None) or "").strip()
+    if not is_devis and iban:
+        bic = (getattr(societe, "bic", None) or "").strip()
+        nom_banque = (getattr(societe, "nom_banque", None) or "").strip()
+
+        style_paiement_titre = ParagraphStyle(
+            "PaiementTitre", parent=style_normal, fontName="Helvetica-Bold",
+            fontSize=7.5, textColor=COLOR_MUTED,
+        )
+        style_paiement_ligne = ParagraphStyle(
+            "PaiementLigne", parent=style_normal, fontSize=8.5,
+            textColor=COLOR_DARK, leading=12,
+        )
+
+        bloc_paiement = [
+            Paragraph("RÈGLEMENT PAR VIREMENT", style_paiement_titre),
+            Spacer(1, 1.5 * mm),
+            Paragraph(f"<b>IBAN</b>&nbsp;&nbsp;{iban}", style_paiement_ligne),
+        ]
+        if bic:
+            bloc_paiement.append(
+                Paragraph(f"<b>BIC</b>&nbsp;&nbsp;{bic}", style_paiement_ligne)
+            )
+        if nom_banque:
+            bloc_paiement.append(
+                Paragraph(f"<b>Banque</b>&nbsp;&nbsp;{nom_banque}", style_paiement_ligne)
+            )
+
+        table_paiement = Table([[bloc_paiement]], colWidths=[doc.width])
+        table_paiement.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), COLOR_BG_LIGHT),
+            ("BOX", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        elements.append(table_paiement)
+        elements.append(Spacer(1, 4 * mm))
 
     # ── CONDITIONS & ÉCHÉANCE ───────────────────────────────────────
     if facture.conditions_particulieres:

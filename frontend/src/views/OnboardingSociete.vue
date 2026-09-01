@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { 
-  Building2, MapPin, Landmark, CheckCircle2, Search,
+  Building2, MapPin, Settings2, CheckCircle2, Search,
   ChevronRight, ArrowLeft, Upload, Loader2, X, RefreshCw, Hash
 } from 'lucide-vue-next'
 
@@ -18,11 +18,22 @@ import { App } from '@capacitor/app'
 const router = useRouter()
 const { wsEvents } = useWebSocket()
 
+// Les brouillons créés avant le retrait des coordonnées bancaires peuvent encore
+// en contenir. On les écarte au chargement plutôt que de les réinjecter.
+function sansCoordonneesBancaires(draft: any) {
+  if (!draft) return {}
+  const copie = { ...draft }
+  delete copie.iban
+  delete copie.bic
+  delete copie.nom_banque
+  return copie
+}
+
 const steps = [
   { id: 1, title: 'Recherche', subtitle: 'Trouvez votre entreprise', icon: Search },
   { id: 2, title: 'Identité', subtitle: 'Parlons de votre entreprise', icon: Building2 },
   { id: 3, title: 'Coordonnées', subtitle: 'Pour vous joindre facilement', icon: MapPin },
-  { id: 4, title: 'Banque & Paramètres', subtitle: 'Pour vos paiements et factures', icon: Landmark },
+  { id: 4, title: 'Personnalisation', subtitle: 'Vos documents à votre image', icon: Settings2 },
   { id: 5, title: 'Récapitulatif', subtitle: 'Vérifiez avant de valider', icon: CheckCircle2 }
 ]
 
@@ -45,9 +56,6 @@ const form = ref({
   tva_intracommunautaire: '',
   capital_social: '',
   tva_defaut: '',
-  iban: '',
-  bic: '',
-  nom_banque: '',
   objectif_mensuel_ca: '',
   texte_pied_page: ''
 })
@@ -102,7 +110,7 @@ onMounted(async () => {
       const data = await res.json()
       if (data.onboarding_draft) {
         isUpdatingFromWS = true
-        form.value = { ...form.value, ...data.onboarding_draft }
+        form.value = { ...form.value, ...sansCoordonneesBancaires(data.onboarding_draft) }
         if (form.value.siret && form.value.nom) {
           siretFound.value = true
         }
@@ -117,7 +125,7 @@ onMounted(async () => {
   wsEvents.on('SYNC_DRAFT', (newDraft: any) => {
     if (newDraft) {
       isUpdatingFromWS = true
-      form.value = { ...form.value, ...newDraft }
+      form.value = { ...form.value, ...sansCoordonneesBancaires(newDraft) }
       if (form.value.siret && form.value.nom) {
         siretFound.value = true
       }
@@ -148,7 +156,7 @@ onMounted(async () => {
         // Sinon, récupérer le dernier brouillon
         if (data.onboarding_draft) {
           isUpdatingFromWS = true
-          form.value = { ...form.value, ...data.onboarding_draft }
+          form.value = { ...form.value, ...sansCoordonneesBancaires(data.onboarding_draft) }
           if (form.value.siret && form.value.nom) {
             siretFound.value = true
           }
@@ -211,6 +219,8 @@ const searchResults = ref<any[]>([])
 const searchError = ref('')
 const hasSearched = ref(false)
 const siretFound = ref(false)
+// Permet de sortir de l'etape 1 sans passer par Sirene.
+const manualEntry = ref(false)
 
 function selectEnterprise(item: any) {
   form.value.nom = item.nom || ''
@@ -308,13 +318,42 @@ async function searchSiret() {
   }
 }
 
+// Seul le nom de l'entreprise est reellement requis (cf. SocieteBase cote
+// backend, ou tout le reste est Optional). Un artisan qui arrive d'une pub doit
+// pouvoir atteindre son premier rapport sans rien remplir d'autre ; l'adresse et
+// le SIRET sont reclames plus tard, quand ils deviennent legalement necessaires
+// sur un devis ou une facture.
+// Aucune étape ne bloque. Seule la validation finale exige un nom, parce qu'une
+// entreprise sans nom n'existe pas côté backend — et même là, le bouton
+// « Passer » permet d'entrer dans l'app sans rien créer du tout.
 const isStepValid = computed(() => {
-  if (currentStep.value === 1) return siretFound.value
-  if (currentStep.value === 2) return !!form.value.nom.trim()
-  if (currentStep.value === 3) return !!form.value.email.trim() && !!form.value.adresse.trim() && !!form.value.ville.trim()
-  if (currentStep.value === 4) return true // Optional fields
+  if (currentStep.value === 5) return !!form.value.nom.trim()
   return true
 })
+
+// Des que le nom est connu, l'entreprise peut etre creee et l'artisan bascule
+// directement dans l'app, sans derouler les etapes restantes.
+const canQuickStart = computed(() => !!form.value.nom.trim())
+
+// Sirene ne reference ni les immatriculations tres recentes ni les entreprises
+// en statut non-diffusible (frequent chez les EI et auto-entrepreneurs). Sans
+// cette sortie, ces artisans ne peuvent creer aucun compte.
+// Sortie complète de l'onboarding. Avec un nom, l'entreprise est créée tout de
+// suite ; sans nom, l'artisan entre dans l'app et elle lui sera demandée à la
+// création de son premier document (cf. SocieteRequiredModal).
+async function passer() {
+  if (canQuickStart.value) {
+    await submitForm()
+  } else {
+    router.push('/app')
+  }
+}
+
+function startManualEntry() {
+  manualEntry.value = true
+  searchError.value = ''
+  currentStep.value = 2
+}
 
 function nextStep() {
   // Optionnel : vérifier manuellement si la société a été créée entre temps
@@ -686,18 +725,34 @@ function removeLogo() {
                     <p v-if="searchError" class="text-sm text-destructive mt-2">{{ searchError }}</p>
                   </div>
                 </div>
+
+                <!-- Issue de secours : sans ce lien, un artisan absent de Sirene
+                     (immatriculation récente, statut non-diffusible) ou touché par
+                     une indisponibilité de l'API INSEE ne peut pas créer de compte. -->
+                <div class="pt-2 text-center">
+                  <button
+                    type="button"
+                    @click="startManualEntry"
+                    class="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+                  >
+                    Je ne trouve pas mon entreprise — saisir mes informations manuellement
+                  </button>
+                </div>
               </div>
             </div>
 
             <!-- Step 2: Identité -->
             <div v-else-if="currentStep === 2" key="step2" class="space-y-6">
               <div class="space-y-2">
-                <Label for="nom" class="text-foreground">Nom de l'entreprise <span class="text-destructive">*</span></Label>
+                <Label for="nom" class="text-foreground">Nom de l'entreprise</Label>
                 <Input id="nom" v-model="form.nom" placeholder="Ex: Menuiserie Dupont" class="h-12 text-base transition-all bg-background hover:bg-muted/20 focus:bg-background" />
+                <p class="text-xs text-muted-foreground">
+                  C'est la seule information nécessaire pour démarrer. Vous compléterez le reste quand vous voudrez.
+                </p>
               </div>
               
               <div class="space-y-3">
-                <Label class="text-foreground">Forme juridique <span class="text-destructive">*</span></Label>
+                <Label class="text-foreground">Forme juridique</Label>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div 
                     v-for="fj in formeJuridiques" :key="fj"
@@ -760,22 +815,22 @@ function removeLogo() {
             <div v-else-if="currentStep === 3" key="step3" class="space-y-6">
               <div class="grid gap-6 grid-cols-1 md:grid-cols-2">
                 <div class="space-y-2 md:col-span-2">
-                  <Label for="adresse">Adresse complète <span class="text-destructive">*</span></Label>
+                  <Label for="adresse">Adresse complète <span class="text-xs font-normal text-muted-foreground">(requis sur vos factures)</span></Label>
                   <Input id="adresse" v-model="form.adresse" placeholder="Ex: 12 rue de la Paix" class="h-12 text-base" />
                 </div>
                 <div class="space-y-2">
-                  <Label for="code_postal">Code postal <span class="text-destructive">*</span></Label>
+                  <Label for="code_postal">Code postal <span class="text-xs font-normal text-muted-foreground">(requis sur vos factures)</span></Label>
                   <Input id="code_postal" v-model="form.code_postal" placeholder="Ex: 75000" class="h-12 text-base" />
                 </div>
                 <div class="space-y-2">
-                  <Label for="ville">Ville <span class="text-destructive">*</span></Label>
+                  <Label for="ville">Ville <span class="text-xs font-normal text-muted-foreground">(requis sur vos factures)</span></Label>
                   <Input id="ville" v-model="form.ville" placeholder="Ex: Paris" class="h-12 text-base" />
                 </div>
               </div>
 
               <div class="grid gap-6 grid-cols-1 md:grid-cols-2 pt-4 border-t border-border/50">
                 <div class="space-y-2">
-                  <Label for="email">E-mail professionnel <span class="text-destructive">*</span></Label>
+                  <Label for="email">E-mail professionnel <span class="text-xs font-normal text-muted-foreground">(requis sur vos factures)</span></Label>
                   <Input id="email" type="email" v-model="form.email" placeholder="Ex: contact@entreprise.fr" class="h-12 text-base" />
                 </div>
                 <div class="space-y-2">
@@ -787,22 +842,7 @@ function removeLogo() {
 
             <!-- Step 4: Banque -->
             <div v-else-if="currentStep === 4" key="step4" class="space-y-6">
-              <div class="grid gap-6 grid-cols-1 md:grid-cols-2">
-                <div class="space-y-2 md:col-span-2">
-                  <Label for="iban">IBAN</Label>
-                  <Input id="iban" v-model="form.iban" placeholder="Ex: FR76 1234 5678 ..." class="h-12 text-base uppercase tracking-widest font-mono text-sm" />
-                </div>
-                <div class="space-y-2">
-                  <Label for="bic">BIC / SWIFT</Label>
-                  <Input id="bic" v-model="form.bic" placeholder="Ex: ABCEFR01XXXX" class="h-12 text-base uppercase" />
-                </div>
-                <div class="space-y-2">
-                  <Label for="banque">Nom de la banque</Label>
-                  <Input id="banque" v-model="form.nom_banque" placeholder="Ex: Qonto ou BNP" class="h-12 text-base" />
-                </div>
-              </div>
-
-              <div class="grid gap-6 grid-cols-1 pt-4 border-t border-border/50">
+              <div class="grid gap-6 grid-cols-1">
                 <div class="space-y-2">
                   <Label for="ca">Objectif de CA Mensuel (€) - Optionnel</Label>
                   <Input id="ca" type="number" v-model="form.objectif_mensuel_ca" placeholder="Ex: 5000" class="h-12 text-base" />
@@ -818,6 +858,12 @@ function removeLogo() {
                     placeholder="Ex: Paiement à 30 jours, pas d'escompte."></textarea>
                 </div>
               </div>
+
+              <p class="text-xs text-muted-foreground leading-relaxed">
+                Vos coordonnées bancaires se renseignent plus tard, depuis
+                <strong>Paramètres → Entreprise</strong> : elles n'apparaissent que sur vos
+                factures, au moment où un client doit vous régler.
+              </p>
             </div>
 
             <!-- Step 5: Récapitulatif -->
@@ -883,8 +929,19 @@ function removeLogo() {
           <ChevronRight v-if="currentStep < 5" class="w-5 h-5 ml-2" />
         </template>
       </Button>
-      <p v-if="!isStepValid && currentStep < 5" class="text-center text-xs text-muted-foreground mt-3 animate-pulse">
-        Veuillez remplir les champs obligatoires pour continuer
+
+      <!-- L'onboarding est entièrement facultatif. -->
+      <button
+        v-if="!isLoading && (currentStep < 5 || !canQuickStart)"
+        type="button"
+        @click="passer"
+        class="w-full mt-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {{ canQuickStart ? 'Passer et commencer maintenant' : "Passer pour l'instant" }}
+      </button>
+
+      <p v-if="!isStepValid && currentStep === 5" class="text-center text-xs text-muted-foreground mt-3">
+        Indiquez le nom de votre entreprise pour valider
       </p>
     </div>
 

@@ -152,7 +152,7 @@ async def generate_and_send_document(
                     raise HTTPException(status_code=404, detail="Devis introuvable")
                 adapted_devis = DevisAdapter(devis)
                 trial_days = deps.get_trial_days_remaining(user)
-                pdf_bytes = generate_invoice_pdf(adapted_devis, devis.client, societe, devis.lignes, user_role=user.role or "USER", trial_days_remaining=trial_days)
+                pdf_bytes = generate_invoice_pdf(adapted_devis, devis.client, societe, devis.lignes, user_role=user.role or "USER", trial_days_remaining=trial_days, is_devis=True)
                 filename = f"Devis_{devis.numero_devis}.pdf"
 
             elif request.document_type == "rapport":

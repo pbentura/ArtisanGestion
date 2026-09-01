@@ -416,18 +416,27 @@ async def delete_my_societe(
 
     # --- SUPPRESSION EN CASCADE ---
     
-    # 4. Détacher tous les collaborateurs de cette société
+    # 4. Détacher tous les utilisateurs (collaborateurs et propriétaires) ayant cette société en active_societe_id ou id_societe
+    await db.execute(
+        update(User).where(User.active_societe_id == societe_id).values(active_societe_id=None)
+    )
     await db.execute(
         update(User).where(User.id_societe == societe_id).values(id_societe=None, is_owner=False)
     )
+    if current_user.active_societe_id == societe_id:
+        current_user.active_societe_id = None
+    if current_user.id_societe == societe_id:
+        current_user.id_societe = None
     
     # 5. Supprimer les invitations en attente
     await db.execute(delete(Invitation).where(Invitation.id_societe == societe_id))
 
-    # 6. Supprimer les factures brouillons et leurs lignes
+    # 6. Supprimer les factures brouillons, leurs relances et leurs lignes
     factures_result = await db.execute(select(Facture.id).where(Facture.id_societe == societe_id))
     factures_ids = factures_result.scalars().all()
     if factures_ids:
+        from app.models.relance import RelanceFacture
+        await db.execute(delete(RelanceFacture).where(RelanceFacture.id_facture.in_(factures_ids)))
         await db.execute(delete(LigneFacture).where(LigneFacture.id_facture.in_(factures_ids)))
         await db.execute(delete(Facture).where(Facture.id_societe == societe_id))
         
@@ -451,7 +460,9 @@ async def delete_my_societe(
     )
     autre_societe = result_autres.scalars().first()
     
-    current_user.active_societe_id = autre_societe.id if autre_societe else current_user.id_societe
+    current_user.active_societe_id = autre_societe.id if autre_societe else None
+    current_user.id_societe = autre_societe.id if autre_societe else None
+    current_user.is_owner = True
     db.add(current_user)
 
     await db.commit()

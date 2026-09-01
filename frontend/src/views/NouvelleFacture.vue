@@ -453,6 +453,10 @@ async function loadSociete() {
     if (res.ok) {
       const data = await res.json()
       societe.value = data
+    } else if (res.status === 400 || res.status === 404) {
+      // L'onboarding étant facultatif, l'artisan peut arriver ici sans
+      // entreprise. C'est le moment où elle devient nécessaire : on la demande.
+      uiStore.openSocieteModal('facture', loadSociete)
     }
   } catch (e) {
     console.error('Erreur lors du chargement de la société:', e)

@@ -54,7 +54,7 @@ const routes = [
   {
     path: '/app',
     component: () => import('@/views/DashboardLayout.vue'),
-    meta: { requiresAuth: true, requiresSociete: true, title: 'Application' },
+    meta: { requiresAuth: true, title: 'Application' },
     redirect: '/app/rapports',
     children: [
       {
