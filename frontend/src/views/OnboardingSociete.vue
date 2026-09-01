@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { 
   Building2, MapPin, Landmark, CheckCircle2, Search,
-  ChevronRight, ArrowLeft, Upload, Loader2, X
+  ChevronRight, ArrowLeft, Upload, Loader2, X, RefreshCw, Hash
 } from 'lucide-vue-next'
 
 import { Capacitor } from '@capacitor/core'
@@ -103,6 +103,9 @@ onMounted(async () => {
       if (data.onboarding_draft) {
         isUpdatingFromWS = true
         form.value = { ...form.value, ...data.onboarding_draft }
+        if (form.value.siret && form.value.nom) {
+          siretFound.value = true
+        }
         setTimeout(() => { isUpdatingFromWS = false }, 100)
       }
     }
@@ -115,6 +118,9 @@ onMounted(async () => {
     if (newDraft) {
       isUpdatingFromWS = true
       form.value = { ...form.value, ...newDraft }
+      if (form.value.siret && form.value.nom) {
+        siretFound.value = true
+      }
       // Désactiver le flag après que le watcher ait pu ignorer cette modification
       setTimeout(() => { isUpdatingFromWS = false }, 100)
     }
@@ -143,6 +149,9 @@ onMounted(async () => {
         if (data.onboarding_draft) {
           isUpdatingFromWS = true
           form.value = { ...form.value, ...data.onboarding_draft }
+          if (form.value.siret && form.value.nom) {
+            siretFound.value = true
+          }
           setTimeout(() => { isUpdatingFromWS = false }, 100)
         }
       }
@@ -194,70 +203,108 @@ watch(form, (newVal) => {
 
 const isAutoEntrepreneur = computed(() => form.value.forme_juridique === 'Auto-entrepreneur')
 
-
+const searchMode = ref<'nom' | 'siret'>('nom')
+const searchNameQuery = ref('')
+const searchPostalCode = ref('')
+const isSearching = ref(false)
+const searchResults = ref<any[]>([])
+const searchError = ref('')
+const hasSearched = ref(false)
 const siretFound = ref(false)
-const isSearchingSiret = ref(false)
-const searchSiretError = ref('')
+
+function selectEnterprise(item: any) {
+  form.value.nom = item.nom || ''
+  form.value.siret = item.siret || ''
+  form.value.adresse = item.adresse || ''
+  form.value.code_postal = item.code_postal || ''
+  form.value.ville = item.ville || ''
+  
+  if (item.forme_juridique) {
+    form.value.forme_juridique = item.forme_juridique
+  }
+  if (item.ville && item.forme_juridique !== 'Auto-entrepreneur') {
+    form.value.rcs = `RCS ${item.ville}`
+  }
+  if (item.tva_intracommunautaire) {
+    form.value.tva_intracommunautaire = item.tva_intracommunautaire
+  }
+  
+  siretFound.value = true
+  searchError.value = ''
+}
+
+function resetSelection() {
+  siretFound.value = false
+}
+
+async function searchByName() {
+  const query = searchNameQuery.value.trim()
+  if (query.length < 2) {
+    searchError.value = "Veuillez saisir au moins 2 caractères pour le nom d'entreprise."
+    return
+  }
+  
+  isSearching.value = true
+  searchError.value = ''
+  hasSearched.value = true
+  searchResults.value = []
+  
+  try {
+    const params = new URLSearchParams({ q: query, per_page: '10' })
+    if (searchPostalCode.value.trim()) {
+      params.append('code_postal', searchPostalCode.value.trim())
+    }
+    
+    const response = await apiFetch(`societes/search-sirene?${params.toString()}`)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || "Erreur lors de la recherche des entreprises")
+    }
+    
+    const data = await response.json()
+    searchResults.value = data.results || []
+    if (searchResults.value.length === 0) {
+      searchError.value = "Aucune entreprise trouvée avec ces critères. Vérifiez l'orthographe ou essayez avec votre code postal ou votre numéro SIRET."
+    }
+  } catch (e: any) {
+    searchError.value = e.message || "Impossible de joindre le service Sirene."
+  } finally {
+    isSearching.value = false
+  }
+}
 
 async function searchSiret() {
   const siretClean = form.value.siret.replace(/\s+/g, '')
   if (siretClean.length !== 14) {
-    searchSiretError.value = "Le SIRET doit contenir exactement 14 chiffres."
+    searchError.value = "Le SIRET doit contenir exactement 14 chiffres."
     return
   }
   
-  isSearchingSiret.value = true
-  searchSiretError.value = ''
+  isSearching.value = true
+  searchError.value = ''
+  hasSearched.value = true
   
   try {
-    const response = await apiFetch(`societes/lookup-siret?siret=${siretClean}`)
+    const response = await apiFetch(`societes/search-sirene?q=${siretClean}`)
     if (!response.ok) {
-      const errorData = await response.json()
+      const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.detail || "Erreur réseau")
     }
     
     const data = await response.json()
     const results = data.results || []
     
-    let found = false
-    for (const r of results) {
-      if (r.siege?.siret === siretClean || r.matching_etablissements?.some((e: any) => e.siret === siretClean)) {
-        found = true
-        form.value.nom = r.nom_complet || r.nom_raison_sociale || ''
-        if (r.siege) {
-          const typeVoie = r.siege.type_voie || ''
-          const libelleVoie = r.siege.libelle_voie || ''
-          const numVoie = r.siege.numero_voie || ''
-          const adresse = r.siege.adresse || `${numVoie} ${typeVoie} ${libelleVoie}`.trim()
-          
-          form.value.adresse = adresse
-          form.value.code_postal = r.siege.code_postal || ''
-          form.value.ville = r.siege.libelle_commune || ''
-        }
-        
-        // Forme juridique basique
-        const nj = (r.nature_juridique || '').toLowerCase()
-        if (nj.includes('sas') && nj.includes('unipersonnelle')) form.value.forme_juridique = 'SASU'
-        else if (nj.includes('sas') || nj.includes('actions simplifiée')) form.value.forme_juridique = 'SAS'
-        else if (nj.includes('sarl') && nj.includes('unipersonnelle')) form.value.forme_juridique = 'EURL'
-        else if (nj.includes('sarl') || nj.includes('responsabilité limitée')) form.value.forme_juridique = 'SARL'
-        else if (nj.includes('entrepreneur individuel') || nj.includes('artisan') || nj.includes('commerçant')) form.value.forme_juridique = 'EI'
-        
-        break
-      }
-    }
-    
-    if (found) {
-      siretFound.value = true
+    if (results.length > 0) {
+      selectEnterprise(results[0])
     } else {
-      searchSiretError.value = "Ce SIRET est introuvable dans la base INSEE."
+      searchError.value = "Ce SIRET est introuvable dans la base INSEE."
       siretFound.value = false
     }
   } catch (e: any) {
-    searchSiretError.value = e.message || "Impossible de contacter l'API Sirene."
+    searchError.value = e.message || "Impossible de contacter l'API Sirene."
     siretFound.value = false
   } finally {
-    isSearchingSiret.value = false
+    isSearching.value = false
   }
 }
 
@@ -424,35 +471,222 @@ function removeLogo() {
           <transition name="slide-fade" mode="out-in">
             <!-- Step 1: Recherche -->
             <div v-if="currentStep === 1" key="step1" class="space-y-6">
-              <div class="space-y-2">
-                <Label for="siret" class="text-foreground">Numéro SIRET (14 chiffres) <span class="text-destructive">*</span></Label>
-                <div class="flex flex-col sm:flex-row gap-3">
-                  <Input 
-                    id="siret" 
-                    v-model="form.siret" 
-                    placeholder="Ex: 123 456 789 00012" 
-                    class="h-12 text-base transition-all bg-background hover:bg-muted/20 focus:bg-background flex-1" 
-                    @keyup.enter="searchSiret"
-                    @input="siretFound = false"
-                  />
-                  <Button @click="searchSiret" :disabled="isSearchingSiret || form.siret.replace(/\s+/g, '').length < 14" class="h-12 px-6">
-                    <Loader2 v-if="isSearchingSiret" class="w-4 h-4 mr-2 animate-spin" />
-                    <Search v-else class="w-4 h-4 mr-2" />
-                    Rechercher
-                  </Button>
-                </div>
-                <p v-if="searchSiretError" class="text-sm text-destructive mt-2">{{ searchSiretError }}</p>
-              </div>
               
-              <transition name="slide-fade">
-                <div v-if="siretFound" class="flex items-start bg-green-500/10 text-green-700 dark:text-green-400 p-4 rounded-xl border border-green-500/20 mt-4">
-                  <CheckCircle2 class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p class="text-sm font-semibold">Entreprise trouvée !</p>
-                    <p class="text-sm mt-1">Nous avons pré-rempli vos informations (Nom, Adresse, etc.). Cliquez sur "Continuer" pour vérifier la suite.</p>
+              <!-- Si entreprise trouvée / sélectionnée -->
+              <div v-if="siretFound" class="space-y-4">
+                <div class="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 dark:bg-emerald-950/20 dark:border-emerald-800/40 text-foreground transition-all">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-3.5">
+                      <div class="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0">
+                        <CheckCircle2 class="w-6 h-6" />
+                      </div>
+                      <div class="space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            Entreprise sélectionnée
+                          </span>
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                            {{ form.forme_juridique || 'Entreprise' }}
+                          </span>
+                        </div>
+                        <h3 class="text-xl font-bold text-foreground">
+                          {{ form.nom }}
+                        </h3>
+                        <p v-if="form.adresse || form.ville" class="text-sm text-muted-foreground flex items-center gap-1.5 pt-0.5">
+                          <MapPin class="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                          <span>{{ [form.adresse, [form.code_postal, form.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') }}</span>
+                        </p>
+                        <div class="pt-2 flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                          <span class="font-mono bg-background/80 px-2.5 py-1 rounded-md border border-border/60">
+                            SIRET : {{ form.siret }}
+                          </span>
+                          <span v-if="form.rcs" class="bg-background/80 px-2.5 py-1 rounded-md border border-border/60">
+                            {{ form.rcs }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </transition>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+                  <p class="text-xs text-muted-foreground">
+                    Vos informations sont prêtes. Cliquez sur <strong>Continuer</strong> pour vérifier l'identité et les coordonnées.
+                  </p>
+                  <Button variant="outline" size="sm" @click="resetSelection" class="flex-shrink-0 text-xs">
+                    <RefreshCw class="w-3.5 h-3.5 mr-1.5" />
+                    Changer d'entreprise
+                  </Button>
+                </div>
+              </div>
+
+              <!-- Si aucune entreprise sélectionnée : Interface de recherche -->
+              <div v-else class="space-y-5">
+                <!-- Sélecteur de mode de recherche -->
+                <div class="flex p-1 bg-muted/60 rounded-xl border border-border/40">
+                  <button 
+                    type="button"
+                    @click="searchMode = 'nom'; searchError = ''"
+                    class="flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                    :class="searchMode === 'nom' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  >
+                    <Building2 class="w-4 h-4" />
+                    <span>Recherche par nom</span>
+                  </button>
+                  <button 
+                    type="button"
+                    @click="searchMode = 'siret'; searchError = ''"
+                    class="flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                    :class="searchMode === 'siret' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  >
+                    <Hash class="w-4 h-4" />
+                    <span>Recherche par SIRET</span>
+                  </button>
+                </div>
+
+                <!-- Mode 1: Recherche par Nom -->
+                <div v-if="searchMode === 'nom'" class="space-y-4">
+                  <div class="space-y-2">
+                    <Label for="searchName" class="text-foreground font-medium">
+                      Nom de l'entreprise ou votre nom d'artisan <span class="text-destructive">*</span>
+                    </Label>
+                    <Input 
+                      id="searchName"
+                      v-model="searchNameQuery" 
+                      placeholder="Ex : Menuiserie Martin, Dupont Plomberie..." 
+                      class="h-12 text-base bg-background hover:bg-muted/20 focus:bg-background transition-all" 
+                      @keyup.enter="searchByName"
+                    />
+                  </div>
+
+                  <div class="space-y-2">
+                    <Label for="searchCP" class="text-foreground font-medium flex items-center justify-between">
+                      <span>Code postal ou ville <span class="text-xs font-normal text-muted-foreground">(optionnel, affine les résultats)</span></span>
+                    </Label>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                      <Input 
+                        id="searchCP"
+                        v-model="searchPostalCode" 
+                        placeholder="Ex : 75011, Toulouse, 33..." 
+                        class="h-12 text-base bg-background hover:bg-muted/20 focus:bg-background flex-1" 
+                        @keyup.enter="searchByName"
+                      />
+                      <Button 
+                        @click="searchByName" 
+                        :disabled="isSearching || searchNameQuery.trim().length < 2" 
+                        class="h-12 px-6 sm:w-auto w-full font-medium"
+                      >
+                        <Loader2 v-if="isSearching" class="w-4 h-4 mr-2 animate-spin" />
+                        <Search v-else class="w-4 h-4 mr-2" />
+                        Rechercher
+                      </Button>
+                    </div>
+                  </div>
+
+                  <!-- Message d'erreur -->
+                  <p v-if="searchError" class="text-sm text-destructive mt-2">{{ searchError }}</p>
+
+                  <!-- État de chargement -->
+                  <div v-if="isSearching" class="py-8 flex flex-col items-center justify-center space-y-3 text-center">
+                    <Loader2 class="w-8 h-8 animate-spin text-primary" />
+                    <p class="text-sm text-muted-foreground">Recherche en cours dans la base officielle INSEE Sirene...</p>
+                  </div>
+
+                  <!-- Liste des propositions d'entreprises -->
+                  <div v-else-if="searchResults.length > 0" class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between pb-1">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {{ searchResults.length }} résultat{{ searchResults.length > 1 ? 's trouvés' : ' trouvé' }} — Cliquez sur le vôtre :
+                      </p>
+                    </div>
+
+                    <div class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                      <div 
+                        v-for="(item, idx) in searchResults" 
+                        :key="item.siret || idx"
+                        @click="selectEnterprise(item)"
+                        class="group p-4 rounded-xl border border-border/70 hover:border-primary/60 bg-card hover:bg-primary/5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      >
+                        <div class="space-y-1.5 flex-1 min-w-0">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-foreground group-hover:text-primary transition-colors text-base truncate">
+                              {{ item.nom }}
+                            </span>
+                            <span 
+                              v-if="item.etat_administratif === 'A'"
+                              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                            >
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Actif
+                            </span>
+                            <span 
+                              v-else
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground"
+                            >
+                              Fermé
+                            </span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary text-secondary-foreground">
+                              {{ item.forme_juridique }}
+                            </span>
+                          </div>
+
+                          <div class="flex items-center gap-1 text-xs text-muted-foreground truncate">
+                            <MapPin class="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
+                            <span class="truncate">{{ [item.adresse, [item.code_postal, item.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') }}</span>
+                          </div>
+
+                          <div class="flex items-center gap-3 text-xs text-muted-foreground flex-wrap pt-0.5">
+                            <span class="font-mono bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
+                              SIRET : {{ item.siret }}
+                            </span>
+                            <span v-if="item.dirigeants && item.dirigeants.length > 0" class="text-[11px] text-muted-foreground">
+                              Dirigeant : {{ item.dirigeants[0].nom }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          class="group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all flex-shrink-0 self-end sm:self-center text-xs font-medium"
+                        >
+                          Sélectionner
+                          <ChevronRight class="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mode 2: Recherche par SIRET -->
+                <div v-else-if="searchMode === 'siret'" class="space-y-4">
+                  <div class="space-y-2">
+                    <Label for="siret" class="text-foreground font-medium">
+                      Numéro SIRET (14 chiffres) <span class="text-destructive">*</span>
+                    </Label>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                      <Input 
+                        id="siret" 
+                        v-model="form.siret" 
+                        placeholder="Ex : 123 456 789 00012" 
+                        class="h-12 text-base transition-all bg-background hover:bg-muted/20 focus:bg-background flex-1" 
+                        @keyup.enter="searchSiret"
+                        @input="siretFound = false"
+                      />
+                      <Button 
+                        @click="searchSiret" 
+                        :disabled="isSearching || form.siret.replace(/\s+/g, '').length < 14" 
+                        class="h-12 px-6 sm:w-auto w-full font-medium"
+                      >
+                        <Loader2 v-if="isSearching" class="w-4 h-4 mr-2 animate-spin" />
+                        <Search v-else class="w-4 h-4 mr-2" />
+                        Rechercher
+                      </Button>
+                    </div>
+                    <p v-if="searchError" class="text-sm text-destructive mt-2">{{ searchError }}</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Step 2: Identité -->

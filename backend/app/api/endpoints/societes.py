@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import Any
+from typing import Any, Optional, Dict, List
 
 from app.api.deps import get_db, get_current_user, is_admin, get_user_societe_id, require_permission
 from app.models.societe import Societe
@@ -195,6 +195,132 @@ async def create_societe(
     })
     
     return new_societe
+
+@router.get("/search-sirene")
+async def search_sirene(
+    q: str,
+    code_postal: Optional[str] = None,
+    per_page: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Rechercher des entreprises par nom commercial, raison sociale, nom du dirigeant ou SIRET/SIREN.
+    """
+    import httpx
+    
+    q_clean = q.strip()
+    if len(q_clean) < 2:
+        return {"results": [], "total_results": 0}
+        
+    # Si la recherche est un numéro avec des espaces (SIREN ou SIRET)
+    clean_digits = q_clean.replace(" ", "")
+    if clean_digits.isdigit() and len(clean_digits) in [9, 14]:
+        q_search = clean_digits
+    else:
+        q_search = q_clean
+
+    params: dict[str, Any] = {
+        "q": q_search,
+        "per_page": min(max(per_page, 1), 25)
+    }
+    
+    if code_postal and code_postal.strip():
+        cp_clean = code_postal.strip().replace(" ", "")
+        if len(cp_clean) == 2:
+            params["departement"] = cp_clean
+        elif len(cp_clean) >= 4:
+            params["code_postal"] = cp_clean
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            headers = {"User-Agent": "ArtisanGestion/1.0"}
+            res = await client.get(
+                "https://recherche-entreprises.api.gouv.fr/search",
+                params=params,
+                headers=headers
+            )
+            
+            if res.status_code != 200:
+                return {"results": [], "total_results": 0}
+                
+            data = res.json()
+            raw_results = data.get("results", [])
+            total_results = data.get("total_results", len(raw_results))
+            
+            formatted_results = []
+            for r in raw_results:
+                siege = r.get("siege") or {}
+                nom = r.get("nom_complet") or r.get("nom_raison_sociale") or r.get("sigle") or ""
+                siren = r.get("siren") or ""
+                siret = siege.get("siret") or ""
+                
+                # Si le siret n'est pas sur le siège mais dans matching_etablissements
+                if not siret and r.get("matching_etablissements"):
+                    siret = r["matching_etablissements"][0].get("siret", "")
+                    
+                # Adresse
+                num_voie = siege.get("numero_voie") or ""
+                type_voie = siege.get("type_voie") or ""
+                libelle_voie = siege.get("libelle_voie") or ""
+                adresse = siege.get("adresse") or f"{num_voie} {type_voie} {libelle_voie}".strip()
+                code_postal_res = siege.get("code_postal") or ""
+                ville_res = siege.get("libelle_commune") or ""
+                
+                # Forme juridique déduite
+                nj = str(r.get("nature_juridique") or "")
+                nom_lower = nom.lower()
+                forme_juridique = "Auto-entrepreneur"
+                
+                if nj in ["5720"] or "sasu" in nom_lower or ("sas" in nom_lower and "unipersonnelle" in nom_lower):
+                    forme_juridique = "SASU"
+                elif nj in ["5710"] or "sas" in nom_lower or "actions simplifiée" in nom_lower:
+                    forme_juridique = "SAS"
+                elif nj in ["5498"] or "eurl" in nom_lower or ("sarl" in nom_lower and "unipersonnelle" in nom_lower):
+                    forme_juridique = "EURL"
+                elif nj in ["5499"] or "sarl" in nom_lower or "responsabilité limitée" in nom_lower:
+                    forme_juridique = "SARL"
+                elif nj in ["1000"] or r.get("complements", {}).get("est_entrepreneur_individuel") or "entrepreneur individuel" in nom_lower or "artisan" in nom_lower or "ei" in nom_lower:
+                    forme_juridique = "Auto-entrepreneur"
+                else:
+                    forme_juridique = "Auto-entrepreneur"
+
+                # Dirigeants
+                dirigeants_raw = r.get("dirigeants") or []
+                dirigeants_list = []
+                for d in dirigeants_raw:
+                    nom_d = f"{(d.get('prenoms') or '')} {(d.get('nom') or '')}".strip()
+                    qualite = d.get("qualite") or ""
+                    if nom_d:
+                        dirigeants_list.append({"nom": nom_d, "qualite": qualite})
+                        
+                # TVA
+                tva = None
+                if r.get("tva") and len(r.get("tva")) > 0:
+                    tva = r.get("tva")[0]
+                    
+                formatted_results.append({
+                    "nom": nom,
+                    "siren": siren,
+                    "siret": siret,
+                    "adresse": adresse,
+                    "code_postal": code_postal_res,
+                    "ville": ville_res,
+                    "forme_juridique": forme_juridique,
+                    "nature_juridique": nj,
+                    "etat_administratif": r.get("etat_administratif") or siege.get("etat_administratif") or "A",
+                    "activite_principale": r.get("activite_principale") or siege.get("activite_principale") or "",
+                    "dirigeants": dirigeants_list,
+                    "tva_intracommunautaire": tva,
+                    "raw": r
+                })
+                
+            return {
+                "results": formatted_results,
+                "total_results": total_results
+            }
+    except Exception as e:
+        return {"results": [], "total_results": 0, "error": str(e)}
 
 @router.get("/lookup-siret")
 async def lookup_siret(
