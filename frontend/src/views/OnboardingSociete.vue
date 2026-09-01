@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch } from '@/lib/api'
+import { trackConversion } from '@/lib/analytics'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -401,6 +402,8 @@ async function submitForm() {
       const errorData = await res.json()
       throw new Error(errorData.detail || "Erreur lors de la création de l'entreprise")
     }
+
+    trackConversion('societe_created', { source: 'onboarding' })
 
     // Clear draft on backend
     try {

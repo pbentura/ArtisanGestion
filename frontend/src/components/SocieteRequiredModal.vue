@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { uiStore, dataStore } from '@/lib/store'
 import { apiFetch } from '@/lib/api'
+import { trackConversion } from '@/lib/analytics'
 
 const router = useRouter()
 
@@ -277,6 +278,8 @@ async function creerSociete() {
       const data = await res.json().catch(() => ({}))
       throw new Error(data.detail || "Impossible de créer votre entreprise.")
     }
+
+    trackConversion('societe_created', { source: 'document' })
 
     await dataStore.fetchUser(true)
     const callback = uiStore.onSocieteCreated

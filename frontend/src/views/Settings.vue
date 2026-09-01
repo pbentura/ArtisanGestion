@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
+import { trackConversionOnce } from '@/lib/analytics'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -496,9 +497,30 @@ async function handleSendSupport() {
   }
 }
 
-onMounted(() => {
-  fetchUser()
+// Retour de Stripe Checkout : success_url pointe vers
+// /app/settings?tab=abonnement&session_id=... (cf. subscriptions.py). C'est le
+// seul endroit du front qui sait qu'un abonnement vient d'être souscrit.
+// Le webhook checkout.session.completed reste la source de vérité côté serveur.
+function verifierRetourAbonnement() {
+  const sessionId = route.query.session_id as string | undefined
+  if (!sessionId) return
+
+  // La clé de déduplication est l'identifiant de session Stripe : un
+  // rafraîchissement ou un retour arrière ne peut pas rejouer la conversion.
+  trackConversionOnce('subscription_started', sessionId, {
+    plan: user.value.role === 'TEAM' ? 'equipe' : 'independant',
+    currency: 'EUR'
+  })
+
+  const query = { ...route.query }
+  delete query.session_id
+  router.replace({ query })
+}
+
+onMounted(async () => {
   fetchSociete()
+  await fetchUser()
+  verifierRetourAbonnement()
 })
 </script>
 

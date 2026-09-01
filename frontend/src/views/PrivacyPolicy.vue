@@ -2,7 +2,13 @@
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Shield, Lock, Eye, Database, Mail } from 'lucide-vue-next'
 const router = useRouter()
-const lastUpdated = '7 avril 2026'
+const lastUpdated = '1er septembre 2026'
+
+// Rouvre le bandeau de consentement (monté dans App.vue). Le retrait du
+// consentement doit être aussi simple que son recueil.
+function ouvrirConsentement() {
+  window.dispatchEvent(new Event('ag:open-consent'))
+}
 </script>
 
 <template>
@@ -281,11 +287,23 @@ const lastUpdated = '7 avril 2026'
             <h2 class="section-title">8. Cookies et stockage local</h2>
           </div>
           <div class="section-body space-y-4">
-            <p>ArtisanGestion utilise le <strong>stockage local du navigateur (localStorage)</strong>, et non des cookies de tracking, pour :</p>
+            <p><strong>Cookies et stockage strictement nécessaires.</strong> ArtisanGestion utilise le <strong>stockage local du navigateur (localStorage)</strong> pour :</p>
             <ul class="data-list">
               <li>Conserver votre token d'authentification JWT afin de maintenir votre session active</li>
+              <li>Mémoriser votre choix en matière de cookies de mesure d'audience</li>
             </ul>
-            <p>Aucun cookie publicitaire ou de traçage tiers n'est déposé sur votre navigateur. Si nous intégrons à l'avenir des outils d'analyse, un bandeau de consentement conforme à la réglementation CNIL sera mis en place.</p>
+            <p>Ces éléments sont indispensables au fonctionnement du service et ne nécessitent pas votre consentement.</p>
+
+            <p><strong>Mesure d'audience et publicité.</strong> Nous utilisons <strong>Google Analytics 4</strong> et <strong>Google Ads</strong> pour mesurer la fréquentation du site et l'efficacité de nos campagnes. Ces outils déposent des cookies de mesure et de publicité, et transmettent des données à Google.</p>
+            <p><strong>Aucun de ces cookies n'est déposé sans votre accord préalable.</strong> Les scripts Google ne sont chargés qu'après acceptation via le bandeau affiché lors de votre première visite. Refuser n'entraîne aucune limitation d'usage d'ArtisanGestion.</p>
+            <p>Vous pouvez revenir sur votre choix à tout moment :</p>
+            <button
+              type="button"
+              @click="ouvrirConsentement"
+              class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              Gérer mes cookies
+            </button>
           </div>
         </section>
 

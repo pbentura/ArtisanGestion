@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
+import { trackConversionOnce } from '@/lib/analytics'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2, CreditCard, Undo2, Share2 } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
 import { useSwipe } from '@vueuse/core'
@@ -687,6 +688,15 @@ async function saveFactureToDatabase(clientId: number) {
   if (!res.ok) {
     throw new Error('Erreur API Facture: ' + await res.text())
   }
+
+  // Activation : l'artisan venu de la pub a réellement produit quelque chose.
+  // C'est l'étape qui sépare une inscription curieuse d'un usage réel.
+  if (!isEditMode.value) {
+    trackConversionOnce('first_document_created', dataStore.user.data?.id ?? 'anon', {
+      document_type: 'facture'
+    })
+  }
+
   return await res.json()
 }
 

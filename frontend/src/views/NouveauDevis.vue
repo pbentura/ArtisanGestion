@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
+import { trackConversionOnce } from '@/lib/analytics'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, CheckCircle2, Receipt, Share2, PenTool, Eraser, Link as LinkIcon, ExternalLink, Unlink, FileText, Euro } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
 import AcompteModal from '@/components/AcompteModal.vue'
@@ -490,6 +491,15 @@ async function saveDevisToDatabase(clientId: number) {
   if (!res.ok) {
     throw new Error('Erreur API Devis: ' + await res.text())
   }
+
+  // Activation : l'artisan venu de la pub a réellement produit quelque chose.
+  // C'est l'étape qui sépare une inscription curieuse d'un usage réel.
+  if (!isEditMode.value) {
+    trackConversionOnce('first_document_created', dataStore.user.data?.id ?? 'anon', {
+      document_type: 'devis'
+    })
+  }
+
   return await res.json()
 }
 

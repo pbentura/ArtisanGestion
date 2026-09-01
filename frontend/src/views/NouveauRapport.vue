@@ -3,6 +3,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { dataStore, uiStore } from '@/lib/store'
+import { trackConversionOnce } from '@/lib/analytics'
 import { marked } from 'marked'
 import { ArrowLeft, Save, FileDown, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, X, Camera, Sparkles, Loader2, Eye, Link as LinkIcon, ExternalLink, Unlink, ClipboardList, AlignLeft, AlignCenter, AlignJustify } from 'lucide-vue-next'
 import LinkDocumentModal from '@/components/LinkDocumentModal.vue'
@@ -489,6 +490,15 @@ async function saveRapportToDatabase(clientId: number | null) {
   if (!res.ok) {
     throw new Error('Erreur API Rapport: ' + await res.text())
   }
+
+  // Activation : l'artisan venu de la pub a réellement produit quelque chose.
+  // C'est l'étape qui sépare une inscription curieuse d'un usage réel.
+  if (!isEditMode.value) {
+    trackConversionOnce('first_document_created', dataStore.user.data?.id ?? 'anon', {
+      document_type: 'rapport'
+    })
+  }
+
   return await res.json()
 }
 

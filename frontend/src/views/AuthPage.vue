@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 import { API_BASE_URL } from '@/lib/api'
+import { trackConversion } from '@/lib/analytics'
 import { 
   ArrowLeft,
   Loader2,
@@ -264,6 +265,10 @@ async function handleSignup() {
     }
 
     const data = await res.json()
+
+    // Première étape du tunnel. L'email n'est pas encore vérifié à cet instant :
+    // c'est bien la création de compte qui est mesurée, pas son activation.
+    trackConversion('sign_up', { method: 'email' })
 
     successMessage.value = "Votre compte a bien été créé ! Un email de vérification vous a été envoyé. Vérifiez votre boîte mail (et vos spams) pour activer votre compte."
     activeTab.value = 'login'

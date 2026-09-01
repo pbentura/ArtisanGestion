@@ -7,6 +7,7 @@ import TermsOfService from '@/views/TermsOfService.vue'
 import MentionsLegales from '@/views/MentionsLegales.vue'
 
 import { API_BASE_URL } from '@/lib/api'
+import { trackPageView } from '@/lib/analytics'
 import { Capacitor } from '@capacitor/core'
 
 const routes = [
@@ -356,6 +357,12 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   next()
+})
+
+// SPA : gtag ne verrait qu'un seul chargement de page. Le titre venant d'être
+// posé par la garde ci-dessus, la vue est envoyée après la navigation.
+router.afterEach((to) => {
+  trackPageView(to.fullPath)
 })
 
 export default router
