@@ -1,0 +1,141 @@
+# Déploiement automatique du backend sur le VPS à chaque push sur main.
+#
+# Remplace la séquence manuelle :
+#   ssh root@<vps> && cd project/Ventura && git pull
+#   && docker compose -f docker-compose.prod.yml up -d --build
+#
+# Trois secrets sont nécessaires (Settings > Secrets and variables > Actions).
+# Le script scripts/configurer-deploiement.sh les prépare pour vous :
+#   VPS_HOTE         adresse du serveur
+#   VPS_UTILISATEUR  compte de connexion
+#   VPS_CLE_SSH      clé privée dédiée au déploiement (pas votre clé personnelle)
+#   VPS_KNOWN_HOSTS  empreinte publique du serveur (ssh-keyscan)
+#
+# Plus le chemin du dépôt sur le VPS, ex. /root/projects/Ventura, à mettre
+# soit en variable soit en secret :
+#   VPS_CHEMIN_PROJET
+# Ce n'est pas une donnée sensible ; en secret, GitHub le masquera par des
+# étoiles dans les journaux, ce qui gêne un peu le diagnostic.
+
+name: Déploiement backend
+
+on:
+  push:
+    branches: [main]
+    # Le frontend est hébergé ailleurs (Firebase) : inutile de reconstruire
+    # l'image Docker quand seul du code Vue a changé.
+    paths:
+      - 'backend/**'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploiement-backend.yml'
+  # Permet de relancer un déploiement à la main depuis l'onglet Actions,
+  # par exemple après avoir corrigé une variable d'environnement sur le VPS.
+  workflow_dispatch:
+
+# Deux push rapprochés ne doivent pas reconstruire l'image en même temps :
+# les déploiements s'exécutent l'un après l'autre. On n'annule pas celui en
+# cours, il pourrait laisser le serveur entre deux états.
+concurrency:
+  group: deploiement-production
+  cancel-in-progress: false
+
+jobs:
+  deployer:
+    name: Mise en production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Préparer la connexion SSH
+        env:
+          CLE_PRIVEE: ${{ secrets.VPS_CLE_SSH }}
+          EMPREINTES: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CLE_PRIVEE" > ~/.ssh/cle_deploiement
+          chmod 600 ~/.ssh/cle_deploiement
+          # L'empreinte est fournie explicitement : sans elle, il faudrait
+          # désactiver la vérification de l'hôte et le déploiement accepterait
+          # n'importe quel serveur se présentant à cette adresse.
+          printf '%s\n' "$EMPREINTES" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Déployer
+        env:
+          HOTE: ${{ secrets.VPS_HOTE }}
+          UTILISATEUR: ${{ secrets.VPS_UTILISATEUR }}
+          CHEMIN: ${{ vars.VPS_CHEMIN_PROJET || secrets.VPS_CHEMIN_PROJET }}
+          REFERENCE: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/cle_deploiement \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=20 \
+              "$UTILISATEUR@$HOTE" \
+              "CHEMIN='$CHEMIN' REFERENCE='$REFERENCE' bash -s" <<'DISTANT'
+          set -euo pipefail
+
+          cd "$CHEMIN"
+          echo "::group::Récupération du code"
+          git fetch --prune origin
+
+          # --ff-only plutôt que « git pull » : si quelqu'un a modifié un
+          # fichier suivi directement sur le VPS, le déploiement s'arrête avec
+          # un message clair au lieu d'ouvrir un conflit de fusion, ou pire,
+          # d'écraser silencieusement la modification.
+          if ! git merge --ff-only "$REFERENCE"; then
+            echo
+            echo "Le dépôt du VPS ne peut pas avancer jusqu'à $REFERENCE."
+            echo "Branche courante : $(git rev-parse --abbrev-ref HEAD)"
+            echo "Modifications locales :"
+            git status --short || true
+            echo "Connectez-vous pour arbitrer : cd $CHEMIN && git log --oneline -3"
+            exit 1
+          fi
+          echo "Déployé : $(git log --oneline -1)"
+          echo "::endgroup::"
+
+          echo "::group::Reconstruction des conteneurs"
+          # Les migrations Alembic sont jouées au démarrage du conteneur
+          # (voir la commande du service backend dans docker-compose.prod.yml).
+          docker compose -f docker-compose.prod.yml up -d --build
+          echo "::endgroup::"
+
+          echo "::group::Nettoyage"
+          # Sans cela, chaque déploiement laisse l'image précédente sur le
+          # disque et le VPS finit par saturer.
+          docker image prune -f
+          echo "::endgroup::"
+          DISTANT
+
+      - name: Vérifier que l'API répond
+        env:
+          URL_SANTE: ${{ vars.URL_SANTE || 'https://api.artisangestion.com/health' }}
+        run: |
+          set -euo pipefail
+          # Une migration en échec fait redémarrer le conteneur en boucle sans
+          # que « up -d » ne signale quoi que ce soit : c'est ici qu'on le voit.
+          for tentative in $(seq 1 20); do
+            if curl -fsS --max-time 10 "$URL_SANTE" > /tmp/sante.json 2>/dev/null; then
+              echo "API en ligne après $tentative tentative(s) : $(cat /tmp/sante.json)"
+              exit 0
+            fi
+            echo "Tentative $tentative/20 — l'API ne répond pas encore, nouvelle vérification dans 5 s."
+            sleep 5
+          done
+          echo "L'API n'a pas répondu dans les 100 secondes."
+          exit 1
+
+      - name: Afficher les journaux en cas d'échec
+        if: failure()
+        env:
+          HOTE: ${{ secrets.VPS_HOTE }}
+          UTILISATEUR: ${{ secrets.VPS_UTILISATEUR }}
+          CHEMIN: ${{ vars.VPS_CHEMIN_PROJET || secrets.VPS_CHEMIN_PROJET }}
+        run: |
+          # Évite un aller-retour en SSH pour comprendre ce qui a cassé.
+          ssh -i ~/.ssh/cle_deploiement -o StrictHostKeyChecking=yes \
+              "$UTILISATEUR@$HOTE" \
+              "cd '$CHEMIN' && docker compose -f docker-compose.prod.yml logs --tail=80 backend" \
+            || echo "Journaux inaccessibles."
