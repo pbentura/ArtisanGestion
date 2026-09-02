@@ -9,11 +9,10 @@ services:
       - .env.production
     # Pas de valeurs de repli ici : les identifiants viennent de .env.production,
     # qui n'est pas versionné.
-    # Pas de section "ports" non plus — la base ne doit être joignable que depuis
-    # le réseau Docker interne. Pour y accéder depuis votre poste, passez par un
-    # tunnel SSH :
-    #   ssh -L 5433:localhost:5432 <utilisateur>@<votre-vps>
-    #   puis connectez-vous sur localhost:5433
+    # Liaison sur 127.0.0.1 : la base est accessible uniquement en local
+    # sur le VPS (via tunnel SSH), et reste inaccessible depuis Internet.
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
