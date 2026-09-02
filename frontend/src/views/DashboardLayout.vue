@@ -11,6 +11,8 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileBottomNav from '@/components/mobile/MobileBottomNav.vue'
 import { useMobile } from '@/composables/useMobile'
 import { dataStore } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
+import { envoyerAttribution } from '@/lib/attribution'
 
 const router = useRouter()
 const route = useRoute()
@@ -43,6 +45,10 @@ const societe = computed(() => {
 onMounted(() => {
   // Prefetch everything including user data
   dataStore.prefetchAll()
+
+  // Point de passage obligé de toute session authentifiée : c'est ici qu'on
+  // rattache au compte la campagne qui a amené l'artisan. Idempotent.
+  envoyerAttribution(apiFetch)
 })
 
 function handleLogout() {

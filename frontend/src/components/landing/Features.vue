@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import gsap from 'gsap'
 import { Sparkles, FileText, Shield, ArrowRight } from 'lucide-vue-next'
 import { useIntersectionObserver } from '@vueuse/core'
+import { revealWhenVisible } from '@/composables/useReveal'
 
 const sectionRef = ref<HTMLElement | null>(null)
 
@@ -30,30 +31,38 @@ function startTyping() {
   }, 30)
 }
 
+let nettoyerReveal: (() => void) | null = null
+
 onMounted(() => {
   if (!sectionRef.value) return
 
-  // État initial (invisible)
-  gsap.set('.bento-header', { y: 30, opacity: 0 })
-  gsap.set('.bento-card', { y: 40, opacity: 0 })
+  // Les cartes sont visibles en CSS : on ne les masque qu'une fois la page
+  // réellement affichée, sinon elles resteraient à opacity 0 (cf. useReveal).
+  nettoyerReveal = revealWhenVisible(() => {
+    // État initial (invisible)
+    gsap.set('.bento-header', { y: 30, opacity: 0 })
+    gsap.set('.bento-card', { y: 40, opacity: 0 })
 
-  // Utiliser l'IntersectionObserver natif via VueUse (beaucoup plus robuste au refresh)
-  const { stop } = useIntersectionObserver(
-    sectionRef,
-    ([{ isIntersecting }]) => {
-      if (isIntersecting) {
-        gsap.to('.bento-header', { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' })
-        gsap.to('.bento-card', { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power3.out' })
-        
-        // Déclencher l'animation texte quand la carte IA est visible
-        setTimeout(() => startTyping(), 500)
-        
-        stop() // Ne jouer qu'une seule fois
-      }
-    },
-    { threshold: 0.15 } // Se déclenche quand 15% de la section est visible
-  )
+    // Utiliser l'IntersectionObserver natif via VueUse (beaucoup plus robuste au refresh)
+    const { stop } = useIntersectionObserver(
+      sectionRef,
+      ([{ isIntersecting }]) => {
+        if (isIntersecting) {
+          gsap.to('.bento-header', { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' })
+          gsap.to('.bento-card', { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power3.out' })
+
+          // Déclencher l'animation texte quand la carte IA est visible
+          setTimeout(() => startTyping(), 500)
+
+          stop() // Ne jouer qu'une seule fois
+        }
+      },
+      { threshold: 0.15 } // Se déclenche quand 15% de la section est visible
+    )
+  })
 })
+
+onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>

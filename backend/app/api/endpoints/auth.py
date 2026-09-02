@@ -155,10 +155,17 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
         or (settings.FRONTEND_URL.rstrip('/') if settings.FRONTEND_URL else "http://localhost:5173")
     )
     
+    # « Ce compte vient d'être créé » : le frontend en a besoin pour déclencher
+    # la conversion d'inscription. Sans cela, une inscription via Google est
+    # indiscernable d'une reconnexion et n'est jamais comptabilisée.
+    nouveau = "1" if is_new_user else "0"
+
     # Si on est sur mobile, on redirige vers le schéma d'URL personnalisé de l'app
     if platform == 'mobile':
         # On utilise le schéma d'URL de l'application Capacitor
-        return RedirectResponse(url=f"com.artisangestion.app://auth?token={access_token}")
+        return RedirectResponse(
+            url=f"com.artisangestion.app://auth?token={access_token}&nouveau={nouveau}"
+        )
         
     # Retourner une page HTML qui communique avec la fenêtre parente (popup)
     # ou redirige si ouvert directement
@@ -203,22 +210,23 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
         <script>
             const token = "{access_token}";
             const frontendUrl = "{frontend_url}";
+            const nouveau = "{nouveau}" === "1";
             
             try {{
                 // Si ouvert dans une popup, on envoie le token à la fenêtre parente
                 if (window.opener && window.opener !== window) {{
                     // Origine explicite : avec '*', le jeton serait remis à
                     // n'importe quelle page ayant ouvert cette popup.
-                    window.opener.postMessage({{ type: 'google-auth-success', token: token }}, frontendUrl);
+                    window.opener.postMessage({{ type: 'google-auth-success', token: token, nouveau: nouveau }}, frontendUrl);
                     // On laisse un petit délai pour être sûr que le message est envoyé avant de fermer
                     setTimeout(() => window.close(), 300);
                 }} else {{
                     // Sinon (redirection classique), on redirige directement
-                    window.location.href = frontendUrl + "/app/dashboard?token=" + token;
+                    window.location.href = frontendUrl + "/app/dashboard?token=" + token + (nouveau ? "&nouveau=1" : "");
                 }}
             }} catch (e) {{
                 console.error("Erreur lors de la finalisation de l'auth:", e);
-                window.location.href = frontendUrl + "/app/dashboard?token=" + token;
+                window.location.href = frontendUrl + "/app/dashboard?token=" + token + (nouveau ? "&nouveau=1" : "");
             }}
         </script>
     </body>

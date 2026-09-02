@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { FileText, ClipboardList, Clock, TrendingUp } from 'lucide-vue-next'
+
+import { revealWhenVisible } from '@/composables/useReveal'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -17,35 +19,42 @@ const stats = [
 
 const animatedValues = ref(stats.map(() => 0))
 
+let nettoyerReveal: (() => void) | null = null
+
 onMounted(() => {
   if (!sectionRef.value) return
 
-  ScrollTrigger.create({
-    trigger: sectionRef.value,
-    start: 'top 80%',
-    once: true,
-    onEnter: () => {
-      stats.forEach((stat, i) => {
-        const obj = { val: 0 }
-        gsap.to(obj, {
-          val: stat.value,
-          duration: 2,
-          ease: 'power2.out',
-          onUpdate: () => {
-            animatedValues.value[i] = Math.round(obj.val)
-          }
+  // Contenu visible en CSS : on n'anime qu'une fois la page affichée (useReveal).
+  nettoyerReveal = revealWhenVisible(() => {
+    ScrollTrigger.create({
+      trigger: sectionRef.value,
+      start: 'top 80%',
+      once: true,
+      onEnter: () => {
+        stats.forEach((stat, i) => {
+          const obj = { val: 0 }
+          gsap.to(obj, {
+            val: stat.value,
+            duration: 2,
+            ease: 'power2.out',
+            onUpdate: () => {
+              animatedValues.value[i] = Math.round(obj.val)
+            }
+          })
         })
-      })
-      gsap.from('.stat-card', {
-        y: 30,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.12,
-        ease: 'power3.out'
-      })
-    }
+        gsap.from('.stat-card', {
+          y: 30,
+          opacity: 0,
+          duration: 0.6,
+          stagger: 0.12,
+          ease: 'power3.out'
+        })
+      }
+    })
   })
 })
+
+onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>

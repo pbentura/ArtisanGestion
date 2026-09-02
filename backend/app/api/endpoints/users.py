@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Any
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Any, Optional
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.future import select
@@ -264,3 +265,70 @@ async def delete_user_me(
     
     await db.commit()
     return {"status": "success", "message": "Compte supprimé avec succès"}
+
+
+# ── Attribution de l'acquisition ──
+
+class AttributionIn(BaseModel):
+    """
+    Provenance du premier contact, envoyée par le frontend après connexion.
+
+    Le contenu vient du navigateur : on ne lui fait pas confiance sur la
+    longueur (d'où max_length) et on ne s'en sert que pour du reporting
+    interne, jamais pour accorder un droit.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    utm_source: Optional[str] = Field(default=None, max_length=255)
+    utm_medium: Optional[str] = Field(default=None, max_length=255)
+    utm_campaign: Optional[str] = Field(default=None, max_length=255)
+    utm_term: Optional[str] = Field(default=None, max_length=255)
+    utm_content: Optional[str] = Field(default=None, max_length=255)
+    gclid: Optional[str] = Field(default=None, max_length=255)
+    landing_page: Optional[str] = Field(default=None, max_length=255)
+    referrer: Optional[str] = Field(default=None, max_length=255)
+
+
+CHAMPS_ATTRIBUTION = (
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "gclid",
+    "landing_page",
+    "referrer",
+)
+
+
+@router.post("/me/attribution", status_code=status.HTTP_204_NO_CONTENT)
+async def enregistrer_attribution(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    attribution: AttributionIn,
+):
+    """
+    Rattache au compte la campagne qui a amené l'artisan.
+
+    Premier contact uniquement : si une provenance est déjà enregistrée, on
+    renvoie 409 sans rien modifier. Sinon un artisan qui revient six mois plus
+    tard par une autre annonce ferait disparaître la source qui l'a réellement
+    converti.
+    """
+    if any(getattr(current_user, champ) for champ in CHAMPS_ATTRIBUTION):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="La provenance de ce compte est déjà enregistrée.",
+        )
+
+    valeurs = attribution.model_dump(exclude_none=True)
+    if not valeurs:
+        return None
+
+    for champ, valeur in valeurs.items():
+        setattr(current_user, champ, valeur)
+
+    db.add(current_user)
+    await db.commit()
+    return None

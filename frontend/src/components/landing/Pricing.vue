@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { Check, Sparkles, Zap, ArrowRight, CreditCard } from 'lucide-vue-next'
 import { useIntersectionObserver } from '@vueuse/core'
+import { revealWhenVisible } from '@/composables/useReveal'
 
 const router = useRouter()
 const sectionRef = ref<HTMLElement | null>(null)
@@ -48,27 +49,35 @@ function handleCTA() {
   router.push('/auth')
 }
 
+let nettoyerReveal: (() => void) | null = null
+
 onMounted(() => {
   if (!sectionRef.value) return
 
-  // État initial (invisible)
-  gsap.set('.pricing-header', { y: 30, opacity: 0 })
-  gsap.set('.pricing-card', { y: 40, opacity: 0 })
+  // Les cartes de prix sont visibles en CSS : on ne les masque qu'une fois la
+  // page réellement affichée, sinon elles resteraient à opacity 0 (cf. useReveal).
+  nettoyerReveal = revealWhenVisible(() => {
+    // État initial (invisible)
+    gsap.set('.pricing-header', { y: 30, opacity: 0 })
+    gsap.set('.pricing-card', { y: 40, opacity: 0 })
 
-  // Utiliser l'IntersectionObserver natif via VueUse (beaucoup plus robuste au refresh)
-  const { stop } = useIntersectionObserver(
-    sectionRef,
-    ([{ isIntersecting }]) => {
-      if (isIntersecting) {
-        gsap.to('.pricing-header', { y: 0, opacity: 1, duration: 0.6 })
-        gsap.to('.pricing-card', { y: 0, opacity: 1, duration: 0.6, stagger: 0.12, ease: 'power3.out' })
-        
-        stop() // Ne jouer qu'une seule fois
-      }
-    },
-    { threshold: 0.15 } // Se déclenche quand 15% de la section est visible
-  )
+    // Utiliser l'IntersectionObserver natif via VueUse (beaucoup plus robuste au refresh)
+    const { stop } = useIntersectionObserver(
+      sectionRef,
+      ([{ isIntersecting }]) => {
+        if (isIntersecting) {
+          gsap.to('.pricing-header', { y: 0, opacity: 1, duration: 0.6 })
+          gsap.to('.pricing-card', { y: 0, opacity: 1, duration: 0.6, stagger: 0.12, ease: 'power3.out' })
+
+          stop() // Ne jouer qu'une seule fois
+        }
+      },
+      { threshold: 0.15 } // Se déclenche quand 15% de la section est visible
+    )
+  })
 })
+
+onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>

@@ -411,6 +411,13 @@ async function handleGoogleAuth() {
     if (event.data?.type === 'google-auth-success' && event.data?.token) {
       const token = event.data.token
       localStorage.setItem('token', token)
+
+      // Le backend distingue la création de compte de la reconnexion : sans
+      // cela, aucune inscription via Google ne remonterait à Google Ads.
+      if (event.data?.nouveau === true) {
+        trackConversion('sign_up', { method: 'google' })
+      }
+
       router.push('/app')
       
       if (authMessageListener) {

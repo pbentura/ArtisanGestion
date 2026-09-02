@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Sparkles, AlignLeft, AlignCenter, AlignJustify } from 'lucide-vue-next'
+
+import { revealWhenVisible } from '@/composables/useReveal'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const sectionRef = ref<HTMLElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
+
+let nettoyerReveal: (() => void) | null = null
 
 onMounted(() => {
   if (videoRef.value) {
@@ -16,27 +20,32 @@ onMounted(() => {
   }
 
   if (!sectionRef.value) return
-  nextTick(() => {
-    setTimeout(() => {
-      gsap.from('.ai-rapport-header', {
-        scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-        y: 30, opacity: 0, duration: 0.6
-      })
+  // Contenu visible en CSS : on n'anime qu'une fois la page affichée (useReveal).
+  nettoyerReveal = revealWhenVisible(() => {
+    nextTick(() => {
+      setTimeout(() => {
+        gsap.from('.ai-rapport-header', {
+          scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
+          y: 30, opacity: 0, duration: 0.6
+        })
 
-      gsap.from('.ai-rapport-ui', {
-        scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
-        x: -40, opacity: 0, duration: 0.8, ease: 'power3.out'
-      })
+        gsap.from('.ai-rapport-ui', {
+          scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
+          x: -40, opacity: 0, duration: 0.8, ease: 'power3.out'
+        })
 
-      gsap.from('.ai-rapport-video', {
-        scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
-        x: 40, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.2
-      })
+        gsap.from('.ai-rapport-video', {
+          scrollTrigger: { trigger: sectionRef.value, start: 'top 70%', once: true },
+          x: 40, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.2
+        })
 
-      ScrollTrigger.refresh()
-    }, 150)
+        ScrollTrigger.refresh()
+      }, 150)
+    })
   })
 })
+
+onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>

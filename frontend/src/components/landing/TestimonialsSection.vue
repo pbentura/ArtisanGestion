@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Star, Quote, MessageSquare } from 'lucide-vue-next'
+
+import { revealWhenVisible } from '@/composables/useReveal'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -35,18 +37,25 @@ const testimonials = [
   }
 ]
 
+let nettoyerReveal: (() => void) | null = null
+
 onMounted(() => {
   if (!sectionRef.value) return
 
-  gsap.from('.testimonials-header', {
-    scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-    y: 30, opacity: 0, duration: 0.6
-  })
-  gsap.from('.testimonial-card', {
-    scrollTrigger: { trigger: '.testimonials-grid', start: 'top 85%', once: true },
-    y: 40, opacity: 0, duration: 0.6, stagger: 0.15, ease: 'power3.out'
+  // Contenu visible en CSS : on n'anime qu'une fois la page affichée (useReveal).
+  nettoyerReveal = revealWhenVisible(() => {
+    gsap.from('.testimonials-header', {
+      scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
+      y: 30, opacity: 0, duration: 0.6
+    })
+    gsap.from('.testimonial-card', {
+      scrollTrigger: { trigger: '.testimonials-grid', start: 'top 85%', once: true },
+      y: 40, opacity: 0, duration: 0.6, stagger: 0.15, ease: 'power3.out'
+    })
   })
 })
+
+onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ChevronDown, HelpCircle } from 'lucide-vue-next'
+
+import { revealWhenVisible } from '@/composables/useReveal'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -44,17 +46,24 @@ const faqs = [
   }
 ]
 
+let nettoyerReveal: (() => void) | null = null
+
 onMounted(() => {
   if (!sectionRef.value) return
-  gsap.from('.faq-header', {
-    scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-    y: 30, opacity: 0, duration: 0.6
-  })
-  gsap.from('.faq-item', {
-    scrollTrigger: { trigger: '.faq-list', start: 'top 85%', once: true },
-    y: 20, opacity: 0, duration: 0.4, stagger: 0.08, ease: 'power3.out'
+  // Contenu visible en CSS : on n'anime qu'une fois la page affichée (useReveal).
+  nettoyerReveal = revealWhenVisible(() => {
+    gsap.from('.faq-header', {
+      scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
+      y: 30, opacity: 0, duration: 0.6
+    })
+    gsap.from('.faq-item', {
+      scrollTrigger: { trigger: '.faq-list', start: 'top 85%', once: true },
+      y: 20, opacity: 0, duration: 0.4, stagger: 0.08, ease: 'power3.out'
+    })
   })
 })
+
+onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>

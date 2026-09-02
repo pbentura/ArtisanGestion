@@ -23,6 +23,17 @@ class User(Base):
     password_reset_token = Column(String, nullable=True)
     password_reset_expires = Column(DateTime, nullable=True)
 
+    # Acquisition — provenance du premier contact, renseignée une seule fois.
+    # Sert à relier un abonnement payant à la campagne qui l'a produit.
+    utm_source = Column(String(255), nullable=True)
+    utm_medium = Column(String(255), nullable=True)
+    utm_campaign = Column(String(255), nullable=True, index=True)
+    utm_term = Column(String(255), nullable=True)
+    utm_content = Column(String(255), nullable=True)
+    gclid = Column(String(255), nullable=True)
+    landing_page = Column(String(255), nullable=True)
+    referrer = Column(String(255), nullable=True)
+
     # Équipe / Collaborateurs
     id_societe = Column(Integer, ForeignKey("societe.id"), nullable=True)
     active_societe_id = Column(Integer, ForeignKey("societe.id"), nullable=True)

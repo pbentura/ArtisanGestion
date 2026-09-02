@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -7,6 +7,8 @@ import LandingNavbar from '@/components/landing/LandingNavbar.vue'
 import Footer from '@/components/landing/Footer.vue'
 import MockupIphone from '@/components/landing/MockupIphone.vue'
 import { Camera, Sparkles, PenTool, CheckCircle2, ArrowRight, Smartphone } from 'lucide-vue-next'
+
+import { revealWhenVisible } from '@/composables/useReveal'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -48,28 +50,35 @@ function navigateToAuth() {
   router.push('/auth')
 }
 
+let nettoyerReveal: (() => void) | null = null
+
 onMounted(() => {
   if (!heroRef.value || !featuresRef.value) return
 
-  // Hero animations
-  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-  tl.from('.mobile-hero-text', { y: 30, opacity: 0, duration: 0.8, stagger: 0.2 })
-    .from('.iphone-mockup', { y: 100, opacity: 0, duration: 1 }, '-=0.4')
+  // Contenu visible en CSS : on n'anime qu'une fois la page affichée (useReveal).
+  nettoyerReveal = revealWhenVisible(() => {
+    // Hero animations
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+    tl.from('.mobile-hero-text', { y: 30, opacity: 0, duration: 0.8, stagger: 0.2 })
+      .from('.iphone-mockup', { y: 100, opacity: 0, duration: 1 }, '-=0.4')
 
-  // Scroll storytelling for iPhone
-  ScrollTrigger.create({
-    trigger: '.scroll-story-container',
-    start: 'top top',
-    end: '+=200%',
-    pin: true,
-    onUpdate: (self) => {
-      // Calculate which screen should be active based on progress (0 to 1)
-      let index = Math.floor(self.progress * screens.length)
-      if (index >= screens.length) index = screens.length - 1
-      activeScreen.value = index
-    }
+    // Scroll storytelling for iPhone
+    ScrollTrigger.create({
+      trigger: '.scroll-story-container',
+      start: 'top top',
+      end: '+=200%',
+      pin: true,
+      onUpdate: (self) => {
+        // Calculate which screen should be active based on progress (0 to 1)
+        let index = Math.floor(self.progress * screens.length)
+        if (index >= screens.length) index = screens.length - 1
+        activeScreen.value = index
+      }
+    })
   })
 })
+
+onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>

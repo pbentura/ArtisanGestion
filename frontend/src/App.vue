@@ -7,6 +7,7 @@ import LandingNavbar from '@/components/landing/LandingNavbar.vue'
 import SubscriptionModal from '@/components/SubscriptionModal.vue'
 import SocieteRequiredModal from '@/components/SocieteRequiredModal.vue'
 import ConsentBanner from '@/components/ConsentBanner.vue'
+import { trackConversion } from '@/lib/analytics'
 
 const router = useRouter()
 
@@ -21,6 +22,11 @@ onMounted(() => {
         const token = url.searchParams.get('token')
         if (token) {
           localStorage.setItem('token', token)
+          // Création de compte via Google sur mobile natif : même signal de
+          // conversion que sur le web.
+          if (url.searchParams.get('nouveau') === '1') {
+            trackConversion('sign_up', { method: 'google' })
+          }
           // Fermer le navigateur In-App s'il est ouvert
           Browser.close()
           // Rediriger vers l'application

@@ -7,7 +7,7 @@ import TermsOfService from '@/views/TermsOfService.vue'
 import MentionsLegales from '@/views/MentionsLegales.vue'
 
 import { API_BASE_URL } from '@/lib/api'
-import { trackPageView } from '@/lib/analytics'
+import { trackPageView, trackConversion } from '@/lib/analytics'
 import { Capacitor } from '@capacitor/core'
 
 const routes = [
@@ -283,13 +283,19 @@ router.beforeEach(async (to, _from, next) => {
   const tokenFromUrl = to.query.token as string
   if (tokenFromUrl && to.path !== '/verify-email' && to.path !== '/reset-password') {
     localStorage.setItem('token', tokenFromUrl)
-    
+
+    // Repli du flux Google sans popup : le backend signale ici une création de
+    // compte, à comptabiliser avant de nettoyer l'URL.
+    if (to.query.nouveau === '1') {
+      trackConversion('sign_up', { method: 'google' })
+    }
+
     // Nettoyer l'URL en restant sur la même route mais sans le token dans l'URL
-    const { token: _, ...remainingQuery } = to.query
-    return next({ 
-      path: to.path, 
-      query: remainingQuery, 
-      replace: true 
+    const { token: _, nouveau: __, ...remainingQuery } = to.query
+    return next({
+      path: to.path,
+      query: remainingQuery,
+      replace: true
     })
   }
 
