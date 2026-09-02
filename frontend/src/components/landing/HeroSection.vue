@@ -4,9 +4,15 @@ import { useRouter } from 'vue-router'
 import { ArrowRight, CheckCircle2, Play, Shield } from 'lucide-vue-next'
 import gsap from 'gsap'
 import { revealWhenVisible } from '@/composables/useReveal'
+import { useLazyVideo } from '@/composables/useLazyVideo'
 
 const router = useRouter()
 const heroRef = ref<HTMLElement | null>(null)
+const heroVideoRef = ref<HTMLVideoElement | null>(null)
+
+// Le conteneur est masqué sous 1024 px (hidden lg:block) : l'observateur ne se
+// déclenche donc jamais sur mobile, où la vidéo n'est de toute façon pas vue.
+useLazyVideo(heroVideoRef, '/ArtisanGestionPromo.mp4')
 const isVisible = ref(false)
 
 function navigateToAuth() {
@@ -156,9 +162,14 @@ onUnmounted(() => nettoyerReveal?.())
               </div>
             </div>
 
+            <!-- L'affiche s'affiche instantanément ; la vidéo n'est
+                 téléchargée qu'une fois le hero à l'écran. Sans cela, 7 Mo
+                 partaient sur le chemin critique avant même que le visiteur
+                 ait lu le titre. -->
             <video
-              src="/ArtisanGestionPromo.mp4"
-              autoplay
+              ref="heroVideoRef"
+              poster="/poster-promo.jpg"
+              preload="none"
               loop
               muted
               playsinline

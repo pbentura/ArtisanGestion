@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useLazyVideo } from '@/composables/useLazyVideo'
 import { Sparkles, AlignLeft, AlignCenter, AlignJustify } from 'lucide-vue-next'
 
 import { revealWhenVisible } from '@/composables/useReveal'
@@ -11,14 +12,12 @@ gsap.registerPlugin(ScrollTrigger)
 const sectionRef = ref<HTMLElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 
+// Play video faster as requested
+useLazyVideo(videoRef, '/demo-ia-rapport.mp4', { playbackRate: 1.5 })
+
 let nettoyerReveal: (() => void) | null = null
 
 onMounted(() => {
-  if (videoRef.value) {
-    // Play video faster as requested
-    videoRef.value.playbackRate = 1.5
-  }
-
   if (!sectionRef.value) return
   // Contenu visible en CSS : on n'anime qu'une fois la page affichée (useReveal).
   nettoyerReveal = revealWhenVisible(() => {
@@ -150,10 +149,12 @@ onUnmounted(() => nettoyerReveal?.())
               <div class="ml-4 text-xs text-white/50 font-medium">Rédaction en cours...</div>
             </div>
             
+            <!-- Le poster s'affiche tout de suite ; la vidéo (4 Mo) n'est
+                 téléchargée qu'à l'approche de la section. -->
             <video
               ref="videoRef"
-              src="/demo-ia-rapport.mov"
-              autoplay
+              poster="/poster-demo-ia.jpg"
+              preload="none"
               loop
               muted
               playsinline

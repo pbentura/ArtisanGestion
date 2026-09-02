@@ -83,6 +83,22 @@ def _button(url: str, text: str) -> str:
     </table>"""
 
 
+def _envoyer(to: str, subject: str, content: str) -> bool:
+    """Envoi d'un email déjà mis en page. Un échec est journalisé, jamais levé."""
+    try:
+        resend.Emails.send({
+            "from": f"ArtisanGestion <{settings.EMAIL_FROM}>",
+            "to": [to],
+            "subject": subject,
+            "html": _base_template(content),
+        })
+        logger.info("Email « %s » envoyé à %s", subject, to)
+        return True
+    except Exception as e:
+        logger.error("Échec de l'envoi de « %s » à %s : %s", subject, to, e)
+        return False
+
+
 async def send_welcome_email(to: str, prenom: str) -> bool:
     """
     Envoie un email de bienvenue après la création du compte.
@@ -606,3 +622,122 @@ async def send_relance_facture(
     except Exception as e:
         logger.error("Échec de la relance pour %s (%s): %s", numero_facture, to, e)
         return False
+
+
+# ── Accompagnement de la période d'essai ──
+#
+# Ces messages ne sont pas décoratifs : sans eux, un artisan qui s'inscrit
+# disparaît silencieusement. Ils sont envoyés une seule fois chacun, la trace
+# étant tenue en base (cf. app/models/email_cycle_vie.py).
+
+
+async def send_activation_reminder(to: str, prenom: str) -> bool:
+    """
+    Relance un artisan inscrit qui n'a encore créé aucun document.
+
+    C'est la fuite la plus coûteuse d'une campagne payante : le clic est
+    facturé, le compte est créé, et rien ne se passe ensuite.
+    """
+    _init_resend()
+
+    content = f"""
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">Votre premier rapport en 2 minutes, {prenom}</h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Vous avez créé votre compte ArtisanGestion mais vous n'avez pas encore établi de document.
+            Le plus simple pour commencer : un rapport d'intervention.
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #eff6ff; border-radius: 12px; border-left: 4px solid #3b82f6;">
+            <tr>
+                <td style="padding: 20px 24px; color: #1e3a8a; font-size: 15px; line-height: 1.7;">
+                    1. Choisissez le type d'intervention<br>
+                    2. Décrivez en quelques mots ce que vous avez fait<br>
+                    3. L'IA rédige le rapport, vous le relisez et l'envoyez
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Pas besoin d'avoir renseigné toute votre entreprise pour essayer.
+        </p>
+
+        {_button(f"{settings.FRONTEND_URL}/app/rapports/new", "Créer mon premier rapport")}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            Une question, un blocage ? Répondez simplement à cet email.
+        </p>
+    """
+
+    return _envoyer(to, f"{prenom}, créez votre premier rapport en 2 minutes", content)
+
+
+async def send_trial_ending_soon(to: str, prenom: str, jours_restants: int) -> bool:
+    """Prévient avant la fin de l'essai, pour éviter le blocage-surprise."""
+    _init_resend()
+
+    jour = "jour" if jours_restants <= 1 else "jours"
+
+    content = f"""
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">
+            Il vous reste {jours_restants} {jour} d'essai
+        </h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Bonjour {prenom}, votre essai gratuit d'ArtisanGestion se termine dans {jours_restants} {jour}.
+            Passé ce délai, vous ne pourrez plus créer de nouveaux devis, factures ou rapports —
+            mais vous conserverez l'accès à tout ce que vous avez déjà produit.
+        </p>
+
+        <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Pour continuer sans interruption, l'abonnement démarre à <strong>19&nbsp;€ HT par mois</strong>,
+            sans engagement et résiliable en deux clics.
+        </p>
+
+        {_button(f"{settings.FRONTEND_URL}/app/settings?tab=abonnement", "Choisir mon abonnement")}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            Vous hésitez ou il vous manque quelque chose ? Répondez à cet email, nous lisons tout.
+        </p>
+    """
+
+    return _envoyer(
+        to, f"Votre essai ArtisanGestion se termine dans {jours_restants} {jour}", content
+    )
+
+
+async def send_trial_ended(to: str, prenom: str) -> bool:
+    """Envoyé le jour où l'essai se termine."""
+    _init_resend()
+
+    content = f"""
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">
+            Votre essai est terminé
+        </h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Bonjour {prenom}, vos 14 jours d'essai gratuit viennent de s'achever.
+            Vos documents restent accessibles : rien n'est supprimé. Pour en créer de nouveaux,
+            il suffit de choisir un abonnement.
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #f8fafc; border-radius: 12px; border-left: 4px solid #3b82f6;">
+            <tr>
+                <td style="padding: 20px 24px; color: #334155; font-size: 15px; line-height: 1.7;">
+                    <strong>Indépendant — 19&nbsp;€ HT/mois</strong><br>
+                    Rapports IA, devis et factures illimités, signature sur place.<br><br>
+                    <strong>Équipe — 39&nbsp;€ HT/mois</strong><br>
+                    Collaborateurs, signature à distance, relances d'impayés automatiques.
+                </td>
+            </tr>
+        </table>
+
+        {_button(f"{settings.FRONTEND_URL}/app/settings?tab=abonnement", "Reprendre là où j'en étais")}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            ArtisanGestion ne vous convient pas ? Dites-nous pourquoi en répondant à cet email —
+            c'est ce qui nous aide le plus à l'améliorer.
+        </p>
+    """
+
+    return _envoyer(to, "Votre essai ArtisanGestion est terminé", content)

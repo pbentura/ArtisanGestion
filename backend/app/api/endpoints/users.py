@@ -5,12 +5,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.future import select
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, resoudre_jours_essai
 from app.models.user import User
 from app.schemas.user import UserReadWithSocietes, UserUpdate, UserPasswordUpdate
 from app.core.security import get_password_hash, verify_password
 
 router = APIRouter()
+
+
+async def _profil_complet(user: User, db: AsyncSession) -> UserReadWithSocietes:
+    """
+    Sérialise un utilisateur avec ses sociétés et ses jours d'essai réels.
+
+    L'essai est résolu ici et non dans le schéma : pour un collaborateur, c'est
+    l'abonnement du propriétaire de l'entreprise qui compte, et le schéma n'a
+    pas accès à la base pour aller le chercher.
+    """
+    user_data = UserReadWithSocietes.model_validate(user)
+    user_data.trial_days_remaining = await resoudre_jours_essai(user, db)
+
+    societes_dict = {s.id: s for s in user_data.societes}
+    if user.societe_membre and user.societe_membre.id not in societes_dict:
+        from app.schemas.societe import SocieteRead
+        user_data.societes.append(SocieteRead.model_validate(user.societe_membre))
+
+    return user_data
+
 
 @router.get("/me", response_model=UserReadWithSocietes)
 async def read_user_me(
@@ -27,13 +47,7 @@ async def read_user_me(
     )
     user = result.scalars().first()
     
-    user_data = UserReadWithSocietes.model_validate(user)
-    societes_dict = {s.id: s for s in user_data.societes}
-    if user.societe_membre and user.societe_membre.id not in societes_dict:
-        from app.schemas.societe import SocieteRead
-        user_data.societes.append(SocieteRead.model_validate(user.societe_membre))
-        
-    return user_data
+    return await _profil_complet(user, db)
 
 @router.patch("/me", response_model=UserReadWithSocietes)
 async def update_user_me(
@@ -74,13 +88,7 @@ async def update_user_me(
         "data": user.onboarding_draft
     })
     
-    user_data = UserReadWithSocietes.model_validate(user)
-    societes_dict = {s.id: s for s in user_data.societes}
-    if user.societe_membre and user.societe_membre.id not in societes_dict:
-        from app.schemas.societe import SocieteRead
-        user_data.societes.append(SocieteRead.model_validate(user.societe_membre))
-        
-    return user_data
+    return await _profil_complet(user, db)
 
 @router.post("/me/switch-societe/{societe_id}", response_model=UserReadWithSocietes)
 async def switch_societe(
@@ -112,11 +120,7 @@ async def switch_societe(
     )
     reloaded_user = result.scalars().first()
     
-    user_data = UserReadWithSocietes.model_validate(reloaded_user)
-    societes_dict = {s.id: s for s in user_data.societes}
-    if reloaded_user.societe_membre and reloaded_user.societe_membre.id not in societes_dict:
-        from app.schemas.societe import SocieteRead
-        user_data.societes.append(SocieteRead.model_validate(reloaded_user.societe_membre))
+    user_data = await _profil_complet(reloaded_user, db)
         
     return user_data
 

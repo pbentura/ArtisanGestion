@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.user import User
+from app.schemas.user import jours_essai_restants
 from app.models.societe import Societe
 from app.schemas.token import TokenPayload
 
@@ -58,44 +59,46 @@ def is_admin(user: User) -> bool:
     return getattr(user, "role", None) == "ADMIN"
 
 def get_trial_days_remaining(user: User) -> int:
-    if is_admin(user) or getattr(user, "role", None) in ["PREMIUM", "TEAM"]:
-        return 9999
-    if not hasattr(user, "date_inscription") or not user.date_inscription:
-        return 0
-    now = datetime.now(timezone.utc)
-    # user.date_inscription should be an aware datetime, but if naive, make it aware
-    date_inscr = user.date_inscription
-    if date_inscr.tzinfo is None:
-        date_inscr = date_inscr.replace(tzinfo=timezone.utc)
-        
-    delta = now - date_inscr
-    remaining = 14 - delta.days
-    return max(0, remaining)
+    return jours_essai_restants(
+        getattr(user, "role", None), getattr(user, "date_inscription", None)
+    )
+
+
+async def resoudre_jours_essai(user: User, db: AsyncSession) -> int:
+    """
+    Jours d'essai restants en tenant compte du propriétaire de l'entreprise.
+
+    Un collaborateur a son propre compte, sans abonnement : c'est celui de son
+    patron qui ouvre les droits. Sans cette résolution, un collaborateur d'une
+    équipe abonnée serait bloqué 14 jours après *sa* propre inscription.
+    """
+    a_verifier = user
+
+    # On détermine l'entreprise active
+    active_id = getattr(user, 'active_societe_id', None) or user.id_societe
+    if not active_id:
+        result = await db.execute(select(Societe.id).where(Societe.id_user == user.id))
+        active_id = result.scalar()
+
+    if active_id:
+        result = await db.execute(select(Societe.id_user).where(Societe.id == active_id))
+        owner_id = result.scalar()
+        if owner_id and owner_id != user.id:
+            # Si l'utilisateur consulte une entreprise qu'il ne possède pas, on vérifie l'essai du propriétaire
+            owner_result = await db.execute(select(User).where(User.id == owner_id))
+            owner = owner_result.scalars().first()
+            if owner:
+                a_verifier = owner
+
+    return get_trial_days_remaining(a_verifier)
+
 
 async def check_trial_active(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> User:
     """Dependency qui lève une exception si l'essai est terminé."""
-    user_to_check = current_user
-    
-    # On détermine l'entreprise active
-    active_id = getattr(current_user, 'active_societe_id', None) or current_user.id_societe
-    if not active_id:
-        result = await db.execute(select(Societe.id).where(Societe.id_user == current_user.id))
-        active_id = result.scalar()
-        
-    if active_id:
-        result = await db.execute(select(Societe.id_user).where(Societe.id == active_id))
-        owner_id = result.scalar()
-        if owner_id and owner_id != current_user.id:
-            # Si l'utilisateur consulte une entreprise qu'il ne possède pas, on vérifie l'essai du propriétaire
-            owner_result = await db.execute(select(User).where(User.id == owner_id))
-            owner = owner_result.scalars().first()
-            if owner:
-                user_to_check = owner
-
-    if get_trial_days_remaining(user_to_check) == 0:
+    if await resoudre_jours_essai(current_user, db) == 0:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Votre période d'essai est terminée. Veuillez souscrire à un abonnement."

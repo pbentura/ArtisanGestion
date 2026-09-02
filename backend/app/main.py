@@ -22,6 +22,7 @@ from app.models.facture import Facture
 from app.models.ligne_facture import LigneFacture
 from app.models.invitation import Invitation
 from app.models.relance import RelanceFacture
+from app.models.email_cycle_vie import EmailCycleVie
 
 from app.api.endpoints import auth, users, societes, clients, rapports, admin, ai, devis, factures, dashboard, ws, subscriptions, emails, collaborateurs, stripe_connect, webhooks
 

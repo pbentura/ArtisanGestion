@@ -8,6 +8,7 @@ import {
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import CompanySwitcher from '@/components/CompanySwitcher.vue'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
+import TrialBanner from '@/components/TrialBanner.vue'
 import MobileBottomNav from '@/components/mobile/MobileBottomNav.vue'
 import { useMobile } from '@/composables/useMobile'
 import { dataStore } from '@/lib/store'
@@ -160,6 +161,10 @@ function handleLogout() {
       <div v-if="isMobileView && !route.meta.hideMobileHeader" class="mobile-component">
         <MobileHeader />
       </div>
+
+      <!-- Rappel permanent de l'essai : sans lui, l'artisan ne découvrait
+           l'échéance qu'au moment d'être bloqué. -->
+      <TrialBanner v-if="!route.meta.hideMobileHeader" />
 
       <main 
         class="page-content" 

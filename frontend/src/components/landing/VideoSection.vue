@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useLazyVideo } from '@/composables/useLazyVideo'
 import { Play, Pause, Volume2, VolumeX } from 'lucide-vue-next'
 
 import { revealWhenVisible } from '@/composables/useReveal'
@@ -11,6 +12,10 @@ gsap.registerPlugin(ScrollTrigger)
 const sectionRef = ref<HTMLElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 const isPlaying = ref(false)
+
+// Cette section se regarde sur décision de l'artisan : on prépare la source
+// sans lancer la lecture, l'affiche et le bouton « lire » font le reste.
+useLazyVideo(videoRef, '/ArtisanGestionPromo.mp4', { autoPlay: false })
 const isMuted = ref(true)
 const showOverlay = ref(true)
 
@@ -113,13 +118,15 @@ onUnmounted(() => nettoyerReveal?.())
 
           <!-- Video -->
           <div class="relative cursor-pointer" @click="togglePlay">
+            <!-- Lecture à la demande : la source n'est posée qu'à
+                 l'approche de la section (cf. useLazyVideo). -->
             <video
               ref="videoRef"
-              src="/ArtisanGestionPromo.mp4"
+              poster="/poster-promo.jpg"
               muted
               playsinline
               loop
-              preload="metadata"
+              preload="none"
               class="w-full aspect-video object-cover"
             />
 

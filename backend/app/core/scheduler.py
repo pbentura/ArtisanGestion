@@ -40,8 +40,12 @@ def demarrer() -> Optional[AsyncIOScheduler]:
         return _scheduler
 
     from app.services.relances import executer_tache_quotidienne
+    from app.services.cycle_vie import (
+        executer_tache_quotidienne as executer_cycle_vie,
+    )
 
     heure = int(os.getenv("RELANCES_HEURE", "9"))
+    heure_cycle_vie = int(os.getenv("CYCLE_VIE_HEURE", "10"))
     fuseau = os.getenv("SCHEDULER_TIMEZONE", "Europe/Paris")
 
     _scheduler = AsyncIOScheduler(timezone=fuseau)
@@ -58,9 +62,22 @@ def demarrer() -> Optional[AsyncIOScheduler]:
         coalesce=True,
         replace_existing=True,
     )
+    # Décalée d'une heure : les deux tâches écrivent en base et appellent
+    # Resend, autant ne pas les faire se marcher dessus.
+    _scheduler.add_job(
+        executer_cycle_vie,
+        trigger=CronTrigger(hour=heure_cycle_vie, minute=0),
+        id="cycle_vie_essai",
+        name="Accompagnement de la période d'essai",
+        misfire_grace_time=3600,
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
     _scheduler.start()
     logger.info(
-        "Ordonnanceur démarré — relances quotidiennes à %sh00 (%s).", heure, fuseau
+        "Ordonnanceur démarré — relances à %sh00, cycle de vie à %sh00 (%s).",
+        heure, heure_cycle_vie, fuseau,
     )
     return _scheduler
 
