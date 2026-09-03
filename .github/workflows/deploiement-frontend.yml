@@ -1,0 +1,158 @@
+# Déploiement automatique de la landing et de l'application web sur Firebase
+# Hosting, à chaque push sur main.
+#
+# Sans ce workflow, le frontend se déploie à la main (npm run deploy) et finit
+# par prendre du retard sur le backend — c'est exactement ce qui s'est produit :
+# le backend était à jour pendant que la landing servait encore un build
+# antérieur, corrections de conversion comprises.
+#
+# ── Secret à créer (Settings > Secrets and variables > Actions) ──
+#
+#   FIREBASE_COMPTE_SERVICE  le JSON complet d'un compte de service Google
+#
+#     Console Firebase > Paramètres du projet > Comptes de service
+#       > Générer une nouvelle clé privée
+#     Le fichier téléchargé se colle tel quel dans le secret.
+#
+# ── Variables à créer (même écran, onglet « Variables ») ──
+#
+# Ces valeurs finissent dans le JavaScript envoyé au navigateur : elles ne
+# sont pas confidentielles. En variables plutôt qu'en secrets, elles restent
+# lisibles et modifiables — renseigner l'identifiant Google Ads le jour venu
+# ne demandera qu'une modification ici, puis une relance du workflow.
+#
+#   VITE_API_BASE_URL              https://api.artisangestion.com
+#   VITE_GA4_ID                    G-XXXXXXXXXX
+#   VITE_GOOGLE_ADS_ID             AW-XXXXXXXXX      (vide = aucune conversion envoyée)
+#   VITE_ADS_LABEL_SIGN_UP         étiquette de l'action de conversion
+#   VITE_ADS_LABEL_SOCIETE_CREATED idem
+#   VITE_ADS_LABEL_FIRST_DOCUMENT  idem
+#   VITE_ADS_LABEL_SUBSCRIPTION    idem
+
+name: Déploiement frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploiement-frontend.yml'
+  # Indispensable ici : renseigner l'identifiant Google Ads se fait en
+  # modifiant une variable, ce qui ne produit aucun commit. Sans déclenchement
+  # manuel, la nouvelle valeur n'atteindrait jamais le build.
+  workflow_dispatch:
+
+concurrency:
+  group: deploiement-frontend
+  cancel-in-progress: false
+
+jobs:
+  deployer:
+    name: Build et mise en ligne
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Reconstituer la configuration de build
+        env:
+          API: ${{ vars.VITE_API_BASE_URL }}
+          GA4: ${{ vars.VITE_GA4_ID }}
+          ADS: ${{ vars.VITE_GOOGLE_ADS_ID }}
+          L_INSCRIPTION: ${{ vars.VITE_ADS_LABEL_SIGN_UP }}
+          L_SOCIETE: ${{ vars.VITE_ADS_LABEL_SOCIETE_CREATED }}
+          L_DOCUMENT: ${{ vars.VITE_ADS_LABEL_FIRST_DOCUMENT }}
+          L_ABONNEMENT: ${{ vars.VITE_ADS_LABEL_SUBSCRIPTION }}
+        run: |
+          set -euo pipefail
+          # vite.config.ts déclare envDir: '..' : Vite lit .env.production à la
+          # racine du dépôt, fichier non versionné car il contient aussi les
+          # secrets du backend. On ne recrée donc ici que les variables VITE_*.
+          if [ -z "$API" ]; then
+            echo "La variable VITE_API_BASE_URL n'est pas définie."
+            echo "Sans elle, le build pointerait vers http://localhost:8000."
+            exit 1
+          fi
+          {
+            echo "VITE_API_BASE_URL=$API"
+            echo "VITE_GA4_ID=$GA4"
+            echo "VITE_GOOGLE_ADS_ID=$ADS"
+            echo "VITE_ADS_LABEL_SIGN_UP=$L_INSCRIPTION"
+            echo "VITE_ADS_LABEL_SOCIETE_CREATED=$L_SOCIETE"
+            echo "VITE_ADS_LABEL_FIRST_DOCUMENT=$L_DOCUMENT"
+            echo "VITE_ADS_LABEL_SUBSCRIPTION=$L_ABONNEMENT"
+          } > .env.production
+
+          echo "Mesure : GA4 $([ -n "$GA4" ] && echo 'activé' || echo 'absent')," \
+               "Google Ads $([ -n "$ADS" ] && echo 'activé' || echo 'ABSENT — aucune conversion ne remontera')."
+
+      - name: Installer les dépendances
+        working-directory: frontend
+        run: npm ci
+
+      - name: Construire
+        working-directory: frontend
+        # vue-tsc fait partie du script build : une erreur de typage arrête
+        # le déploiement plutôt que de mettre en ligne un frontend cassé.
+        run: npm run build
+
+      - name: Vérifier que le build contient bien la mesure attendue
+        working-directory: frontend
+        env:
+          GA4: ${{ vars.VITE_GA4_ID }}
+        run: |
+          set -euo pipefail
+          # Un .env mal placé produit un build silencieusement inerte : le site
+          # se déploie, l'analytique ne remonte rien, et cela ne se voit qu'en
+          # consultant les rapports des jours plus tard.
+          if [ -n "$GA4" ] && ! grep -rq "$GA4" dist/assets/*.js; then
+            echo "L'identifiant GA4 est absent du build : la configuration n'a pas été prise en compte."
+            exit 1
+          fi
+          echo "Build vérifié — $(du -sh dist | cut -f1)"
+
+      - name: Déployer sur Firebase Hosting
+        working-directory: frontend
+        env:
+          COMPTE_SERVICE: ${{ secrets.FIREBASE_COMPTE_SERVICE }}
+        run: |
+          set -euo pipefail
+          if [ -z "$COMPTE_SERVICE" ]; then
+            echo "Le secret FIREBASE_COMPTE_SERVICE est absent."
+            exit 1
+          fi
+          # Le fichier vit dans le répertoire de travail du runner, détruit à
+          # la fin du job.
+          printf '%s' "$COMPTE_SERVICE" > "$RUNNER_TEMP/compte-service.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/compte-service.json"
+          npx --yes firebase-tools@14 deploy \
+            --only hosting \
+            --project ventura-e277f \
+            --non-interactive \
+            --message "${GITHUB_SHA::7} — ${GITHUB_REF_NAME}"
+
+      - name: Vérifier le site en ligne
+        run: |
+          set -euo pipefail
+          # Le CDN Firebase met quelques secondes à propager la nouvelle version.
+          for tentative in $(seq 1 12); do
+            if curl -fsS --max-time 10 https://artisangestion.com/ > /tmp/page.html 2>/dev/null; then
+              if grep -q 'og:url" content="https://artisangestion.com' /tmp/page.html; then
+                echo "Site en ligne et à jour."
+                exit 0
+              fi
+              echo "Tentative $tentative/12 — ancienne version encore servie par le CDN."
+            else
+              echo "Tentative $tentative/12 — le site ne répond pas encore."
+            fi
+            sleep 10
+          done
+          echo "Le site n'a pas servi la nouvelle version dans les 2 minutes."
+          exit 1
