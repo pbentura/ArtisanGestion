@@ -1,59 +1,41 @@
-import logging
-from fastapi import APIRouter, Request, HTTPException, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-import stripe
+"""
+Ancienne URL de webhook Stripe, conservée comme alias.
 
-from app.core.config import settings
+Historiquement, ce module portait un second gestionnaire qui ne traitait que
+le paiement des factures. Un endpoint Stripe configuré ici répondait donc 200
+à un événement d'abonnement sans rien en faire : le client payait et restait
+bloqué, sans la moindre erreur pour le signaler.
+
+Plutôt que de supprimer la route — ce qui casserait tout endpoint Stripe
+encore configuré sur cette URL — elle délègue désormais au gestionnaire unique
+de `subscriptions.py`, qui couvre les deux flux. Les deux URL sont donc
+interchangeables, et le piège a disparu.
+
+Rien de nouveau ne devrait pointer ici : la référence est
+`POST /api/subscriptions/webhook`.
+"""
+
+import logging
+
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_db
-from app.models.facture import Facture
+from app.api.endpoints.subscriptions import (
+    traiter_evenement_stripe,
+    verifier_signature_stripe,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
-endpoint_secret = settings.STRIPE_WEBHOOK_SECRET if hasattr(settings, "STRIPE_WEBHOOK_SECRET") else None
 
 @router.post("/stripe")
-async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+async def stripe_webhook_alias(request: Request, db: AsyncSession = Depends(get_db)):
+    """Alias de compatibilité vers POST /api/subscriptions/webhook."""
     payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-
-    event = None
-
-    if not endpoint_secret:
-        # Sans secret, n'importe qui peut forger un événement de paiement.
-        # On refuse plutôt que de retomber sur un parsing non vérifié.
-        logger.error("STRIPE_WEBHOOK_SECRET non configuré : webhook refusé.")
-        raise HTTPException(status_code=503, detail="Webhook non configuré")
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
-        )
-    except ValueError as e:
-        logger.error(f"Invalid payload: {e}")
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError as e:
-        logger.error(f"Invalid signature: {e}")
-        raise HTTPException(status_code=400, detail="Invalid signature")
-
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        
-        # Vérifier si c'est un paiement de facture
-        if session.get("metadata") and session["metadata"].get("type") == "invoice_payment":
-            facture_id = session["metadata"].get("facture_id")
-            if facture_id:
-                try:
-                    result = await db.execute(select(Facture).where(Facture.id == int(facture_id)))
-                    facture = result.scalars().first()
-                    
-                    if facture:
-                        facture.est_payee = True
-                        await db.commit()
-                        logger.info(f"Facture {facture_id} marquée comme payée via Webhook.")
-                except Exception as e:
-                    logger.error(f"Erreur lors de la mise à jour de la facture {facture_id}: {e}")
-
+    event = verifier_signature_stripe(
+        payload, request.headers.get("stripe-signature"), request.url.path
+    )
+    await traiter_evenement_stripe(event, db)
     return {"status": "success"}

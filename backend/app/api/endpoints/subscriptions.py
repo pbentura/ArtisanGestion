@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -115,40 +116,109 @@ async def create_portal_session(current_user: User = Depends(get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/webhook")
-async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
+def verifier_signature_stripe(payload: bytes, sig_header: str, chemin: str):
+    """
+    Valide la signature d'un webhook Stripe contre tous les secrets connus.
 
-    if not settings.STRIPE_WEBHOOK_SECRET:
+    ArtisanGestion reçoit deux flux distincts, chacun depuis son propre
+    endpoint Stripe, donc chacun signé avec une clé différente :
+
+      - les abonnements, émis par le compte de la plateforme ;
+      - les factures des artisans, émises par leurs comptes Connect.
+
+    On essaie les secrets l'un après l'autre : un événement légitime en
+    validera toujours exactement un. Sans cela, la moitié des événements
+    seraient rejetés en 400 — un paiement encaissé sans que l'application
+    n'en sache rien.
+    """
+    secrets = settings.STRIPE_WEBHOOK_SECRETS
+    if not secrets:
         # Sans secret, un tiers pourrait forger un "checkout.session.completed"
         # et s'attribuer un abonnement ou marquer une facture comme payée.
-        logger.error("STRIPE_WEBHOOK_SECRET non configuré : webhook refusé.")
+        logger.error("Aucun secret de webhook Stripe configuré : webhook refusé.")
         raise HTTPException(status_code=503, detail="Webhook non configuré")
 
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
-    except stripe.error.SignatureVerificationError:
-        # Cause la plus fréquente : le secret vient d'un autre endpoint ou d'un
-        # autre mode (test/live) que la clé API utilisée. Sans abonnement activé
-        # après paiement, c'est ici qu'il faut regarder en premier.
-        mode_cle = "live" if settings.STRIPE_SECRET_KEY.startswith("sk_live_") else "test"
-        logger.error(
-            "Signature webhook Stripe invalide. Clé API en mode %s ; vérifiez que "
-            "STRIPE_WEBHOOK_SECRET provient bien de l'endpoint %s en mode %s "
-            "(Dashboard Stripe > Developers > Webhooks).",
-            mode_cle, request.url.path, mode_cle,
-        )
-        raise HTTPException(status_code=400, detail="Signature invalide")
-    except ValueError:
-        logger.error("Payload webhook Stripe illisible.")
-        raise HTTPException(status_code=400, detail="Payload invalide")
+    for secret in secrets:
+        try:
+            return stripe.Webhook.construct_event(payload, sig_header, secret)
+        except stripe.error.SignatureVerificationError:
+            continue
+        except ValueError:
+            # Corps illisible : réessayer avec une autre clé ne changerait rien.
+            logger.error("Payload webhook Stripe illisible.")
+            raise HTTPException(status_code=400, detail="Payload invalide")
 
-    if event.type == 'checkout.session.completed':
-        session = event.data.object
-        metadata = session.get("metadata", {})
+    # Cause la plus fréquente : le secret vient d'un autre endpoint ou d'un
+    # autre mode (test/live) que la clé API utilisée. Sans abonnement activé
+    # après paiement, c'est ici qu'il faut regarder en premier.
+    mode_cle = "live" if settings.STRIPE_SECRET_KEY.startswith("sk_live_") else "test"
+    logger.error(
+        "Signature webhook Stripe invalide sur %s : aucun des %s secret(s) connu(s) "
+        "ne correspond. Clé API en mode %s. Vérifiez que STRIPE_WEBHOOK_SECRET "
+        "(endpoint compte) et STRIPE_CONNECT_WEBHOOK_SECRET (endpoint Connect) "
+        "proviennent bien des endpoints en mode %s "
+        "(Dashboard Stripe > Developers > Webhooks).",
+        chemin, len(secrets), mode_cle, mode_cle,
+    )
+    raise HTTPException(status_code=400, detail="Signature invalide")
+
+
+def _en_dict(objet) -> dict:
+    """
+    Convertit un objet du SDK Stripe en dictionnaire Python ordinaire.
+
+    Ces objets n'exposent pas `.get()` : `session.get("metadata", {})` lève
+    AttributeError et fait échouer le webhook en 500. Stripe réessaie alors
+    pendant des jours, l'abonnement ne s'active jamais, et rien dans
+    l'application ne le signale. On normalise donc une fois à l'entrée,
+    et tout le traitement travaille sur des dictionnaires ordinaires.
+    """
+    if isinstance(objet, dict):
+        return objet
+    try:
+        return objet.to_dict_recursive()
+    except AttributeError:
+        try:
+            return json.loads(str(objet))
+        except (TypeError, ValueError):
+            return {}
+
+
+async def _retrograder_client(customer_id: str, db: AsyncSession) -> None:
+    """Repasse en USER le titulaire d'un abonnement qui n'est plus actif."""
+    if not customer_id:
+        return
+    try:
+        client = _en_dict(stripe.Customer.retrieve(customer_id))
+    except Exception:
+        logger.exception("Client Stripe %s illisible.", customer_id)
+        return
+
+    email = client.get("email")
+    if not email:
+        return
+
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalars().first()
+    if user:
+        user.role = "USER"
+        await db.commit()
+        logger.info("Abonnement terminé pour %s : retour au rôle USER.", email)
+
+
+async def traiter_evenement_stripe(event, db: AsyncSession):
+    """
+    Traite un événement Stripe déjà authentifié.
+
+    Couvre les deux flux : le paiement d'une facture par le client d'un
+    artisan (reconnu à sa métadonnée) et l'abonnement à ArtisanGestion.
+    """
+    donnees = _en_dict(event)
+    type_evenement = donnees.get("type")
+    objet = donnees.get("data", {}).get("object") or {}
+
+    if type_evenement == 'checkout.session.completed':
+        metadata = objet.get("metadata") or {}
 
         # --- Paiement de facture via Connect ---
         if metadata.get("type") == "invoice_payment":
@@ -166,6 +236,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 if facture and not facture.est_payee:
                     facture.est_payee = True
                     await db.commit()
+                    logger.info("Facture %s marquée payée.", facture.numero_facture)
 
                     # Notification WebSocket à l'artisan
                     if user_id:
@@ -177,62 +248,38 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                                 "message": f"La facture {facture.numero_facture} a été payée en ligne !",
                             })
                         except Exception as ws_err:
-                            import logging
-                            logging.getLogger(__name__).warning(f"WebSocket notification failed: {ws_err}")
+                            logger.warning("Notification WebSocket échouée : %s", ws_err)
 
         # --- Abonnement classique ---
         else:
-            client_reference_id = session.get("client_reference_id")
+            client_reference_id = objet.get("client_reference_id")
             plan_name = metadata.get("plan")
 
             if client_reference_id and plan_name:
-                user_id = int(client_reference_id)
-                result = await db.execute(select(User).where(User.id == user_id))
+                result = await db.execute(
+                    select(User).where(User.id == int(client_reference_id))
+                )
                 user = result.scalars().first()
 
                 if user:
-                    if plan_name.lower() == "équipe" or plan_name.lower() == "equipe":
-                        user.role = "TEAM"
-                    else:
-                        user.role = "PREMIUM"
-                    
+                    user.role = "TEAM" if plan_name.strip().lower() in ("équipe", "equipe") else "PREMIUM"
                     await db.commit()
+                    logger.info(
+                        "Abonnement %s activé pour %s (rôle %s).",
+                        plan_name, user.email, user.role,
+                    )
 
-    elif event.type in ['customer.subscription.deleted', 'customer.subscription.canceled']:
-        subscription = event.data.object
-        customer_id = subscription.get("customer")
-        
-        if customer_id:
-            customer = stripe.Customer.retrieve(customer_id)
-            email = customer.get("email")
-            
-            if email:
-                result = await db.execute(select(User).where(User.email == email))
-                user = result.scalars().first()
-                if user:
-                    user.role = "USER"
-                    await db.commit()
+    elif type_evenement in ('customer.subscription.deleted', 'customer.subscription.canceled'):
+        await _retrograder_client(objet.get("customer"), db)
 
-    elif event.type == 'customer.subscription.updated':
-        subscription = event.data.object
-        customer_id = subscription.get("customer")
-        sub_status = subscription.get("status")
-        
-        if sub_status in ['canceled', 'unpaid', 'past_due'] and customer_id:
-            customer = stripe.Customer.retrieve(customer_id)
-            email = customer.get("email")
-            
-            if email:
-                result = await db.execute(select(User).where(User.email == email))
-                user = result.scalars().first()
-                if user:
-                    user.role = "USER"
-                    await db.commit()
+    elif type_evenement == 'customer.subscription.updated':
+        # Résiliation, impayé ou prélèvement en échec : l'accès se referme.
+        if objet.get("status") in ('canceled', 'unpaid', 'past_due'):
+            await _retrograder_client(objet.get("customer"), db)
 
-    elif event.type == 'account.updated':
-        # Stripe Connect: mise à jour du statut du compte artisan
-        account = event.data.object
-        account_id = account.get("id")
+    elif type_evenement == 'account.updated':
+        # Stripe Connect : mise à jour du statut du compte d'un artisan.
+        account_id = objet.get("id")
 
         if account_id:
             from app.models.societe import Societe as SocieteModel
@@ -245,14 +292,31 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             societe = result.scalars().first()
 
             if societe:
-                societe.stripe_connect_enabled = (
-                    account.get("charges_enabled", False)
-                    and account.get("payouts_enabled", False)
+                societe.stripe_connect_enabled = bool(
+                    objet.get("charges_enabled") and objet.get("payouts_enabled")
                 )
-                societe.stripe_connect_onboarding_complete = account.get(
-                    "details_submitted", False
+                societe.stripe_connect_onboarding_complete = bool(
+                    objet.get("details_submitted")
                 )
                 await db.commit()
 
+    else:
+        logger.debug("Événement Stripe ignoré : %s", type_evenement)
+
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Point d'entrée unique des webhooks Stripe.
+
+    Les deux endpoints déclarés dans Stripe — celui du compte et celui de
+    Connect — pointent vers cette URL. Le gestionnaire reconnaît le type
+    d'événement, il n'a pas besoin de savoir d'où il vient.
+    """
+    payload = await request.body()
+    event = verifier_signature_stripe(
+        payload, request.headers.get("stripe-signature"), request.url.path
+    )
+    await traiter_evenement_stripe(event, db)
     return {"status": "success"}
 

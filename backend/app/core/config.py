@@ -40,8 +40,29 @@ class Settings:
 
     # Stripe
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+
+    # Deux endpoints webhook coexistent, et Stripe leur donne chacun sa propre
+    # clé de signature :
+    #   - un endpoint « compte » reçoit les événements de la plateforme,
+    #     c'est-à-dire les abonnements ArtisanGestion ;
+    #   - un endpoint « Connect » reçoit ceux des comptes des artisans,
+    #     c'est-à-dire les factures payées par leurs clients.
+    # Un seul secret ne peut donc pas valider les deux : les signatures venant
+    # de l'autre endpoint seraient rejetées en 400, sans que rien ne l'indique
+    # côté application.
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    STRIPE_CONNECT_WEBHOOK_SECRET: str = os.getenv("STRIPE_CONNECT_WEBHOOK_SECRET", "")
+
     STRIPE_CONNECT_COMMISSION_PERCENT: float = float(os.getenv("STRIPE_CONNECT_COMMISSION_PERCENT", "1.5"))
+
+    @property
+    def STRIPE_WEBHOOK_SECRETS(self) -> list[str]:
+        """Secrets de signature à essayer, dans l'ordre. Doublons écartés."""
+        vus: list[str] = []
+        for secret in (self.STRIPE_WEBHOOK_SECRET, self.STRIPE_CONNECT_WEBHOOK_SECRET):
+            if secret and secret not in vus:
+                vus.append(secret)
+        return vus
 
     @property
     def DATABASE_URI(self) -> str:
