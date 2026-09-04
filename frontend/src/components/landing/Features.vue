@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import gsap from 'gsap'
+import { ref, onMounted } from 'vue'
 import { Sparkles, FileText, Shield, ArrowRight } from 'lucide-vue-next'
-import { useIntersectionObserver } from '@vueuse/core'
-import { revealWhenVisible } from '@/composables/useReveal'
 
 const sectionRef = ref<HTMLElement | null>(null)
 
@@ -31,38 +28,21 @@ function startTyping() {
   }, 30)
 }
 
-let nettoyerReveal: (() => void) | null = null
-
 onMounted(() => {
   if (!sectionRef.value) return
-
-  // Les cartes sont visibles en CSS : on ne les masque qu'une fois la page
-  // réellement affichée, sinon elles resteraient à opacity 0 (cf. useReveal).
-  nettoyerReveal = revealWhenVisible(() => {
-    // État initial (invisible)
-    gsap.set('.bento-header', { y: 30, opacity: 0 })
-    gsap.set('.bento-card', { y: 40, opacity: 0 })
-
-    // Utiliser l'IntersectionObserver natif via VueUse (beaucoup plus robuste au refresh)
-    const { stop } = useIntersectionObserver(
-      sectionRef,
-      ([{ isIntersecting }]) => {
-        if (isIntersecting) {
-          gsap.to('.bento-header', { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' })
-          gsap.to('.bento-card', { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power3.out' })
-
-          // Déclencher l'animation texte quand la carte IA est visible
-          setTimeout(() => startTyping(), 500)
-
-          stop() // Ne jouer qu'une seule fois
-        }
-      },
-      { threshold: 0.15 } // Se déclenche quand 15% de la section est visible
-    )
-  })
+  // Seule l'animation de frappe a besoin d'un déclencheur : la révélation des
+  // cartes est portée par la directive v-apparait, qui laisse le contenu
+  // visible si le JavaScript ne s'exécute pas.
+  const observateur = new IntersectionObserver(
+    ([e]) => {
+      if (!e.isIntersecting) return
+      startTyping()
+      observateur.disconnect()
+    },
+    { threshold: 0.15 }
+  )
+  observateur.observe(sectionRef.value)
 })
-
-onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>
@@ -75,7 +55,7 @@ onUnmounted(() => nettoyerReveal?.())
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
       <!-- Header -->
-      <div class="bento-header text-center mb-16">
+      <div v-apparait class="bento-header text-center mb-16">
         <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
           <Sparkles class="h-4 w-4" />
           Fonctionnalités
@@ -92,7 +72,7 @@ onUnmounted(() => nettoyerReveal?.())
       <div class="bento-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
 
         <!-- Card 1: AI Reports -->
-        <div class="bento-card bento-ai-card group relative rounded-3xl bg-gradient-to-br from-primary/5 via-card to-card border border-border/50 p-7 overflow-hidden hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 cursor-default flex flex-col">
+        <div v-apparait class="bento-card bento-ai-card group relative rounded-3xl bg-gradient-to-br from-primary/5 via-card to-card border border-border/50 p-7 overflow-hidden hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 cursor-default flex flex-col">
           <div class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
             <Sparkles class="h-6 w-6 text-primary" />
           </div>
@@ -117,7 +97,7 @@ onUnmounted(() => nettoyerReveal?.())
         </div>
 
         <!-- Card 2: Devis -->
-        <div class="bento-card group relative rounded-3xl bg-card border border-border/50 p-7 overflow-hidden hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 cursor-default flex flex-col">
+        <div v-apparait class="bento-card group relative rounded-3xl bg-card border border-border/50 p-7 overflow-hidden hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 cursor-default flex flex-col">
           <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
             <FileText class="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           </div>
@@ -151,7 +131,7 @@ onUnmounted(() => nettoyerReveal?.())
         </div>
 
         <!-- Card 3: Factures -->
-        <div class="bento-card group relative rounded-3xl bg-card border border-border/50 p-7 overflow-hidden hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 cursor-default flex flex-col">
+        <div v-apparait class="bento-card group relative rounded-3xl bg-card border border-border/50 p-7 overflow-hidden hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 cursor-default flex flex-col">
           <div class="absolute top-4 right-4">
             <span class="text-[10px] px-2 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">Prêt 2026</span>
           </div>

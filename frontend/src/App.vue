@@ -11,6 +11,9 @@ import { trackConversion } from '@/lib/analytics'
 
 const router = useRouter()
 
+// Pages vitrines partageant la même barre de navigation.
+const PAGES_PUBLIQUES = ['/', '/rapport-intervention', '/devis-factures', '/mobile']
+
 onMounted(() => {
   // Écouter les liens personnalisés (ex: com.artisangestion.app://auth?token=...)
   CapApp.addListener('appUrlOpen', data => {
@@ -42,8 +45,10 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-background text-foreground font-sans">
-    <!-- Navigation (only show on landing page) -->
-    <LandingNavbar v-if="$route.path === '/'" />
+    <!-- Navigation : toutes les pages publiques, pas seulement l'accueil.
+         Sans cela, un visiteur arrivant d'une annonce sur une page
+         spécialisée n'avait ni logo, ni menu, ni retour possible. -->
+    <LandingNavbar v-if="PAGES_PUBLIQUES.includes($route.path)" />
 
     <!-- Main Content -->
     <main>

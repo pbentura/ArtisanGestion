@@ -4,6 +4,7 @@ import router from './router'
 import './assets/index.css'
 import { initAnalytics } from './lib/analytics'
 import { capturerAttribution } from './lib/attribution'
+import { vApparait } from './composables/useApparition'
 
 // Avant que le routeur ne touche à l'URL : le gclid et les utm_* n'y sont
 // présents qu'au tout premier chargement.
@@ -15,4 +16,5 @@ initAnalytics()
 
 const app = createApp(App)
 app.use(router)
+app.directive('apparait', vApparait)
 app.mount('#app')

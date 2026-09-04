@@ -159,6 +159,41 @@
   animation: fadeSlideUp 0.5s ease-out both;
 }
 
+/* ── Apparition au défilement (directive v-apparait) ──
+   L'état par défaut est VISIBLE. Un élément n'est masqué que si la directive
+   s'est réellement exécutée : sans JavaScript, ou dans un onglet d'arrière-plan,
+   le contenu reste lisible. */
+.apparait--arme {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.apparait--vu {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apparait--arme { opacity: 1; transform: none; }
+  .apparait--vu { transition: none; }
+}
+
+/* Faisceaux décoratifs du hero, autrefois animés en JavaScript. En CSS ils
+   sont gratuits, tournent sur le compositeur et s'arrêtent d'eux-mêmes si
+   l'utilisateur a demandé à limiter les animations. */
+@keyframes faisceauH { from { transform: translateX(-50%) rotate(-15deg); } to { transform: translateX(50%) rotate(-15deg); } }
+@keyframes faisceauHInverse { from { transform: translateX(50%) rotate(10deg); } to { transform: translateX(-50%) rotate(10deg); } }
+@keyframes faisceauV { from { transform: translateY(-50%); } to { transform: translateY(50%); } }
+
+.faisceau-h { animation: faisceauH 8s linear infinite; }
+.faisceau-h-inverse { animation: faisceauHInverse 12s linear infinite 2s; }
+.faisceau-v { animation: faisceauV 10s linear infinite 4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .faisceau-h, .faisceau-h-inverse, .faisceau-v { animation: none; }
+}
+
 /* Styles pour le rendu des rapports générés (markdown / html) */
 .rapport-content h3 {
   color: #2563eb;

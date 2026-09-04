@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import gsap from 'gsap'
 import { Check, Sparkles, Zap, ArrowRight, CreditCard } from 'lucide-vue-next'
-import { useIntersectionObserver } from '@vueuse/core'
-import { revealWhenVisible } from '@/composables/useReveal'
 
 const router = useRouter()
-const sectionRef = ref<HTMLElement | null>(null)
 const isAnnual = ref(false)
 
 const plans = [
@@ -49,46 +45,18 @@ function handleCTA() {
   router.push('/auth')
 }
 
-let nettoyerReveal: (() => void) | null = null
 
-onMounted(() => {
-  if (!sectionRef.value) return
-
-  // Les cartes de prix sont visibles en CSS : on ne les masque qu'une fois la
-  // page réellement affichée, sinon elles resteraient à opacity 0 (cf. useReveal).
-  nettoyerReveal = revealWhenVisible(() => {
-    // État initial (invisible)
-    gsap.set('.pricing-header', { y: 30, opacity: 0 })
-    gsap.set('.pricing-card', { y: 40, opacity: 0 })
-
-    // Utiliser l'IntersectionObserver natif via VueUse (beaucoup plus robuste au refresh)
-    const { stop } = useIntersectionObserver(
-      sectionRef,
-      ([{ isIntersecting }]) => {
-        if (isIntersecting) {
-          gsap.to('.pricing-header', { y: 0, opacity: 1, duration: 0.6 })
-          gsap.to('.pricing-card', { y: 0, opacity: 1, duration: 0.6, stagger: 0.12, ease: 'power3.out' })
-
-          stop() // Ne jouer qu'une seule fois
-        }
-      },
-      { threshold: 0.15 } // Se déclenche quand 15% de la section est visible
-    )
-  })
-})
-
-onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>
-  <section id="pricing" ref="sectionRef" class="py-24 lg:py-32 relative overflow-hidden">
+  <section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="absolute inset-0 -z-10">
       <div class="absolute top-[30%] right-0 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[120px]" />
     </div>
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
       <!-- Header -->
-      <div class="pricing-header text-center mb-16">
+      <div v-apparait class="pricing-header text-center mb-16">
         <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
           <CreditCard class="h-4 w-4" />
           Tarifs
@@ -132,7 +100,7 @@ onUnmounted(() => nettoyerReveal?.())
         <div
           v-for="(plan, i) in plans"
           :key="i"
-          class="pricing-card relative transition-all duration-500"
+          v-apparait class="pricing-card relative transition-all duration-500"
           :class="plan.popular ? 'lg:scale-105 z-10' : ''"
         >
           <div v-if="plan.popular" class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">

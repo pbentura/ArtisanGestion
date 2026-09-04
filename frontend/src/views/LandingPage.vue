@@ -3,7 +3,10 @@ import HeroSection from '@/components/landing/HeroSection.vue'
 // import StatsSection from '@/components/landing/StatsSection.vue'
 import Features from '@/components/landing/Features.vue'
 import VideoSection from '@/components/landing/VideoSection.vue'
-import AIRapportSection from '@/components/landing/AIRapportSection.vue'
+// AIRapportSection a été déplacée sur /rapport-intervention : son argumentaire
+// détaillé y sert directement l'intention de recherche, au lieu de diluer la
+// page d'accueil. Un renvoi vers cette page la remplace ici.
+import PasserellesLanding from '@/components/landing/PasserellesLanding.vue'
 import CompareSection from '@/components/landing/CompareSection.vue'
 // TestimonialsSection reste désactivée : ses témoignages sont encore des
 // exemples marqués « [À REMPLACER] ». Publier de faux avis violerait les
@@ -20,7 +23,7 @@ import Footer from '@/components/landing/Footer.vue'
     <HeroSection />
     <!-- <StatsSection /> -->
     <Features />
-    <AIRapportSection />
+    <PasserellesLanding />
     <VideoSection />
     <CompareSection />
     <!-- <TestimonialsSection /> -->

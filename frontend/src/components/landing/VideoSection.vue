@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ref } from 'vue'
 import { useLazyVideo } from '@/composables/useLazyVideo'
 import { Play, Pause, Volume2, VolumeX } from 'lucide-vue-next'
 
-import { revealWhenVisible } from '@/composables/useReveal'
 
-gsap.registerPlugin(ScrollTrigger)
 
-const sectionRef = ref<HTMLElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 const isPlaying = ref(false)
 
@@ -40,35 +35,11 @@ function toggleMute() {
   isMuted.value = videoRef.value.muted
 }
 
-let nettoyerReveal: (() => void) | null = null
 
-onMounted(() => {
-  if (!sectionRef.value) return
-
-  // Contenu visible en CSS : on n'anime qu'une fois la page affichée (useReveal).
-  nettoyerReveal = revealWhenVisible(() => {
-    nextTick(() => {
-      setTimeout(() => {
-        gsap.from('.video-header', {
-          scrollTrigger: { trigger: sectionRef.value, start: 'top 80%', once: true },
-          y: 30, opacity: 0, duration: 0.6, ease: 'power3.out'
-        })
-        gsap.from('.video-frame', {
-          scrollTrigger: { trigger: '.video-frame', start: 'top 85%', once: true },
-          y: 50, opacity: 0, scale: 0.96, duration: 0.8, ease: 'power3.out'
-        })
-
-        ScrollTrigger.refresh()
-      }, 150)
-    })
-  })
-})
-
-onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>
-  <section id="video-section" ref="sectionRef" class="py-24 lg:py-32 bg-muted/30 relative overflow-hidden">
+  <section id="video-section" class="py-24 lg:py-32 bg-muted/30 relative overflow-hidden">
     <!-- Bg -->
     <div class="absolute inset-0 -z-10">
       <div class="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[150px]" />
@@ -76,7 +47,7 @@ onUnmounted(() => nettoyerReveal?.())
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
       <!-- Header -->
-      <div class="video-header text-center mb-12">
+      <div v-apparait class="video-header text-center mb-12">
         <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
           <Play class="h-4 w-4" />
           Démo
@@ -90,7 +61,7 @@ onUnmounted(() => nettoyerReveal?.())
       </div>
 
       <!-- Video Frame (Glassmorphism browser) -->
-      <div class="video-frame relative group">
+      <div v-apparait class="video-frame relative group">
         <!-- Glow -->
         <div class="absolute -inset-4 bg-gradient-to-r from-primary/15 via-blue-400/10 to-primary/15 rounded-[2rem] blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-700" />
 

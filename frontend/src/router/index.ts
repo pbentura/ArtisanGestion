@@ -21,12 +21,30 @@ const routes = [
     }
   },
   {
+    path: '/rapport-intervention',
+    name: 'landing-rapports',
+    component: () => import('@/views/RapportInterventionLanding.vue'),
+    meta: {
+      title: 'Logiciel de rapport d\'intervention par IA pour artisans',
+      description: 'Décrivez votre intervention en une phrase, l\'IA rédige le rapport professionnel en 10 secondes. Photos, signature client et historique inclus. Essai gratuit 14 jours.'
+    }
+  },
+  {
+    path: '/devis-factures',
+    name: 'landing-devis-factures',
+    component: () => import('@/views/DevisFacturesLanding.vue'),
+    meta: {
+      title: 'Logiciel de devis et facture pour artisans du bâtiment',
+      description: 'Chiffrez sur le chantier, faites signer, convertissez le devis en facture et encaissez. Relances automatiques et format Factur-X conforme 2026. Essai gratuit 14 jours.'
+    }
+  },
+  {
     path: '/mobile',
     name: 'mobile-landing',
     component: () => import('@/views/MobileLandingPage.vue'),
-    meta: { 
-      title: 'ArtisanGestion Mobile | L\'app tout-en-un pour les artisans',
-      description: 'Découvrez l\'application mobile ArtisanGestion. Facturez et créez vos rapports d\'intervention directement sur le chantier.'
+    meta: {
+      title: 'ArtisanGestion sur mobile | Gérez votre activité depuis le chantier',
+      description: 'Rapports, devis, factures et signature client depuis votre téléphone, sans rien installer. Essai gratuit 14 jours, sans carte bancaire.'
     }
   },
   {
@@ -348,8 +366,11 @@ router.beforeEach(async (to, _from, next) => {
   const title = meta?.title as string
   
   if (title) {
-    if (to.name === 'landing') {
-      document.title = title // Conserver le titre complet pour la landing
+    // Les pages d'atterrissage ont un titre rédigé pour la recherche : le
+    // préfixer de « ArtisanGestion | » le tronquerait dans les résultats.
+    const titresComplets = ['landing', 'landing-rapports', 'landing-devis-factures', 'mobile-landing']
+    if (titresComplets.includes(to.name as string)) {
+      document.title = title
     } else {
       document.title = `ArtisanGestion | ${title}`
     }

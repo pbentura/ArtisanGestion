@@ -7,10 +7,10 @@ const footerSections = [
   {
     title: 'Produit',
     links: [
-      { label: 'Fonctionnalités', href: '#features' },
-      { label: 'Tarifs', href: '#pricing' },
-      { label: 'Démo vidéo', href: '#video-section' },
-      { label: 'App Mobile', href: '/mobile' },
+      { label: 'Rapports d\'intervention', href: '/rapport-intervention' },
+      { label: 'Devis & factures', href: '/devis-factures' },
+      { label: 'Sur mobile', href: '/mobile' },
+      { label: 'Tarifs', href: '/#pricing' },
     ]
   },
   {
@@ -43,9 +43,9 @@ const footerSections = [
             L'outil tout-en-un pour gérer votre activité d'artisan et PME. Rapports, devis, factures — simplement.
           </p>
           <div class="space-y-2.5 text-sm">
-            <a href="mailto:contact@artisangestion.fr" class="flex items-center gap-2.5 text-secondary-foreground/60 hover:text-primary transition-colors">
+            <a href="mailto:contact@artisangestion.com" class="flex items-center gap-2.5 text-secondary-foreground/60 hover:text-primary transition-colors">
               <Mail class="h-4 w-4" />
-              pinhasbent@gmail.com
+              contact@artisangestion.com
             </a>
             <div class="flex items-center gap-2.5 text-secondary-foreground/60">
               <MapPin class="h-4 w-4" />
@@ -59,9 +59,14 @@ const footerSections = [
           <h4 class="font-semibold mb-4 text-sm text-secondary-foreground/90">{{ section.title }}</h4>
           <ul class="space-y-2.5">
             <li v-for="link in section.links" :key="link.label">
-              <a :href="link.href" class="text-sm text-secondary-foreground/60 hover:text-primary transition-colors">
+              <!-- Navigation interne : router-link évite un rechargement complet
+                   de l'application à chaque clic dans le pied de page. -->
+              <router-link
+                :to="link.href"
+                class="text-sm text-secondary-foreground/60 hover:text-primary transition-colors"
+              >
                 {{ link.label }}
-              </a>
+              </router-link>
             </li>
           </ul>
         </div>

@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
+const route = useRoute()
 const isMenuOpen = ref(false)
+
+// Les pages spécialisées reçoivent le trafic publicitaire : elles doivent
+// être atteignables depuis n'importe quelle page vitrine.
+const pages = [
+  { to: '/rapport-intervention', label: 'Rapports IA' },
+  { to: '/devis-factures', label: 'Devis & factures' },
+  { to: '/mobile', label: 'Sur mobile' },
+]
 const isScrolled = ref(false)
 
 function navigateToAuth() {
@@ -15,8 +24,13 @@ function navigateToAuth() {
 
 function scrollTo(id: string) {
   isMenuOpen.value = false
-  const el = document.getElementById(id)
-  if (el) el.scrollIntoView({ behavior: 'smooth' })
+  // Les ancres n'existent que sur l'accueil : depuis une page spécialisée,
+  // on y renvoie plutôt que de laisser le clic sans effet.
+  if (route.path !== '/') {
+    router.push({ path: '/', hash: `#${id}` })
+    return
+  }
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 }
 
 function handleScroll() {
@@ -42,10 +56,12 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 
         <!-- Desktop Nav -->
         <div class="hidden md:flex items-center gap-8">
-          <button @click="scrollTo('features')" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Fonctionnalités</button>
-          <button @click="scrollTo('video-section')" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Démo</button>
+          <router-link
+            v-for="p in pages" :key="p.to" :to="p.to"
+            class="text-sm font-medium transition-colors"
+            :class="route.path === p.to ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+          >{{ p.label }}</router-link>
           <button @click="scrollTo('pricing')" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Tarifs</button>
-          <router-link to="/mobile" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">App Mobile</router-link>
         </div>
 
         <!-- Desktop Actions -->
@@ -53,9 +69,15 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
           <ThemeToggle />
           <button
             @click="navigateToAuth"
-            class="hidden sm:inline-flex px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/25 active:scale-95"
+            class="hidden lg:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Connexion
+          </button>
+          <button
+            @click="navigateToAuth"
+            class="hidden sm:inline-flex px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/25 active:scale-95"
+          >
+            Essayer gratuitement
           </button>
 
           <!-- Mobile toggle -->
@@ -78,10 +100,11 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
     >
       <div v-if="isMenuOpen" class="fixed inset-0 z-40 bg-background/98 backdrop-blur-2xl md:hidden pt-20 px-6 pb-safe overflow-y-auto">
         <div class="flex flex-col gap-6 py-8">
-          <button @click="scrollTo('features')" class="text-left text-lg font-medium text-foreground border-b border-border pb-4">Fonctionnalités</button>
-          <button @click="scrollTo('video-section')" class="text-left text-lg font-medium text-foreground border-b border-border pb-4">Démo</button>
+          <router-link
+            v-for="p in pages" :key="p.to" :to="p.to" @click="isMenuOpen = false"
+            class="text-lg font-medium text-foreground border-b border-border pb-4"
+          >{{ p.label }}</router-link>
           <button @click="scrollTo('pricing')" class="text-left text-lg font-medium text-foreground border-b border-border pb-4">Tarifs</button>
-          <router-link to="/mobile" @click="isMenuOpen = false" class="text-lg font-medium text-foreground border-b border-border pb-4">App Mobile</router-link>
           <button
             @click="navigateToAuth"
             class="w-full px-4 py-3.5 bg-primary text-primary-foreground rounded-2xl text-base font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 mt-4"

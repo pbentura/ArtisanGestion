@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, CheckCircle2, Play, Shield } from 'lucide-vue-next'
-import gsap from 'gsap'
-import { revealWhenVisible } from '@/composables/useReveal'
 import { useLazyVideo } from '@/composables/useLazyVideo'
 
 const router = useRouter()
-const heroRef = ref<HTMLElement | null>(null)
 const heroVideoRef = ref<HTMLVideoElement | null>(null)
 
 // Le conteneur est masqué sous 1024 px (hidden lg:block) : l'observateur ne se
@@ -24,33 +21,9 @@ function scrollToVideo() {
   if (el) el.scrollIntoView({ behavior: 'smooth' })
 }
 
-let nettoyerReveal: (() => void) | null = null
-
 onMounted(() => {
   isVisible.value = true
-
-  if (!heroRef.value) return
-
-  // Le titre et les CTA sont visibles en CSS : l'animation ne s'enclenche
-  // qu'une fois la page réellement affichée (cf. useReveal).
-  nettoyerReveal = revealWhenVisible(() => {
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-
-    tl.from('.hero-badge', { y: 20, opacity: 0, duration: 0.6 })
-      .from('.hero-headline .word', { y: 40, opacity: 0, duration: 0.5, stagger: 0.08 }, '-=0.3')
-      .from('.hero-subtitle', { y: 20, opacity: 0, duration: 0.5 }, '-=0.2')
-      .from('.hero-cta', { y: 20, opacity: 0, duration: 0.5 }, '-=0.3')
-      .from('.hero-proof', { y: 20, opacity: 0, duration: 0.5 }, '-=0.3')
-      .from('.hero-visual', { y: 40, opacity: 0, scale: 0.95, duration: 0.8 }, '-=0.4')
-
-    // Animate background beams
-    gsap.to('.beam-1', { x: '100vw', duration: 8, repeat: -1, ease: 'none' })
-    gsap.to('.beam-2', { x: '-100vw', duration: 12, repeat: -1, ease: 'none', delay: 2 })
-    gsap.to('.beam-3', { y: '100vh', duration: 10, repeat: -1, ease: 'none', delay: 4 })
-  })
 })
-
-onUnmounted(() => nettoyerReveal?.())
 </script>
 
 <template>
@@ -58,16 +31,16 @@ onUnmounted(() => nettoyerReveal?.())
        bouton « Créer mon compte ». On réserve sa hauteur réelle en marge
        basse (--consent-h, publiée par ConsentBanner.vue) : le contenu remonte
        d'autant, quelle que soit la taille du bandeau ou de l'écran. -->
-  <section ref="heroRef" class="relative min-h-screen flex items-center overflow-hidden pt-20 sm:pt-24 pb-[calc(4rem+var(--consent-h,0px))] lg:pt-32 lg:pb-[calc(6rem+var(--consent-h,0px))]">
+  <section class="relative min-h-screen flex items-center overflow-hidden pt-20 sm:pt-24 pb-[calc(4rem+var(--consent-h,0px))] lg:pt-32 lg:pb-[calc(6rem+var(--consent-h,0px))]">
     <!-- Background -->
     <div class="absolute inset-0 -z-10">
       <!-- Base gradient -->
       <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
 
       <!-- Animated beams -->
-      <div class="beam-1 absolute top-[20%] -left-[50%] w-[200%] h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent rotate-[-15deg]" />
-      <div class="beam-2 absolute top-[50%] -right-[50%] w-[200%] h-[1px] bg-gradient-to-r from-transparent via-primary/10 to-transparent rotate-[10deg]" />
-      <div class="beam-3 absolute -top-[50%] left-[30%] w-[1px] h-[200%] bg-gradient-to-b from-transparent via-primary/15 to-transparent" />
+      <div class="beam-1 faisceau-h absolute top-[20%] -left-[50%] w-[200%] h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent rotate-[-15deg]" />
+      <div class="beam-2 faisceau-h-inverse absolute top-[50%] -right-[50%] w-[200%] h-[1px] bg-gradient-to-r from-transparent via-primary/10 to-transparent rotate-[10deg]" />
+      <div class="beam-3 faisceau-v absolute -top-[50%] left-[30%] w-[1px] h-[200%] bg-gradient-to-b from-transparent via-primary/15 to-transparent" />
 
       <!-- Glowing orbs -->
       <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-primary/8 rounded-full blur-[120px]" />
@@ -83,13 +56,13 @@ onUnmounted(() => nettoyerReveal?.())
         <!-- Content -->
         <div class="text-center lg:text-left">
           <!-- Badge -->
-          <div class="hero-badge inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-5 sm:mb-8 max-[359px]:hidden">
+          <div v-apparait class="hero-badge inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-5 sm:mb-8 max-[359px]:hidden">
             <Shield class="h-4 w-4" />
             <span>Conforme facturation électronique 2026</span>
           </div>
 
           <!-- Headline -->
-          <h1 ref="headlineRef" class="hero-headline text-3xl max-[359px]:text-2xl sm:text-5xl lg:text-6xl xl:text-[3.5rem] font-extrabold tracking-tight text-foreground mb-4 sm:mb-6 leading-[1.1]">
+          <h1 ref="headlineRef" v-apparait class="hero-headline text-3xl max-[359px]:text-2xl sm:text-5xl lg:text-6xl xl:text-[3.5rem] font-extrabold tracking-tight text-foreground mb-4 sm:mb-6 leading-[1.1]">
             <span class="word inline-block">Gagnez&nbsp;</span>
             <span class="word inline-block text-primary relative">
               5h par semaine
@@ -101,12 +74,12 @@ onUnmounted(() => nettoyerReveal?.())
           </h1>
 
           <!-- Subtitle -->
-          <p class="hero-subtitle text-base max-[359px]:text-sm sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 sm:mb-10 leading-relaxed">
+          <p v-apparait class="hero-subtitle text-base max-[359px]:text-sm sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 sm:mb-10 leading-relaxed">
             Rapports d'intervention générés par IA, devis et factures en 2 clics, conformité automatique — pour que vous puissiez vous concentrer sur votre métier d'artisan.
           </p>
 
           <!-- CTAs -->
-          <div class="hero-cta flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-6 sm:mb-10">
+          <div v-apparait class="hero-cta flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-6 sm:mb-10">
             <button
               @click="navigateToAuth"
               class="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-2xl text-lg font-semibold shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
@@ -125,7 +98,7 @@ onUnmounted(() => nettoyerReveal?.())
           </div>
 
           <!-- Social proof -->
-          <div class="hero-proof max-[359px]:hidden flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
+          <div v-apparait class="hero-proof max-[359px]:hidden flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
             <div class="flex -space-x-2.5">
               <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-background ring-2 ring-background" />
               <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 border-2 border-background ring-2 ring-background" />
@@ -141,7 +114,7 @@ onUnmounted(() => nettoyerReveal?.())
         </div>
 
         <!-- Video Visual -->
-        <div class="hero-visual relative group hidden lg:block">
+        <div v-apparait class="hero-visual relative group hidden lg:block">
           <!-- Glow -->
           <div class="absolute -inset-6 bg-gradient-to-r from-primary/20 via-blue-400/10 to-primary/20 rounded-3xl blur-3xl opacity-40 group-hover:opacity-70 transition-opacity duration-1000" />
 
