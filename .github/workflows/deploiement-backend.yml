@@ -69,11 +69,11 @@ jobs:
           REFERENCE: ${{ github.sha }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/cle_deploiement \
-              -o StrictHostKeyChecking=yes \
-              -o ConnectTimeout=20 \
-              "$UTILISATEUR@$HOTE" \
-              "CHEMIN='$CHEMIN' REFERENCE='$REFERENCE' bash -s" <<'DISTANT'
+
+          # Le script est écrit dans un fichier plutôt qu'en document en ligne :
+          # un heredoc serait consommé dès la première tentative et les
+          # suivantes s'exécuteraient à vide.
+          cat > "$RUNNER_TEMP/deploiement.sh" <<'DISTANT'
           set -euo pipefail
 
           cd "$CHEMIN"
@@ -109,6 +109,38 @@ jobs:
           echo "::endgroup::"
           DISTANT
 
+          # La liaison entre les runners Azure et le VPS se coupe parfois : des
+          # exécutions ont abouti à 08:37, 09:30 et 09:44, celle de 10h a expiré
+          # sans que rien n'ait changé côté serveur. Une coupure réseau n'a pas
+          # à faire échouer une mise en production. Le script distant est
+          # idempotent, le rejouer est sans risque.
+          for tentative in 1 2 3; do
+            code=0
+            ssh -i ~/.ssh/cle_deploiement \
+                -o StrictHostKeyChecking=yes \
+                -o ConnectTimeout=30 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=4 \
+                "$UTILISATEUR@$HOTE" \
+                "CHEMIN='$CHEMIN' REFERENCE='$REFERENCE' bash -s" \
+                < "$RUNNER_TEMP/deploiement.sh" || code=$?
+
+            [ "$code" -eq 0 ] && exit 0
+
+            # 255 = échec de la liaison SSH. Tout autre code vient du script
+            # distant : réessayer ne ferait que répéter la même erreur.
+            if [ "$code" -ne 255 ]; then
+              echo "Le déploiement a échoué sur le serveur (code $code)."
+              exit "$code"
+            fi
+
+            echo "::warning::VPS injoignable (tentative $tentative/3)."
+            [ "$tentative" -lt 3 ] && sleep $((tentative * 20))
+          done
+
+          echo "Le VPS est resté injoignable après 3 tentatives."
+          exit 1
+
       - name: Vérifier que l'API répond
         env:
           URL_SANTE: ${{ vars.URL_SANTE || 'https://api.artisangestion.com/health' }}
@@ -136,6 +168,7 @@ jobs:
         run: |
           # Évite un aller-retour en SSH pour comprendre ce qui a cassé.
           ssh -i ~/.ssh/cle_deploiement -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=30 \
               "$UTILISATEUR@$HOTE" \
               "cd '$CHEMIN' && docker compose -f docker-compose.prod.yml logs --tail=80 backend" \
             || echo "Journaux inaccessibles."
