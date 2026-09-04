@@ -55,7 +55,9 @@ def _produit_stripe(cle: str, libelle: str) -> str:
     """Produit Stripe du plan, créé une seule fois."""
     marqueur = _CLE_ASCII[cle]
     for produit in stripe.Product.list(limit=100, active=True).auto_paging_iter():
-        if (produit.metadata or {}).get("ag_plan") == marqueur:
+        # _en_dict est indispensable : les objets du SDK n'exposent pas .get()
+        # et lèvent AttributeError — le même piège que dans les webhooks.
+        if (_en_dict(produit).get("metadata") or {}).get("ag_plan") == marqueur:
             return produit.id
 
     produit = stripe.Product.create(
