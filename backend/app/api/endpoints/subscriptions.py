@@ -9,6 +9,11 @@ import stripe
 from app.core.config import settings
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
+from app.services.email_service import (
+    send_payment_failed,
+    send_subscription_cancelled,
+    send_subscription_confirmation,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -84,7 +89,7 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
                 'quantity': 1,
             }],
             mode='subscription',
-            metadata={"plan": plan["label"]},
+            metadata={"plan": plan["label"], "periode": periode},
             success_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement&session_id={CHECKOUT_SESSION_ID}",
             cancel_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement",
             client_reference_id=str(current_user.id),
@@ -184,8 +189,28 @@ def _en_dict(objet) -> dict:
             return {}
 
 
-async def _retrograder_client(customer_id: str, db: AsyncSession) -> None:
-    """Repasse en USER le titulaire d'un abonnement qui n'est plus actif."""
+async def _notifier(coroutine, contexte: str) -> None:
+    """
+    Envoie un email sans jamais faire échouer le webhook.
+
+    Une erreur ici renverrait 500 à Stripe, qui rejouerait l'événement — et
+    l'abonnement serait traité deux fois pour un simple problème d'email.
+    """
+    try:
+        await coroutine
+    except Exception:
+        logger.exception("Envoi de l'email « %s » échoué.", contexte)
+
+
+async def _retrograder_client(customer_id: str, db: AsyncSession, motif: str) -> None:
+    """
+    Repasse en USER le titulaire d'un abonnement qui n'est plus actif.
+
+    `motif` vaut "resiliation" ou "echec_paiement". La distinction n'est pas
+    cosmétique : envoyer « désolé de vous voir partir » à quelqu'un dont la
+    carte a simplement expiré le pousserait à partir pour de bon, alors qu'il
+    voulait rester.
+    """
     if not customer_id:
         return
     try:
@@ -200,10 +225,23 @@ async def _retrograder_client(customer_id: str, db: AsyncSession) -> None:
 
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalars().first()
-    if user:
-        user.role = "USER"
-        await db.commit()
-        logger.info("Abonnement terminé pour %s : retour au rôle USER.", email)
+    if not user:
+        return
+
+    # Déjà rétrogradé : Stripe rejoue parfois un événement, on n'envoie pas
+    # le message une seconde fois.
+    if user.role not in ("PREMIUM", "TEAM"):
+        return
+
+    user.role = "USER"
+    await db.commit()
+    logger.info("Abonnement terminé pour %s (%s) : retour au rôle USER.", email, motif)
+
+    prenom = user.prenom or ""
+    if motif == "echec_paiement":
+        await _notifier(send_payment_failed(user.email, prenom), "échec de paiement")
+    else:
+        await _notifier(send_subscription_cancelled(user.email, prenom), "résiliation")
 
 
 async def traiter_evenement_stripe(event, db: AsyncSession):
@@ -261,7 +299,9 @@ async def traiter_evenement_stripe(event, db: AsyncSession):
                 )
                 user = result.scalars().first()
 
-                if user:
+                # Un rôle déjà payant signale un événement rejoué par Stripe :
+                # on ne renvoie pas la confirmation une seconde fois.
+                if user and user.role not in ("PREMIUM", "TEAM"):
                     user.role = "TEAM" if plan_name.strip().lower() in ("équipe", "equipe") else "PREMIUM"
                     await db.commit()
                     logger.info(
@@ -269,13 +309,27 @@ async def traiter_evenement_stripe(event, db: AsyncSession):
                         plan_name, user.email, user.role,
                     )
 
+                    montant = objet.get("amount_total")
+                    await _notifier(
+                        send_subscription_confirmation(
+                            user.email,
+                            user.prenom or "",
+                            plan_name,
+                            metadata.get("periode") or "",
+                            f"{montant / 100:.2f} €".replace(".", ",") if montant else "",
+                        ),
+                        "confirmation d'abonnement",
+                    )
+
     elif type_evenement in ('customer.subscription.deleted', 'customer.subscription.canceled'):
-        await _retrograder_client(objet.get("customer"), db)
+        await _retrograder_client(objet.get("customer"), db, "resiliation")
 
     elif type_evenement == 'customer.subscription.updated':
         # Résiliation, impayé ou prélèvement en échec : l'accès se referme.
-        if objet.get("status") in ('canceled', 'unpaid', 'past_due'):
-            await _retrograder_client(objet.get("customer"), db)
+        statut = objet.get("status")
+        if statut in ('canceled', 'unpaid', 'past_due'):
+            motif = "resiliation" if statut == 'canceled' else "echec_paiement"
+            await _retrograder_client(objet.get("customer"), db, motif)
 
     elif type_evenement == 'account.updated':
         # Stripe Connect : mise à jour du statut du compte d'un artisan.

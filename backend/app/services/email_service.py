@@ -741,3 +741,128 @@ async def send_trial_ended(to: str, prenom: str) -> bool:
     """
 
     return _envoyer(to, "Votre essai ArtisanGestion est terminé", content)
+
+
+# ── Cycle de vie de l'abonnement ──
+
+
+async def send_subscription_confirmation(
+    to: str, prenom: str, plan: str, periode: str, montant: str
+) -> bool:
+    """Confirme l'activation d'un abonnement payant."""
+    _init_resend()
+
+    content = f"""
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">
+            Merci {prenom} — votre abonnement est actif
+        </h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Votre plan <strong>{plan}</strong> est en place. Vous pouvez créer vos devis,
+            factures et rapports d'intervention sans limite, dès maintenant.
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #f8fafc; border-radius: 12px; border-left: 4px solid #3b82f6;">
+            <tr>
+                <td style="padding: 20px 24px; color: #334155; font-size: 15px; line-height: 1.8;">
+                    Plan : <strong>{plan}</strong><br>
+                    Facturation : <strong>{periode}</strong><br>
+                    Montant : <strong>{montant}</strong>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Vos factures d'abonnement sont disponibles à tout moment depuis vos paramètres,
+            où vous pouvez également résilier en deux clics, sans préavis.
+        </p>
+
+        {_button(f"{settings.FRONTEND_URL}/app/settings?tab=abonnement", "Voir mon abonnement")}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            Une question sur une fonctionnalité ? Répondez simplement à cet email.
+        </p>
+    """
+
+    return _envoyer(to, "Votre abonnement ArtisanGestion est actif", content)
+
+
+async def send_subscription_cancelled(to: str, prenom: str) -> bool:
+    """
+    Confirme une résiliation.
+
+    Le seul objectif ici est de comprendre pourquoi la personne s'en va :
+    à ce stade, une réponse à cet email vaut plus qu'une relance commerciale.
+    """
+    _init_resend()
+
+    content = f"""
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">
+            Désolé de vous voir partir
+        </h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Bonjour {prenom}, votre abonnement ArtisanGestion a bien été résilié.
+            Aucun nouveau prélèvement ne sera effectué.
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #f8fafc; border-radius: 12px; border-left: 4px solid #94a3b8;">
+            <tr>
+                <td style="padding: 20px 24px; color: #334155; font-size: 15px; line-height: 1.7;">
+                    <strong>Vos documents restent accessibles.</strong><br>
+                    Rien n'est supprimé : vos devis, factures et rapports sont toujours là.
+                    Vous ne pouvez simplement plus en créer de nouveaux.
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Si vous avez deux minutes : <strong>qu'est-ce qui n'a pas fonctionné&nbsp;?</strong>
+            Un manque, un prix, un bug, un logiciel concurrent plus adapté&nbsp;? Répondez à cet
+            email, même en une phrase. C'est ce qui nous aide le plus à progresser.
+        </p>
+
+        {_button(f"{settings.FRONTEND_URL}/app/settings?tab=abonnement", "Réactiver mon abonnement")}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            Vous pouvez revenir quand vous le souhaitez, vos données vous attendent.
+        </p>
+    """
+
+    return _envoyer(to, "Votre abonnement ArtisanGestion a été résilié", content)
+
+
+async def send_payment_failed(to: str, prenom: str) -> bool:
+    """
+    Prévient d'un prélèvement en échec.
+
+    À ne surtout pas confondre avec une résiliation : cette personne n'a pas
+    voulu partir, sa carte a expiré ou été refusée. Lui envoyer un message
+    d'adieu la ferait partir pour de bon.
+    """
+    _init_resend()
+
+    content = f"""
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">
+            Votre paiement n'a pas abouti
+        </h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Bonjour {prenom}, le prélèvement de votre abonnement ArtisanGestion a été refusé.
+            Le plus souvent, c'est une carte arrivée à expiration ou un plafond atteint —
+            rien de grave, et cela se règle en une minute.
+        </p>
+
+        <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            En attendant, la création de nouveaux documents est suspendue.
+            <strong>Vos données et vos documents existants sont intacts.</strong>
+        </p>
+
+        {_button(f"{settings.FRONTEND_URL}/app/settings?tab=abonnement", "Mettre à jour mon moyen de paiement")}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            Un souci pour régler cela ? Répondez à cet email, nous vous aiderons.
+        </p>
+    """
+
+    return _envoyer(to, "Action requise : votre paiement ArtisanGestion a échoué", content)
