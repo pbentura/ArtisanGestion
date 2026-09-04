@@ -8,6 +8,7 @@ import MentionsLegales from '@/views/MentionsLegales.vue'
 
 import { API_BASE_URL } from '@/lib/api'
 import { trackPageView, trackConversion } from '@/lib/analytics'
+import pagesSeo from '@/lib/pages-seo.json'
 import { Capacitor } from '@capacitor/core'
 
 const routes = [
@@ -15,37 +16,25 @@ const routes = [
     path: '/',
     name: 'landing',
     component: LandingPage,
-    meta: { 
-      title: 'ArtisanGestion | Gérez vos devis, factures et interventions sereinement',
-      description: 'ArtisanGestion est la plateforme tout-en-un pour les artisans et PME. Gérez vos devis, factures et rapports d\'intervention avec l\'aide de l\'IA.'
-    }
+    meta: pagesSeo['/']
   },
   {
     path: '/rapport-intervention',
     name: 'landing-rapports',
     component: () => import('@/views/RapportInterventionLanding.vue'),
-    meta: {
-      title: 'Logiciel de rapport d\'intervention par IA pour artisans',
-      description: 'Décrivez votre intervention en une phrase, l\'IA rédige le rapport professionnel en 10 secondes. Photos, signature client et historique inclus. Essai gratuit 14 jours.'
-    }
+    meta: pagesSeo['/rapport-intervention']
   },
   {
     path: '/devis-factures',
     name: 'landing-devis-factures',
     component: () => import('@/views/DevisFacturesLanding.vue'),
-    meta: {
-      title: 'Logiciel de devis et facture pour artisans du bâtiment',
-      description: 'Chiffrez sur le chantier, faites signer, convertissez le devis en facture et encaissez. Relances automatiques et format Factur-X conforme 2026. Essai gratuit 14 jours.'
-    }
+    meta: pagesSeo['/devis-factures']
   },
   {
     path: '/mobile',
     name: 'mobile-landing',
     component: () => import('@/views/MobileLandingPage.vue'),
-    meta: {
-      title: 'ArtisanGestion sur mobile | Gérez votre activité depuis le chantier',
-      description: 'Rapports, devis, factures et signature client depuis votre téléphone, sans rien installer. Essai gratuit 14 jours, sans carte bancaire.'
-    }
+    meta: pagesSeo['/mobile']
   },
   {
     path: '/auth',

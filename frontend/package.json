@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "vue-tsc -b && vite build && node scripts/prerendre-meta.mjs",
     "preview": "vite preview",
     "deploy": "npm run build && npx firebase deploy && npx cap sync"
   },

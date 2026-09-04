@@ -1,0 +1,22 @@
+{
+  "/": {
+    "title": "ArtisanGestion | Gérez vos devis, factures et interventions sereinement",
+    "description": "La plateforme tout-en-un pour les artisans et PME. Rapports d'intervention générés par IA, devis et factures conformes 2026. Essai gratuit 14 jours, sans carte bancaire.",
+    "image": "/og-image.jpg"
+  },
+  "/rapport-intervention": {
+    "title": "Logiciel de rapport d'intervention par IA pour artisans",
+    "description": "Décrivez votre intervention en une phrase, l'IA rédige le rapport professionnel en 10 secondes. Photos, signature client et historique inclus. Essai gratuit 14 jours.",
+    "image": "/og-rapport-intervention.jpg"
+  },
+  "/devis-factures": {
+    "title": "Logiciel de devis et facture pour artisans du bâtiment",
+    "description": "Chiffrez sur le chantier, faites signer, convertissez le devis en facture et encaissez. Relances automatiques et format Factur-X conforme 2026. Essai gratuit 14 jours.",
+    "image": "/og-devis-factures.jpg"
+  },
+  "/mobile": {
+    "title": "ArtisanGestion sur mobile | Gérez votre activité depuis le chantier",
+    "description": "Rapports, devis, factures et signature client depuis votre téléphone, sans rien installer. Essai gratuit 14 jours, sans carte bancaire.",
+    "image": "/og-mobile.jpg"
+  }
+}
