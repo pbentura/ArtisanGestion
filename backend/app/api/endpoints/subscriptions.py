@@ -43,6 +43,71 @@ _ALIAS_PLANS = {
 }
 
 
+# Clés ASCII stables, utilisées comme lookup_key chez Stripe.
+_CLE_ASCII = {"indépendant": "independant", "équipe": "equipe"}
+
+# Évite d'interroger Stripe à chaque paiement : le catalogue ne change qu'au
+# déploiement. Vidé au redémarrage du conteneur, ce qui suffit.
+_cache_prix: dict[str, str] = {}
+
+
+def _produit_stripe(cle: str, libelle: str) -> str:
+    """Produit Stripe du plan, créé une seule fois."""
+    marqueur = _CLE_ASCII[cle]
+    for produit in stripe.Product.list(limit=100, active=True).auto_paging_iter():
+        if (produit.metadata or {}).get("ag_plan") == marqueur:
+            return produit.id
+
+    produit = stripe.Product.create(
+        name=f"ArtisanGestion — {libelle}",
+        metadata={"ag_plan": marqueur},
+    )
+    logger.info("Produit Stripe créé pour le plan %s : %s", libelle, produit.id)
+    return produit.id
+
+
+def prix_stripe(cle: str, annuel: bool) -> str:
+    """
+    Identifiant du prix Stripe, créé au besoin.
+
+    Les prix étaient auparavant fabriqués à la volée (`price_data`) : chaque
+    paiement produisait un prix anonyme et jetable. Impossible dès lors de
+    changer la formule d'un abonnement en cours, `Subscription.modify` exigeant
+    un identifiant de prix. Le catalogue est donc matérialisé ici, une fois.
+
+    Le repérage se fait par `lookup_key` : rejouer cette fonction ne crée
+    jamais de doublon. Si le tarif du catalogue a changé, la clé est transférée
+    à un nouveau prix — les abonnements en cours gardent l'ancien, comme il se
+    doit.
+    """
+    plan = PLANS[cle]
+    montant = plan["annuel"] if annuel else plan["mensuel"]
+    lookup = f"artisangestion_{_CLE_ASCII[cle]}_{'annuel' if annuel else 'mensuel'}"
+
+    if _cache_prix.get(lookup) is not None:
+        return _cache_prix[lookup]
+
+    existants = stripe.Price.list(lookup_keys=[lookup], limit=1).data
+    if existants and existants[0].unit_amount == montant and existants[0].active:
+        _cache_prix[lookup] = existants[0].id
+        return existants[0].id
+
+    prix = stripe.Price.create(
+        product=_produit_stripe(cle, plan["label"]),
+        currency="eur",
+        unit_amount=montant,
+        recurring={"interval": "year" if annuel else "month"},
+        lookup_key=lookup,
+        # Le tarif a changé : la clé bascule sur le nouveau prix, l'ancien
+        # reste attaché aux abonnements qui l'utilisent.
+        transfer_lookup_key=bool(existants),
+        nickname=f"{plan['label']} — {'annuel' if annuel else 'mensuel'}",
+    )
+    logger.info("Prix Stripe créé : %s (%s centimes)", lookup, montant)
+    _cache_prix[lookup] = prix.id
+    return prix.id
+
+
 def _resoudre_plan(plan_name: str) -> tuple[str, dict]:
     """Retourne (clé, plan) pour un nom de plan, ou lève une 400."""
     cle = (plan_name or "").strip().lower()
@@ -126,8 +191,7 @@ async def create_checkout_session(
 
     # Le montant est déterminé par le serveur à partir du catalogue, jamais
     # par le client : sinon n'importe qui pourrait s'abonner à un centime.
-    _, plan = _resoudre_plan(request.plan_name)
-    montant_centimes = plan["annuel"] if request.is_annual else plan["mensuel"]
+    cle_plan, plan = _resoudre_plan(request.plan_name)
     periode = "Annuel" if request.is_annual else "Mensuel"
 
     try:
@@ -136,19 +200,7 @@ async def create_checkout_session(
         # de le pré-configurer dans le dashboard Stripe (utile pour l'intégration rapide)
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'eur',
-                    'product_data': {
-                        'name': f"Abonnement {plan['label']} ({periode})",
-                    },
-                    'unit_amount': montant_centimes,
-                    'recurring': {
-                        'interval': 'year' if request.is_annual else 'month',
-                    }
-                },
-                'quantity': 1,
-            }],
+            line_items=[{'price': prix_stripe(cle_plan, request.is_annual), 'quantity': 1}],
             mode='subscription',
             metadata={"plan": plan["label"], "periode": periode},
             success_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement&session_id={CHECKOUT_SESSION_ID}",
@@ -202,6 +254,107 @@ async def mon_abonnement(
         ),
         "resiliation_programmee": bool(donnees.get("cancel_at_period_end")),
     }
+
+
+class ChangementPlan(BaseModel):
+    plan_name: str
+    is_annual: bool
+    # False : on ne fait que calculer ce qui serait dû, sans rien engager.
+    confirmer: bool = False
+
+
+@router.post("/change-plan")
+async def changer_de_plan(
+    demande: ChangementPlan,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Change la formule d'un abonnement en cours, au prorata.
+
+    Appelé une première fois sans `confirmer` pour afficher le montant dû
+    aujourd'hui, puis une seconde fois pour appliquer. Personne ne doit
+    découvrir un prélèvement après coup.
+    """
+    abo = await _abonnement_actif(current_user, db)
+    if not abo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aucun abonnement en cours à modifier.",
+        )
+
+    cle_plan, plan = _resoudre_plan(demande.plan_name)
+    nouveau_prix = prix_stripe(cle_plan, demande.is_annual)
+
+    donnees = _en_dict(abo)
+    lignes = (donnees.get("items") or {}).get("data") or []
+    if not lignes:
+        raise HTTPException(status_code=409, detail="Abonnement illisible côté Stripe.")
+    ligne = lignes[0]
+    prix_actuel = (ligne.get("price") or {})
+
+    if prix_actuel.get("id") == nouveau_prix:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Vous êtes déjà sur cette formule.",
+        )
+
+    montant_actuel = prix_actuel.get("unit_amount") or 0
+    montant_vise = plan["annuel"] if demande.is_annual else plan["mensuel"]
+    montee_en_gamme = montant_vise > montant_actuel
+
+    # Montée en gamme : on facture la différence tout de suite, l'accès change
+    # immédiatement. Descente : on porte l'avoir sur la prochaine facture
+    # plutôt que de rembourser, ce qui évite un mouvement bancaire inutile.
+    proration = "always_invoice" if montee_en_gamme else "create_prorations"
+
+    modification = {
+        "items": [{"id": ligne["id"], "price": nouveau_prix}],
+        "proration_behavior": proration,
+    }
+
+    if not demande.confirmer:
+        montant_du = None
+        try:
+            apercu = _en_dict(stripe.Invoice.upcoming(
+                customer=donnees.get("customer"),
+                subscription=donnees.get("id"),
+                subscription_items=modification["items"],
+                subscription_proration_behavior=proration,
+            ))
+            montant_du = apercu.get("amount_due")
+        except Exception:
+            # L'aperçu est un confort : son échec ne doit pas bloquer le
+            # changement, on l'annonce simplement comme indisponible.
+            logger.exception("Aperçu de proratisation indisponible.")
+
+        return {
+            "confirme": False,
+            "plan": plan["label"],
+            "annuel": demande.is_annual,
+            "montee_en_gamme": montee_en_gamme,
+            "montant_du_centimes": montant_du,
+            "montant_plan_centimes": montant_vise,
+        }
+
+    try:
+        stripe.Subscription.modify(donnees["id"], **modification)
+    except Exception as e:
+        logger.exception("Changement de formule refusé par Stripe.")
+        raise HTTPException(status_code=502, detail=f"Stripe a refusé la modification : {e}")
+
+    # Le webhook customer.subscription.updated ne réagit qu'à un changement de
+    # statut : un changement de formule n'en est pas un. Le rôle est donc
+    # appliqué ici, sinon l'artisan paierait Équipe sans en avoir les droits.
+    current_user.role = "TEAM" if cle_plan == "équipe" else "PREMIUM"
+    db.add(current_user)
+    await db.commit()
+    logger.info(
+        "Formule changée pour %s : %s (%s).",
+        current_user.email, plan["label"], "annuel" if demande.is_annual else "mensuel",
+    )
+
+    return {"confirme": True, "plan": plan["label"], "annuel": demande.is_annual}
 
 
 @router.post("/create-portal-session")

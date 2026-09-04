@@ -87,22 +87,73 @@ async function ouvrirPortail() {
   }
 }
 
-function demanderAnnuel() {
-  emit(
-    'demander',
-    `Passage à l'abonnement annuel (${planCourant.value})`,
-    `Bonjour,\n\nJe souhaite passer mon abonnement ${planCourant.value} en facturation annuelle.\n\nMerci.`,
-    'Facturation & Compte',
-  )
+// ── Changement de formule ──
+//
+// Deux temps : on demande d'abord au serveur ce qui serait dû, on l'affiche,
+// et on n'applique qu'après confirmation. Personne ne doit découvrir un
+// prélèvement après coup.
+const cible = ref<{ plan: string; annuel: boolean } | null>(null)
+const apercu = ref<any>(null)
+const calculEnCours = ref(false)
+const applicationEnCours = ref(false)
+const erreur = ref('')
+
+const montantDu = computed(() => {
+  const c = apercu.value?.montant_du_centimes
+  if (c === null || c === undefined) return null
+  return (c / 100).toFixed(2).replace('.', ',') + ' €'
+})
+
+async function preparer(plan: string, annuel: boolean) {
+  cible.value = { plan, annuel }
+  apercu.value = null
+  erreur.value = ''
+  calculEnCours.value = true
+  try {
+    const res = await apiFetch('subscriptions/change-plan', {
+      method: 'POST',
+      body: JSON.stringify({ plan_name: plan, is_annual: annuel, confirmer: false }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.detail || 'Calcul impossible.')
+    apercu.value = data
+  } catch (e: any) {
+    erreur.value = e.message
+  } finally {
+    calculEnCours.value = false
+  }
 }
 
-function demanderEquipe() {
-  emit(
-    'demander',
-    'Passage au plan Équipe',
-    'Bonjour,\n\nJe souhaite passer du plan Indépendant au plan Équipe.\n\nMerci.',
-    'Facturation & Compte',
-  )
+async function appliquer() {
+  if (!cible.value) return
+  applicationEnCours.value = true
+  erreur.value = ''
+  try {
+    const res = await apiFetch('subscriptions/change-plan', {
+      method: 'POST',
+      body: JSON.stringify({
+        plan_name: cible.value.plan, is_annual: cible.value.annuel, confirmer: true,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.detail || 'Changement impossible.')
+    // Le rôle a changé côté serveur : on recharge pour que toute
+    // l'application en tienne compte, pas seulement cet écran.
+    await dataStore.fetchUser(true)
+    cible.value = null
+    apercu.value = null
+    await charger()
+  } catch (e: any) {
+    erreur.value = e.message
+  } finally {
+    applicationEnCours.value = false
+  }
+}
+
+function annuler() {
+  cible.value = null
+  apercu.value = null
+  erreur.value = ''
 }
 
 onMounted(() => {
@@ -184,7 +235,7 @@ onMounted(() => {
       <button
         type="button"
         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
-        @click="demanderAnnuel"
+        @click="preparer(planCourant, true)"
       >
         Passer à l'annuel <ArrowRight class="w-3.5 h-3.5" />
       </button>
@@ -231,7 +282,7 @@ onMounted(() => {
       <button
         type="button"
         class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
-        @click="demanderEquipe"
+        @click="preparer('équipe', abonnement?.annuel ?? false)"
       >
         Passer à Équipe <ArrowRight class="w-3.5 h-3.5" />
       </button>
@@ -271,5 +322,67 @@ onMounted(() => {
         </button> — les retours des abonnés Équipe orientent nos priorités.
       </p>
     </div>
+    <!-- ── Confirmation du changement de formule ── -->
+    <Teleport to="body">
+      <div
+        v-if="cible"
+        class="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50"
+        @click.self="annuler"
+      >
+        <div class="w-full max-w-md rounded-2xl bg-background border border-border shadow-2xl p-6">
+          <h3 class="text-lg font-bold text-foreground mb-1">
+            Passer au plan {{ cible.plan === 'équipe' ? 'Équipe' : 'Indépendant' }}
+            {{ cible.annuel ? 'annuel' : 'mensuel' }}
+          </h3>
+
+          <div v-if="calculEnCours" class="flex items-center gap-2 text-sm text-muted-foreground py-6">
+            <Loader2 class="w-4 h-4 animate-spin" /> Calcul du montant…
+          </div>
+
+          <div v-else-if="erreur" class="flex items-start gap-2 text-sm text-destructive py-4">
+            <AlertTriangle class="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{{ erreur }}</span>
+          </div>
+
+          <template v-else-if="apercu">
+            <!-- Le prorata est calculé par Stripe : on affiche le montant
+                 réel, jamais une estimation faite ici. -->
+            <p v-if="montantDu" class="text-muted-foreground mt-2 mb-5">
+              <template v-if="apercu.montee_en_gamme">
+                Vous serez prélevé de <strong class="text-foreground">{{ montantDu }}</strong>
+                aujourd'hui — la différence au prorata du temps restant. Le nouveau tarif
+                s'appliquera ensuite à chaque échéance.
+              </template>
+              <template v-else>
+                Le temps déjà payé vous est crédité sur votre prochaine facture.
+                Aucun prélèvement aujourd'hui.
+              </template>
+            </p>
+            <p v-else class="text-muted-foreground mt-2 mb-5">
+              Le montant exact sera calculé par Stripe au prorata du temps restant sur
+              votre période en cours.
+            </p>
+          </template>
+
+          <div class="flex gap-2 justify-end">
+            <button
+              type="button" class="px-4 py-2 rounded-xl border border-border text-sm font-semibold hover:bg-muted"
+              :disabled="applicationEnCours" @click="annuler"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 disabled:opacity-60"
+              :disabled="calculEnCours || applicationEnCours || !!erreur"
+              @click="appliquer"
+            >
+              <Loader2 v-if="applicationEnCours" class="w-4 h-4 animate-spin" />
+              Confirmer
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
