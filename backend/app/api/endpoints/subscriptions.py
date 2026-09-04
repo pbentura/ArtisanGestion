@@ -1,5 +1,7 @@
 import json
 import logging
+from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,14 +55,73 @@ def _resoudre_plan(plan_name: str) -> tuple[str, dict]:
         )
     return cle, plan
 
+STATUTS_ACTIFS = ("active", "trialing", "past_due", "unpaid")
+
+
+async def _client_stripe(user: User, db: AsyncSession) -> Optional[str]:
+    """
+    Identifiant du client Stripe rattaché au compte.
+
+    Mémorisé en base dès qu'il est connu. La recherche par email n'est qu'un
+    rattrapage pour les comptes antérieurs à cette colonne : Stripe crée un
+    client par session de paiement, et interroger par email finit par renvoyer
+    le mauvais dès qu'il y en a plusieurs.
+    """
+    if user.stripe_customer_id:
+        return user.stripe_customer_id
+
+    try:
+        clients = stripe.Customer.list(email=user.email, limit=1)
+    except Exception:
+        logger.exception("Recherche du client Stripe de %s impossible.", user.email)
+        return None
+    if not clients.data:
+        return None
+
+    user.stripe_customer_id = clients.data[0].id
+    db.add(user)
+    await db.commit()
+    return user.stripe_customer_id
+
+
+async def _abonnement_actif(user: User, db: AsyncSession):
+    """Abonnement en cours, ou None. Source de vérité : Stripe, pas le rôle."""
+    client = await _client_stripe(user, db)
+    if not client:
+        return None
+    try:
+        abonnements = stripe.Subscription.list(customer=client, status="all", limit=10)
+    except Exception:
+        logger.exception("Abonnements de %s illisibles.", user.email)
+        return None
+    for abo in abonnements.data:
+        if abo.status in STATUTS_ACTIFS:
+            return abo
+    return None
+
+
 @router.post("/create-checkout-session")
-async def create_checkout_session(request: CheckoutRequest, current_user: User = Depends(get_current_user)):
+async def create_checkout_session(
+    request: CheckoutRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY == "sk_test_placeholder":
         # Pour le développement/test si la clé n'est pas configurée
         # On va simuler un retour d'URL vers l'accueil ou renvoyer une erreur explicite
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="La clé secrète Stripe n'est pas configurée. Veuillez l'ajouter dans le fichier .env (STRIPE_SECRET_KEY)."
+        )
+
+    # Sans ce contrôle, un abonné qui reclique crée un SECOND abonnement et se
+    # fait prélever deux fois. Pire : chaque session créant un nouveau client
+    # Stripe, le premier abonnement devenait introuvable depuis le portail et
+    # son titulaire ne pouvait plus le résilier lui-même.
+    if await _abonnement_actif(current_user, db):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Vous avez déjà un abonnement en cours. Gérez-le depuis vos paramètres.",
         )
 
     # Le montant est déterminé par le serveur à partir du catalogue, jamais
@@ -93,26 +154,73 @@ async def create_checkout_session(request: CheckoutRequest, current_user: User =
             success_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement&session_id={CHECKOUT_SESSION_ID}",
             cancel_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement",
             client_reference_id=str(current_user.id),
-            customer_email=current_user.email,
+            # On rattache la session au client existant quand on le connaît :
+            # « customer_email » en créerait un nouveau à chaque fois.
+            **(
+                {"customer": current_user.stripe_customer_id}
+                if current_user.stripe_customer_id
+                else {"customer_email": current_user.email}
+            ),
         )
         return {"checkout_url": session.url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/me")
+async def mon_abonnement(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    État de l'abonnement en cours, pour l'onglet Abonnement.
+
+    Renvoyer ces informations évite d'afficher une grille de plans à quelqu'un
+    qui est déjà abonné, et permet de lui montrer sa prochaine échéance sans
+    l'envoyer sur le portail Stripe.
+    """
+    abo = await _abonnement_actif(current_user, db)
+    if not abo:
+        return {"abonne": False}
+
+    donnees = _en_dict(abo)
+    lignes = (donnees.get("items") or {}).get("data") or []
+    prix = (lignes[0].get("price") or {}) if lignes else {}
+    recurrence = (prix.get("recurring") or {}).get("interval")
+    montant = prix.get("unit_amount")
+
+    fin = donnees.get("current_period_end")
+    return {
+        "abonne": True,
+        "statut": donnees.get("statut") or donnees.get("status"),
+        "plan": "Équipe" if current_user.role == "TEAM" else "Indépendant",
+        "annuel": recurrence == "year",
+        "montant_centimes": montant,
+        # Date du prochain prélèvement, ou de fin de service si une résiliation
+        # a été programmée.
+        "echeance": (
+            datetime.fromtimestamp(fin, timezone.utc).date().isoformat() if fin else None
+        ),
+        "resiliation_programmee": bool(donnees.get("cancel_at_period_end")),
+    }
+
+
 @router.post("/create-portal-session")
-async def create_portal_session(current_user: User = Depends(get_current_user)):
+async def create_portal_session(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Créer une session de portail client Stripe pour gérer l'abonnement."""
     if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY == "sk_test_placeholder":
         raise HTTPException(status_code=500, detail="La clé secrète Stripe n'est pas configurée.")
         
+    customer_id = await _client_stripe(current_user, db)
+    if not customer_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Aucun compte client Stripe trouvé pour cet utilisateur.",
+        )
+
     try:
-        # Trouver le customer Stripe via son email (ou id si stocké)
-        customers = stripe.Customer.list(email=current_user.email, limit=1)
-        if not customers.data:
-            raise HTTPException(status_code=404, detail="Aucun compte client Stripe trouvé pour cet utilisateur.")
-            
-        customer_id = customers.data[0].id
-        
         session = stripe.billing_portal.Session.create(
             customer=customer_id,
             return_url=settings.FRONTEND_URL + "/app/settings?tab=abonnement",
@@ -326,6 +434,10 @@ async def traiter_evenement_stripe(event, db: AsyncSession):
                 # on ne renvoie pas la confirmation une seconde fois.
                 if user and user.role not in ("PREMIUM", "TEAM"):
                     user.role = "TEAM" if plan_name.strip().lower() in ("équipe", "equipe") else "PREMIUM"
+                    # Mémorisé ici : c'est le seul endroit où Stripe nous donne
+                    # le client réellement utilisé pour ce paiement.
+                    if objet.get("customer"):
+                        user.stripe_customer_id = objet["customer"]
                     await db.commit()
                     logger.info(
                         "Abonnement %s activé pour %s (rôle %s).",

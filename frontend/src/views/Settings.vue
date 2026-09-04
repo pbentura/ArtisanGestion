@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
 import { trackConversionOnce } from '@/lib/analytics'
+import AbonnementActif from '@/components/AbonnementActif.vue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -152,26 +153,6 @@ async function handleSubscribe(plan: any) {
   }
 }
 
-async function handleManageSubscription() {
-  try {
-    const res = await apiFetch('subscriptions/create-portal-session', {
-      method: 'POST'
-    })
-
-    if (res.ok) {
-      const data = await res.json()
-      if (data.portal_url) {
-        window.location.href = data.portal_url
-      }
-    } else {
-      const errorData = await res.json()
-      alert(errorData.detail || "Erreur lors de la création de la session de portail")
-    }
-  } catch (error) {
-    console.error('Error opening portal:', error)
-    alert("Une erreur est survenue")
-  }
-}
 
 const user = ref({
   nom: '',
@@ -409,6 +390,26 @@ async function handleSavePreferences() {
   } finally {
     isSavingPreferences.value = false
   }
+}
+
+// Un abonné ne doit pas voir la grille des plans avec des boutons
+// « S'abonner » : au mieux c'est déroutant, au pire il souscrit deux fois.
+const estAbonne = computed(() => ['PREMIUM', 'TEAM'].includes(user.value.role))
+
+/**
+ * Les changements de formule passent par le support.
+ *
+ * Un vrai changement au prorata suppose des objets Price déclarés chez
+ * Stripe ; les prix sont aujourd'hui créés à la volée. En attendant, le
+ * message pré-rempli fait le travail sans promettre un libre-service qui
+ * n'existe pas.
+ */
+function demanderChangementFormule(sujet: string, message: string, categorie: string) {
+  supportForm.value.category = categorie
+  supportForm.value.subject = sujet
+  supportForm.value.message = message
+  activeTab.value = 'support'
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // Support & Formulaire de contact
@@ -936,31 +937,24 @@ onMounted(async () => {
               <CheckCircle2 class="w-4 h-4" />
               Plan Max Actif (Administrateur)
             </div>
-            <div v-else-if="user.role === 'PREMIUM' || user.role === 'TEAM'" class="inline-flex flex-col items-center gap-2 mb-4">
-              <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20">
-                <CheckCircle2 class="w-4 h-4" />
-                Plan {{ user.role === 'PREMIUM' ? 'Indépendant' : 'Équipe' }} Actif
-              </div>
-              <Button variant="outline" size="sm" @click="handleManageSubscription" class="mt-2">
-                <CreditCard class="w-4 h-4 mr-2" />
-                Gérer mon abonnement (Factures, Annulation)
-              </Button>
-            </div>
-            <div v-else-if="user.trial_days_remaining > 0" class="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold mb-4 border border-green-200">
+            <div v-else-if="!estAbonne && user.trial_days_remaining > 0" class="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-semibold mb-4 border border-green-200">
               <CheckCircle2 class="w-4 h-4" />
               Il vous reste {{ user.trial_days_remaining }} jours d'essai gratuit
             </div>
-            <div v-else class="inline-flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-full text-sm font-semibold mb-4 border border-destructive/20">
+            <div v-else-if="!estAbonne" class="inline-flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-full text-sm font-semibold mb-4 border border-destructive/20">
               <AlertTriangle class="w-4 h-4" />
               Votre période d'essai est terminée. Passez à un plan supérieur pour continuer à créer des documents.
             </div>
-            <p class="text-sm text-muted-foreground max-w-xl mx-auto">
+            <p v-if="!estAbonne" class="text-sm text-muted-foreground max-w-xl mx-auto">
               Choisissez le plan qui correspond le mieux à vos besoins actuels.
             </p>
           </div>
 
+          <!-- Abonné : récapitulatif et proposition unique -->
+          <AbonnementActif v-if="estAbonne" @demander="demanderChangementFormule" />
+
           <!-- Toggle -->
-          <div class="flex justify-center mb-8">
+          <div v-if="!estAbonne" class="flex justify-center mb-8">
             <div class="relative flex items-center p-1 bg-muted/50 rounded-full border border-border/50">
               <button
                 @click="isAnnual = false"
@@ -986,7 +980,7 @@ onMounted(async () => {
           </div>
 
           <!-- Cards -->
-          <div class="pricing-grid grid md:grid-cols-2 gap-6 items-start">
+          <div v-if="!estAbonne" class="pricing-grid grid md:grid-cols-2 gap-6 items-start">
             <div
               v-for="(plan, i) in plans"
               :key="i"

@@ -23,6 +23,11 @@ class User(Base):
     password_reset_token = Column(String, nullable=True)
     password_reset_expires = Column(DateTime, nullable=True)
 
+    # Identifiant du client Stripe, mémorisé à la première souscription.
+    # Sans lui, on retrouvait le client par email : Stripe en crée un nouveau à
+    # chaque paiement, et la recherche renvoyait alors le mauvais.
+    stripe_customer_id = Column(String(255), nullable=True, index=True)
+
     # Acquisition — provenance du premier contact, renseignée une seule fois.
     # Sert à relier un abonnement payant à la campagne qui l'a produit.
     utm_source = Column(String(255), nullable=True)
