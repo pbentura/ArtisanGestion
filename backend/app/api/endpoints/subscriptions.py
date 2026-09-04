@@ -202,29 +202,34 @@ async def _notifier(coroutine, contexte: str) -> None:
         logger.exception("Envoi de l'email « %s » échoué.", contexte)
 
 
-async def _retrograder_client(customer_id: str, db: AsyncSession, motif: str) -> None:
-    """
-    Repasse en USER le titulaire d'un abonnement qui n'est plus actif.
-
-    `motif` vaut "resiliation" ou "echec_paiement". La distinction n'est pas
-    cosmétique : envoyer « désolé de vous voir partir » à quelqu'un dont la
-    carte a simplement expiré le pousserait à partir pour de bon, alors qu'il
-    voulait rester.
-    """
+async def _utilisateur_du_client(customer_id: str, db: AsyncSession):
+    """Retrouve l'utilisateur ArtisanGestion derrière un client Stripe."""
     if not customer_id:
-        return
+        return None
     try:
         client = _en_dict(stripe.Customer.retrieve(customer_id))
     except Exception:
         logger.exception("Client Stripe %s illisible.", customer_id)
-        return
+        return None
 
     email = client.get("email")
     if not email:
-        return
+        return None
 
     result = await db.execute(select(User).where(User.email == email))
-    user = result.scalars().first()
+    return result.scalars().first()
+
+
+async def _retrograder_client(customer_id: str, db: AsyncSession, motif: str) -> None:
+    """
+    Repasse en USER le titulaire d'un abonnement définitivement terminé.
+
+    `motif` vaut "resiliation" ou "echec_paiement". La distinction n'est pas
+    cosmétique : envoyer « désolé de vous voir partir » à quelqu'un dont la
+    carte a expiré le pousserait à partir pour de bon, alors qu'il voulait
+    rester.
+    """
+    user = await _utilisateur_du_client(customer_id, db)
     if not user:
         return
 
@@ -235,13 +240,31 @@ async def _retrograder_client(customer_id: str, db: AsyncSession, motif: str) ->
 
     user.role = "USER"
     await db.commit()
-    logger.info("Abonnement terminé pour %s (%s) : retour au rôle USER.", email, motif)
+    logger.info("Abonnement terminé pour %s (%s) : retour au rôle USER.", user.email, motif)
 
     prenom = user.prenom or ""
     if motif == "echec_paiement":
         await _notifier(send_payment_failed(user.email, prenom), "échec de paiement")
     else:
         await _notifier(send_subscription_cancelled(user.email, prenom), "résiliation")
+
+
+async def _prevenir_echec_paiement(customer_id: str, db: AsyncSession) -> None:
+    """
+    Signale un prélèvement refusé, sans couper l'accès.
+
+    Stripe relance automatiquement le paiement pendant une quinzaine de jours.
+    Bloquer dès le premier refus revient à priver de son outil un artisan qui
+    aurait payé au deuxième essai — souvent une carte expirée ou un plafond
+    atteint. On l'avertit, et l'accès n'est retiré qu'au statut « unpaid »,
+    quand Stripe a épuisé ses relances.
+    """
+    user = await _utilisateur_du_client(customer_id, db)
+    if not user or user.role not in ("PREMIUM", "TEAM"):
+        return
+
+    logger.info("Prélèvement refusé pour %s : accès maintenu, relance envoyée.", user.email)
+    await _notifier(send_payment_failed(user.email, user.prenom or ""), "échec de paiement")
 
 
 async def traiter_evenement_stripe(event, db: AsyncSession):
@@ -327,9 +350,24 @@ async def traiter_evenement_stripe(event, db: AsyncSession):
     elif type_evenement == 'customer.subscription.updated':
         # Résiliation, impayé ou prélèvement en échec : l'accès se referme.
         statut = objet.get("status")
-        if statut in ('canceled', 'unpaid', 'past_due'):
-            motif = "resiliation" if statut == 'canceled' else "echec_paiement"
-            await _retrograder_client(objet.get("customer"), db, motif)
+        client = objet.get("customer")
+
+        # Stripe émet cet événement pour toute modification de l'abonnement,
+        # y compris un simple changement de carte. `previous_attributes` liste
+        # les champs qui ont réellement changé : sans ce filtre, une mise à
+        # jour anodine déclencherait un email.
+        precedent = (donnees.get("data") or {}).get("previous_attributes") or {}
+        if "status" not in precedent:
+            return
+
+        if statut == 'canceled':
+            await _retrograder_client(client, db, "resiliation")
+        elif statut == 'unpaid':
+            # Stripe a épuisé ses relances : l'accès se referme.
+            await _retrograder_client(client, db, "echec_paiement")
+        elif statut == 'past_due':
+            # Relances en cours : on prévient sans couper.
+            await _prevenir_echec_paiement(client, db)
 
     elif type_evenement == 'account.updated':
         # Stripe Connect : mise à jour du statut du compte d'un artisan.
