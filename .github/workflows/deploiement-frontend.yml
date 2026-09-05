@@ -107,6 +107,11 @@ jobs:
         working-directory: frontend
         env:
           GA4: ${{ vars.VITE_GA4_ID }}
+          ADS: ${{ vars.VITE_GOOGLE_ADS_ID }}
+          L_INSCRIPTION: ${{ vars.VITE_ADS_LABEL_SIGN_UP }}
+          L_SOCIETE: ${{ vars.VITE_ADS_LABEL_SOCIETE_CREATED }}
+          L_DOCUMENT: ${{ vars.VITE_ADS_LABEL_FIRST_DOCUMENT }}
+          L_ABONNEMENT: ${{ vars.VITE_ADS_LABEL_SUBSCRIPTION }}
         run: |
           set -euo pipefail
           # Un .env mal placé produit un build silencieusement inerte : le site
@@ -116,6 +121,39 @@ jobs:
             echo "L'identifiant GA4 est absent du build : la configuration n'a pas été prise en compte."
             exit 1
           fi
+
+          # Même piège, en pire, du côté Google Ads : une campagne peut tourner
+          # des jours en payant des clics sans qu'aucune conversion ne remonte,
+          # simplement parce qu'une variable a été saisie avec une faute. On
+          # préfère un déploiement en échec à une mesure silencieusement morte.
+          if [ -n "$ADS" ]; then
+            if ! grep -rq "$ADS" dist/assets/*.js; then
+              echo "L'identifiant Google Ads ($ADS) est absent du build."
+              exit 1
+            fi
+            manquantes=""
+            for couple in \
+              "VITE_ADS_LABEL_SIGN_UP=$L_INSCRIPTION" \
+              "VITE_ADS_LABEL_SOCIETE_CREATED=$L_SOCIETE" \
+              "VITE_ADS_LABEL_FIRST_DOCUMENT=$L_DOCUMENT" \
+              "VITE_ADS_LABEL_SUBSCRIPTION=$L_ABONNEMENT"
+            do
+              nom="${couple%%=*}"
+              valeur="${couple#*=}"
+              if [ -z "$valeur" ] || ! grep -rq "$valeur" dist/assets/*.js; then
+                manquantes="$manquantes $nom"
+              fi
+            done
+            if [ -n "$manquantes" ]; then
+              echo "Étiquettes de conversion absentes du build :$manquantes"
+              echo "L'identifiant Google Ads est en place mais ces conversions ne remonteraient jamais."
+              exit 1
+            fi
+            echo "Mesure Google Ads vérifiée : $ADS et ses 4 étiquettes sont dans le bundle."
+          else
+            echo "Aucun identifiant Google Ads configuré — aucune conversion ne sera envoyée."
+          fi
+
           echo "Build vérifié — $(du -sh dist | cut -f1)"
 
       - name: Déployer sur Firebase Hosting
