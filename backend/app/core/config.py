@@ -32,12 +32,13 @@ class Settings:
 
     # Modèles Mistral.
     #
-    # « mistral-large-latest » était codé en dur et renvoyait 403
-    # (tier_not_allowed) : la génération de rapport était cassée pour tous les
-    # comptes, en silence. Les modèles accessibles dépendent de l'abonnement
-    # Mistral, donc ils se règlent sans toucher au code — remettre
-    # mistral-large-latest le jour où l'abonnement le permet.
-    MISTRAL_MODEL_RAPPORT: str = os.getenv("MISTRAL_MODEL_RAPPORT", "ministral-14b-latest")
+    # Le modèle était codé en dur, et renvoyait 403 (tier_not_allowed) tant que
+    # l'espace de travail Mistral restait au palier d'évaluation : la
+    # génération de rapport était cassée pour tous les comptes, en silence.
+    # Réglable ici pour qu'un changement de palier ne demande plus de
+    # déploiement. Repli sans risque en cas de retour au palier gratuit :
+    # ministral-14b-latest.
+    MISTRAL_MODEL_RAPPORT: str = os.getenv("MISTRAL_MODEL_RAPPORT", "mistral-large-latest")
     # Contrôle de saisie : appel court et fréquent, un petit modèle suffit.
     MISTRAL_MODEL_VALIDATION: str = os.getenv("MISTRAL_MODEL_VALIDATION", "ministral-8b-latest")
 

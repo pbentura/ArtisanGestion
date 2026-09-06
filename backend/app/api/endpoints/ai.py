@@ -449,7 +449,10 @@ def build_rapport_prompt(request: GenerateRapportRequest) -> str:
 - Par exemple, si l'utilisateur dit "remplacement du robinet", tu ne dois PAS ajouter "diagnostic de l'installation", "recherche de la fuite", "raccordement", "contrôle d'étanchéité", "vérification du bon fonctionnement", etc. Tu ne mentionnes QUE "remplacement du robinet".
 - N'invente JAMAIS de marques, modèles, numéros de série, références, dimensions, mesures ou valeurs techniques.
 - N'invente JAMAIS de noms de techniciens, numéros de bon d'intervention ou références internes.
-- Si l'utilisateur donne peu de détails, le rapport doit être court. Ne comble JAMAIS le manque d'information par des détails inventés."""
+- Si l'utilisateur donne peu de détails, le rapport doit être court. Ne comble JAMAIS le manque d'information par des détails inventés.
+- LES SECTIONS SONT FACULTATIVES. N'écris une section que si la description de l'utilisateur la justifie réellement. Si elle ne dit rien du diagnostic, de l'état constaté ou des tests, OMETS entièrement la section correspondante — ne l'écris pas avec une phrase de remplissage.
+- Ne rédige JAMAIS de constat que tu ne peux pas tirer de la description : pas de « après examen », pas de « aucune fuite n'était visible », pas de « aucun dysfonctionnement constaté après la pose », pas de « l'installation est fonctionnelle ». Ce sont des vérifications, et rien n'indique qu'elles ont eu lieu.
+- Les longueurs indiquées ci-dessous sont des MAXIMUMS, jamais des objectifs à atteindre. Un rapport de trois lignes fidèle à la description vaut mieux qu'un rapport d'une page à moitié inventé."""
 
     # --- Instructions anti-hallucination : version "déroulé métier" (mode court) ---
     anti_hallucination_metier = """RÈGLES — DÉROULÉ MÉTIER AUTORISÉ, DÉTAILS INVENTÉS INTERDITS :
@@ -483,60 +486,61 @@ Le rapport doit contenir EXACTEMENT ces sections, avec des titres en <h3> :
 <p>[Soit "Aucune réserve particulière à signaler à l'issue de l'intervention." soit une remarque brève si pertinente. N'invente pas de recommandation détaillée.]</p>"""
 
     elif longueur == "long":
-        instructions_longueur = """Le rapport doit être TRÈS DÉTAILLÉ et COMPLET (environ 600-900 mots).
-Chaque section doit être développée avec précision. Ajoute des sous-sections si pertinent.
+        instructions_longueur = """Le rapport peut aller jusqu'à 900 mots SI la description fournit assez de matière.
+Une description brève donne un rapport bref : ce mode autorise le détail, il ne l'exige pas.
 
-Le rapport doit contenir ces sections avec des titres en <strong> et majuscules :
+Titres en <strong> et majuscules. Deux sections sont obligatoires, les autres ne
+s'écrivent QUE si la description les justifie — sinon tu les omets :
 
-<strong>MOTIF DE L'INTERVENTION :</strong>
-<p>[Description détaillée du problème signalé, contexte de la demande, basé uniquement sur la description fournie]</p>
+<strong>MOTIF DE L'INTERVENTION :</strong>   (obligatoire)
+<p>[Le problème signalé et le contexte de la demande, d'après la seule description]</p>
 
-<strong>CONSTATATIONS SUR SITE :</strong>
-<p>[État des lieux à l'arrivée, observations visuelles, conditions d'accès — uniquement ce qui peut raisonnablement être déduit de la description]</p>
+<strong>CONSTATATIONS SUR SITE :</strong>   (UNIQUEMENT si la description décrit un état constaté)
+<p>[Ce que l'utilisateur dit avoir constaté. Rien d'autre.]</p>
 
-<strong>DIAGNOSTIC :</strong>
-<p>[Analyse technique détaillée, cause identifiée du problème — basé sur la description fournie, sans inventer de mesures ou valeurs]</p>
+<strong>DIAGNOSTIC :</strong>   (UNIQUEMENT si la description indique une cause)
+<p>[La cause telle qu'écrite par l'utilisateur.]</p>
 
-<strong>TRAVAUX RÉALISÉS :</strong>
+<strong>TRAVAUX RÉALISÉS :</strong>   (obligatoire)
 <ul>
-<li>[Action détaillée avec méthode employée]</li>
-<li>[...]</li>
+<li>[Une action, telle que décrite.]</li>
 </ul>
 
-<strong>MATÉRIEL ET FOURNITURES :</strong>
-<p>[Mentionner uniquement le matériel explicitement cité dans la description. Si aucun matériel n'est mentionné, écrire "Matériel standard utilisé selon les besoins de l'intervention."]</p>
+<strong>MATÉRIEL ET FOURNITURES :</strong>   (UNIQUEMENT si du matériel est cité dans la description)
+<p>[Le matériel nommé par l'utilisateur. Aucun matériel cité : omets la section — n'écris pas « matériel standard ».]</p>
 
-<strong>TESTS ET VÉRIFICATIONS :</strong>
-<p>[Tests pertinents qui auraient logiquement été effectués pour ce type d'intervention, sans inventer de valeurs numériques]</p>
+<strong>TESTS ET VÉRIFICATIONS :</strong>   (UNIQUEMENT si la description mentionne un test réellement fait)
+<p>[N'écris JAMAIS de test qui « aurait logiquement » été effectué : ce rapport est signé par le client, un essai non réalisé y serait une fausse déclaration.]</p>
 
-<strong>RÉSULTAT ET ÉTAT FINAL :</strong>
-<p>[Description de l'état après intervention, validation du résultat]</p>
+<strong>RÉSULTAT ET ÉTAT FINAL :</strong>   (UNIQUEMENT si la description dit quelque chose de l'état final)
+<p>[Sans indication : omets la section.]</p>
 
-<strong>OBSERVATIONS ET RECOMMANDATIONS :</strong>
-<p>[Conseils de maintenance préventive génériques et adaptés au type d'intervention, points de vigilance]</p>"""
+<strong>OBSERVATIONS ET RECOMMANDATIONS :</strong>   (facultative)
+<p>[Soit une réserve réellement mentionnée, soit « Aucune réserve particulière à signaler. »]</p>"""
 
     else:  # normal
-        instructions_longueur = """Le rapport doit avoir une longueur NORMALE et ÉQUILIBRÉE (environ 300-500 mots).
+        instructions_longueur = """Le rapport ne doit pas dépasser 500 mots. S'il est plus court, c'est bien.
 
-Le rapport doit contenir ces sections avec des titres en <strong> et majuscules :
+Titres en <strong> et majuscules. Deux sections sont obligatoires, les trois autres
+ne s'écrivent QUE si la description les justifie — sinon, tu les omets purement et
+simplement :
 
-<strong>MOTIF DE L'INTERVENTION :</strong>
-<p>[Explication claire du problème signalé, basée uniquement sur la description fournie]</p>
+<strong>MOTIF DE L'INTERVENTION :</strong>   (obligatoire)
+<p>[Le problème signalé, reformulé à partir de la seule description fournie]</p>
 
-<strong>DIAGNOSTIC :</strong>
-<p>[Analyse technique, cause identifiée — basé sur la description, sans inventer de valeurs ou mesures]</p>
+<strong>DIAGNOSTIC :</strong>   (UNIQUEMENT si la description indique une cause ou un constat technique)
+<p>[La cause telle que l'utilisateur l'a décrite. Sans mention de cause dans la description : n'écris pas cette section.]</p>
 
-<strong>TRAVAUX RÉALISÉS :</strong>
+<strong>TRAVAUX RÉALISÉS :</strong>   (obligatoire)
 <ul>
-<li>[Action effectuée avec détails basés sur la description]</li>
-<li>[...]</li>
+<li>[Une action, telle que décrite. N'ajoute aucune étape non écrite.]</li>
 </ul>
 
-<strong>RÉSULTAT ET ÉTAT FINAL :</strong>
-<p>[Description de l'état après intervention]</p>
+<strong>RÉSULTAT ET ÉTAT FINAL :</strong>   (UNIQUEMENT si la description dit quelque chose de l'état final)
+<p>[Sans indication : n'écris pas cette section. N'affirme jamais qu'un contrôle ou un essai a été fait.]</p>
 
-<strong>OBSERVATIONS ET RECOMMANDATIONS :</strong>
-<p>[Conseils de maintenance préventive adaptés au type d'intervention]</p>"""
+<strong>OBSERVATIONS ET RECOMMANDATIONS :</strong>   (facultative)
+<p>[Soit une réserve réellement mentionnée par l'utilisateur, soit « Aucune réserve particulière à signaler. » Pas de conseil d'entretien inventé.]</p>"""
 
     balises_autorisees = "<p>, <strong>, <em>, <ul>, <ol>, <li>, <br>, <h3>" if longueur == "court" else "<p>, <strong>, <em>, <ul>, <ol>, <li>, <br>"
 
