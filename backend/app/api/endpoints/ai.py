@@ -338,10 +338,34 @@ from typing import List, Optional
 import httpx
 import json
 
+import logging
+
 from app.api import deps
 from app.models.user import User
 from app.core.config import settings
 from app.core.rate_limit import limiter
+
+logger = logging.getLogger(__name__)
+
+
+def _message_erreur(code: int) -> str:
+    """
+    Message destiné à l'artisan, jamais le corps d'erreur de Mistral.
+
+    Celui-ci nomme le modèle et le palier d'abonnement : sans intérêt pour
+    l'utilisateur, et à ne pas exposer. Le détail part dans les journaux.
+    """
+    if code in (401, 403):
+        return (
+            "Le service de rédaction est momentanément indisponible. "
+            "Rédigez votre rapport à la main, nous corrigeons cela au plus vite."
+        )
+    if code == 429:
+        return (
+            "Le service de rédaction est très sollicité en ce moment. "
+            "Réessayez dans une minute."
+        )
+    return "La rédaction automatique a échoué. Réessayez dans un instant."
 
 router = APIRouter()
 
@@ -369,7 +393,7 @@ Ne génère rien d'autre.
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "mistral-small-latest",
+                    "model": settings.MISTRAL_MODEL_VALIDATION,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.1,
                     "max_tokens": 100
@@ -379,8 +403,15 @@ Ne génère rien d'autre.
                 content = response.json()["choices"][0]["message"]["content"].strip()
                 if content.startswith("INVALIDE"):
                     return content.replace("INVALIDE:", "").replace("INVALIDE :", "").strip()
+            else:
+                # Le refus était avalé sans un mot : le contrôle de saisie ne
+                # tournait plus du tout et personne ne pouvait le savoir.
+                logger.warning(
+                    "Contrôle de saisie indisponible (%s) — génération autorisée sans contrôle.",
+                    response.status_code,
+                )
     except Exception:
-        pass
+        logger.exception("Contrôle de saisie impossible — génération autorisée sans contrôle.")
     return None
 
 class GenerateRapportRequest(BaseModel):
@@ -648,16 +679,31 @@ async def generate_rapport_stream(
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "mistral-large-latest",
+                        "model": settings.MISTRAL_MODEL_RAPPORT,
                         "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.4,
+                        # 0.4 laissait le modèle « compléter » le rapport avec
+                        # des étapes plausibles mais jamais réalisées —
+                        # diagnostic, contrôle d'étanchéité, test de
+                        # fonctionnement — exactement ce que le prompt
+                        # interdit. À 0.1, il constate l'absence d'information
+                        # au lieu de l'inventer. Sur un document que le client
+                        # signe, la fadeur vaut mieux que la fiction.
+                        "temperature": 0.1,
                         "max_tokens": max_tokens,
                         "stream": True
                     }
                 ) as response:
                     if response.status_code != 200:
                         error_body = await response.aread()
-                        yield f"event: error\ndata: {error_body.decode()}\n\n"
+                        # Le corps brut de Mistral contenait des retours à la
+                        # ligne : ils cassaient le cadrage SSE, et le client
+                        # recollait les morceaux dans le rapport. On journalise
+                        # le détail et on n'envoie qu'un message sur une ligne.
+                        logger.error(
+                            "Mistral a refusé la génération (%s) : %s",
+                            response.status_code, error_body.decode(errors="replace")[:500],
+                        )
+                        yield f"event: error\ndata: {json.dumps(_message_erreur(response.status_code))}\n\n"
                         return
 
                     async for line in response.aiter_lines():
@@ -677,9 +723,13 @@ async def generate_rapport_stream(
                             continue
 
         except httpx.TimeoutException:
-            yield "event: error\ndata: timeout\n\n"
-        except Exception as e:
-            yield f"event: error\ndata: {str(e)}\n\n"
+            logger.error("Mistral n'a pas répondu dans le délai imparti.")
+            yield f"event: error\ndata: {json.dumps('La rédaction a pris trop de temps. Réessayez.')}\n\n"
+        except Exception:
+            # `str(e)` partait tel quel vers le navigateur : trace interne
+            # exposée, et retours à la ligne qui cassaient le cadrage SSE.
+            logger.exception("Échec inattendu de la génération de rapport.")
+            yield f"event: error\ndata: {json.dumps(_message_erreur(0))}\n\n"
 
     return StreamingResponse(
         event_stream(),

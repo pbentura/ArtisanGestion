@@ -30,6 +30,17 @@ class Settings:
     # Mistral AI
     MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
 
+    # Modèles Mistral.
+    #
+    # « mistral-large-latest » était codé en dur et renvoyait 403
+    # (tier_not_allowed) : la génération de rapport était cassée pour tous les
+    # comptes, en silence. Les modèles accessibles dépendent de l'abonnement
+    # Mistral, donc ils se règlent sans toucher au code — remettre
+    # mistral-large-latest le jour où l'abonnement le permet.
+    MISTRAL_MODEL_RAPPORT: str = os.getenv("MISTRAL_MODEL_RAPPORT", "ministral-14b-latest")
+    # Contrôle de saisie : appel court et fréquent, un petit modèle suffit.
+    MISTRAL_MODEL_VALIDATION: str = os.getenv("MISTRAL_MODEL_VALIDATION", "ministral-8b-latest")
+
     # Resend (Emails)
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
     EMAIL_FROM: str = os.getenv("EMAIL_FROM", "onboarding@resend.dev")

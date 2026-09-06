@@ -789,6 +789,27 @@ async function saveAndGeneratePDF() {
   }
 }
 
+/**
+ * Message lisible à partir d'une ligne `data:` d'un événement d'erreur.
+ *
+ * Le serveur envoie désormais une chaîne JSON, mais d'anciennes versions
+ * renvoyaient le corps brut de Mistral ou le mot « timeout » : on absorbe les
+ * trois formes plutôt que d'afficher du JSON à un artisan.
+ */
+function messageErreurFlux(brut: string): string {
+  const repli = 'La rédaction automatique a échoué. Réessayez dans un instant.'
+  if (!brut) return repli
+  if (brut === 'timeout') return 'La rédaction a pris trop de temps. Réessayez.'
+  try {
+    const valeur = JSON.parse(brut)
+    if (typeof valeur === 'string') return valeur
+    if (valeur && typeof valeur.message === 'string') return repli
+    return repli
+  } catch {
+    return repli
+  }
+}
+
 async function generateWithAI() {
   if (!aiForm.value.type_intervention || aiForm.value.description.trim().length < 10) {
     aiError.value = 'Veuillez renseigner le type d\'intervention et une description d\'au moins 10 caractères.'
@@ -837,6 +858,7 @@ async function generateWithAI() {
     const decoder = new TextDecoder()
     let buffer = ''
     let accumulatedHTML = ''
+    let evenementCourant = ''
 
     while (true) {
       const { done, value } = await reader.read()
@@ -847,8 +869,26 @@ async function generateWithAI() {
       buffer = lines.pop() ?? ''
 
       for (const line of lines) {
+        // Le serveur émet aussi des événements `event: error`, dont la ligne
+        // `data:` porte un message et non du contenu de rapport. Ne filtrer
+        // que sur `data: ` faisait passer ces messages pour du texte à
+        // écrire : l'artisan voyait « [object Object] » dans son rapport.
+        if (line.startsWith('event: ')) {
+          evenementCourant = line.slice(7).trim()
+          continue
+        }
+        // Une ligne vide termine l'événement SSE en cours.
+        if (line.trim() === '') {
+          evenementCourant = ''
+          continue
+        }
         if (!line.startsWith('data: ')) continue
         const raw = line.slice(6).trim()
+
+        if (evenementCourant === 'error') {
+          throw new Error(messageErreurFlux(raw))
+        }
+
         if (raw === '[DONE]') {
           isStreamingAI.value = false
           // Synchroniser le state final avec le DOM
@@ -859,7 +899,11 @@ async function generateWithAI() {
         }
         if (raw === '') continue
         try {
-          const delta: string = JSON.parse(raw)
+          const delta = JSON.parse(raw)
+          // Le type était supposé, jamais vérifié : tout JSON non textuel
+          // (un objet d'erreur, par exemple) devenait « [object Object] »
+          // une fois concaténé. On ignore ce qui n'est pas du texte.
+          if (typeof delta !== 'string') continue
           accumulatedHTML += delta
           // Nettoyer les balises markdown ```html ... ``` avant d'afficher
           let displayHTML = accumulatedHTML
