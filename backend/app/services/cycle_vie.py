@@ -5,8 +5,9 @@ Un artisan qui s'inscrit et que personne ne relance disparaît. C'est la fuite
 la plus coûteuse quand l'acquisition est payante : le clic est facturé, le
 compte est créé, et il ne se passe plus rien pendant quatorze jours.
 
-Trois messages, envoyés au plus une fois chacun :
+Quatre messages, envoyés au plus une fois chacun :
 
+- ``verification_rappel`` : inscrit depuis 1 jour, email jamais confirmé ;
 - ``activation``  : inscrit depuis 2 jours, aucun document créé ;
 - ``essai_j3``    : il reste 3 jours d'essai ;
 - ``essai_termine`` : l'essai vient de se terminer.
@@ -30,19 +31,27 @@ from app.models.email_cycle_vie import EmailCycleVie
 from app.models.facture import Facture
 from app.models.rapport import Rapport
 from app.models.user import User
+from app.core.security import create_email_verification_token
 from app.services.email_service import (
     send_activation_reminder,
     send_trial_ended,
     send_trial_ending_soon,
+    send_verification_reminder,
 )
 
 logger = logging.getLogger(__name__)
 
 DUREE_ESSAI_JOURS = 14
 
+TYPE_VERIFICATION_RAPPEL = "verification_rappel"
 TYPE_ACTIVATION = "activation"
 TYPE_ESSAI_J3 = "essai_j3"
 TYPE_ESSAI_TERMINE = "essai_termine"
+
+# Un jour de battement : l'email de confirmation part à l'inscription, et il
+# faut laisser à l'artisan le temps de le traiter le soir venu avant de le
+# relancer. Au-delà, il aura oublié jusqu'au nom du produit.
+JOURS_AVANT_RAPPEL_VERIFICATION = 1
 
 # Un artisan qui vient de s'inscrire n'a pas à être relancé le lendemain :
 # on lui laisse le temps de revenir de lui-même.
@@ -82,12 +91,33 @@ async def _a_cree_un_document(db: AsyncSession, user_id: int) -> bool:
     return False
 
 
+async def _candidats_non_verifies(db: AsyncSession) -> List[User]:
+    """
+    Comptes créés dont l'adresse n'a jamais été confirmée.
+
+    Ils sont traités à part : les relancer sur l'usage du produit n'aurait pas
+    de sens puisqu'ils n'ont jamais pu s'y connecter. Ce qu'il leur manque,
+    c'est le lien de confirmation — souvent parti en indésirables.
+    """
+    plancher = datetime.now(timezone.utc) - timedelta(days=FENETRE_RATTRAPAGE_JOURS)
+    result = await db.execute(
+        select(User).where(
+            User.is_email_verified.is_(False),
+            User.mdp.isnot(None),  # les comptes Google sont vérifiés d'office
+            User.date_inscription.isnot(None),
+            User.date_inscription >= plancher,
+        )
+    )
+    return list(result.scalars().all())
+
+
 async def _candidats(db: AsyncSession) -> List[User]:
     """
     Comptes encore en essai, ou tout juste sortis, et sans abonnement.
 
     Les comptes non vérifiés sont exclus : ils n'ont jamais pu se connecter,
-    les relancer sur l'usage du produit n'aurait aucun sens.
+    les relancer sur l'usage du produit n'aurait aucun sens. Ils sont pris en
+    charge par ``_candidats_non_verifies``.
     """
     plancher = datetime.now(timezone.utc) - timedelta(
         days=DUREE_ESSAI_JOURS + FENETRE_RATTRAPAGE_JOURS
@@ -139,9 +169,54 @@ async def _marquer_puis_envoyer(db: AsyncSession, user: User, type_: str, envoi)
     return True
 
 
+async def _traiter_non_verifies(db: AsyncSession, bilan: dict) -> None:
+    """
+    Renvoie une fois le lien de confirmation aux comptes restés en attente.
+
+    Le jeton d'origine a une durée de vie limitée : on en fabrique un neuf et
+    on le pose sur le compte, exactement comme le fait le renvoi manuel depuis
+    l'écran de connexion.
+    """
+    candidats = await _candidats_non_verifies(db)
+    if not candidats:
+        return
+
+    envoyes = await _deja_envoyes(db, [u.id for u in candidats])
+    maintenant = datetime.now(timezone.utc)
+
+    for user in candidats:
+        bilan["examines"] += 1
+
+        if TYPE_VERIFICATION_RAPPEL in envoyes.get(user.id, set()):
+            continue
+
+        anciennete = jours_depuis_inscription(user, maintenant)
+        if anciennete is None or anciennete < JOURS_AVANT_RAPPEL_VERIFICATION:
+            continue
+
+        jeton = create_email_verification_token(user.email)
+        user.email_verification_token = jeton
+        db.add(user)
+
+        prenom = user.prenom or ""
+        if await _marquer_puis_envoyer(
+            db, user, TYPE_VERIFICATION_RAPPEL,
+            lambda u=user, p=prenom, j=jeton: send_verification_reminder(u.email, p, j),
+        ):
+            bilan["verification_rappel"] += 1
+
+
 async def traiter_cycle_vie(db: AsyncSession) -> dict:
     """Parcourt les comptes en essai et envoie les messages dus."""
-    bilan = {"examines": 0, "activation": 0, "essai_j3": 0, "essai_termine": 0}
+    bilan = {
+        "examines": 0,
+        "verification_rappel": 0,
+        "activation": 0,
+        "essai_j3": 0,
+        "essai_termine": 0,
+    }
+
+    await _traiter_non_verifies(db, bilan)
 
     candidats = await _candidats(db)
     envoyes = await _deja_envoyes(db, [u.id for u in candidats])
@@ -193,8 +268,10 @@ async def traiter_cycle_vie(db: AsyncSession) -> dict:
                 bilan["activation"] += 1
 
     logger.info(
-        "Cycle de vie : %s compte(s) examiné(s) — %s activation, %s fin proche, %s terminé.",
-        bilan["examines"], bilan["activation"], bilan["essai_j3"], bilan["essai_termine"],
+        "Cycle de vie : %s compte(s) examiné(s) — %s rappel de vérification, "
+        "%s activation, %s fin proche, %s terminé.",
+        bilan["examines"], bilan["verification_rappel"],
+        bilan["activation"], bilan["essai_j3"], bilan["essai_termine"],
     )
     return bilan
 
@@ -208,4 +285,11 @@ async def executer_tache_quotidienne() -> dict:
             return await traiter_cycle_vie(db)
         except Exception:
             logger.exception("La tâche de cycle de vie a échoué.")
-            return {"examines": 0, "activation": 0, "essai_j3": 0, "essai_termine": 0, "erreur": True}
+            return {
+                "examines": 0,
+                "verification_rappel": 0,
+                "activation": 0,
+                "essai_j3": 0,
+                "essai_termine": 0,
+                "erreur": True,
+            }

@@ -12,8 +12,10 @@ const heroVideoRef = ref<HTMLVideoElement | null>(null)
 useLazyVideo(heroVideoRef, '/ArtisanGestionPromo.mp4')
 const isVisible = ref(false)
 
+// `mode=signup` ouvre directement l'onglet Inscription : ce bouton promet un
+// essai, il ne doit pas déposer le visiteur sur un formulaire de connexion.
 function navigateToAuth() {
-  router.push('/auth')
+  router.push('/auth?mode=signup')
 }
 
 function scrollToVideo() {

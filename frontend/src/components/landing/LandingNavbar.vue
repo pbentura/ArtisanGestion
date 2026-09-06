@@ -17,9 +17,18 @@ const pages = [
 ]
 const isScrolled = ref(false)
 
+// Deux intentions distinctes dans cette barre : « Connexion » vise un compte
+// existant, les boutons d'essai un compte à créer. Les envoyer tous les deux
+// sur l'onglet Connexion faisait chercher l'inscription à ceux qui venaient
+// justement pour ça.
 function navigateToAuth() {
   isMenuOpen.value = false
   router.push('/auth')
+}
+
+function navigateToSignup() {
+  isMenuOpen.value = false
+  router.push('/auth?mode=signup')
 }
 
 function scrollTo(id: string) {
@@ -74,7 +83,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
             Connexion
           </button>
           <button
-            @click="navigateToAuth"
+            @click="navigateToSignup"
             class="hidden sm:inline-flex px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/25 active:scale-95"
           >
             Essayer gratuitement
@@ -106,10 +115,19 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
           >{{ p.label }}</router-link>
           <button @click="scrollTo('pricing')" class="text-left text-lg font-medium text-foreground border-b border-border pb-4">Tarifs</button>
           <button
-            @click="navigateToAuth"
+            @click="navigateToSignup"
             class="w-full px-4 py-3.5 bg-primary text-primary-foreground rounded-2xl text-base font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 mt-4"
           >
             Créer mon compte gratuitement
+          </button>
+          <!-- Le menu mobile n'offrait aucune entrée vers la connexion : elle
+               n'existait que dans la barre, masquée sous 1024 px. Un client
+               déjà abonné devait passer par le bouton d'inscription. -->
+          <button
+            @click="navigateToAuth"
+            class="w-full text-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            J'ai déjà un compte
           </button>
         </div>
       </div>

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_db, get_current_user, require_permission
+from app.api.deps import get_db, get_current_user, require_permission, resoudre_acces_equipe
 from app.models.user import User
 from app.models.societe import Societe
 from app.models.invitation import Invitation
@@ -99,10 +99,10 @@ async def create_invitation(
     )
     current_user = result.scalars().first()
     
-    # Vérifier l'abonnement TEAM
-    if current_user.role not in ["TEAM", "ADMIN"]:
+    # Abonnement Équipe — ou essai en cours, qui en est justement l'essai.
+    if not await resoudre_acces_equipe(current_user, db):
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Vous devez avoir l'abonnement Équipe pour inviter des collaborateurs."
         )
 

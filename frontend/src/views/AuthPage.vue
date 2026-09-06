@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,20 @@ import {
 import { App } from '@capacitor/app'
 
 const router = useRouter()
-const activeTab = ref('login')
+const route = useRoute()
+
+// Onglet ouvert à l'arrivée.
+//
+// Les boutons d'essai des pages vitrines passent `?mode=signup` : sans cela,
+// un artisan venu d'une annonce « Essai gratuit 14 jours » atterrissait sur un
+// formulaire de connexion à un compte qu'il n'a pas encore, et devait repérer
+// de lui-même l'onglet gris à droite.
+const activeTab = ref(route.query.mode === 'signup' ? 'signup' : 'login')
+
+// Jeton expiré côté application (cf. lib/api.ts) : on explique le retour ici
+// plutôt que de laisser croire à une déconnexion inexpliquée.
+const sessionExpiree = ref(route.query.session === 'expiree')
+
 const isLoading = ref(false)
 const showPassword = ref(false)
 const isNative = Capacitor.isNativePlatform()
@@ -57,6 +70,48 @@ const signupForm = ref({
 
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// Renvoi du lien de vérification.
+//
+// C'est le point de rupture le plus coûteux du tunnel : l'email obligatoire
+// part une seule fois, et s'il se perd (spam, faute de frappe, artisan
+// interrompu sur le chantier), le compte est créé mais inutilisable — sans
+// aucun moyen de s'en sortir depuis l'interface. L'endpoint existait déjà
+// côté serveur, il n'était simplement branché nulle part.
+const emailAVerifier = ref('')
+const renvoiEnCours = ref(false)
+const renvoiMessage = ref('')
+const renvoiErreur = ref('')
+
+async function handleResendVerification() {
+  if (!emailAVerifier.value || renvoiEnCours.value) return
+
+  renvoiEnCours.value = true
+  renvoiMessage.value = ''
+  renvoiErreur.value = ''
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailAVerifier.value })
+    })
+
+    if (res.ok) {
+      renvoiMessage.value = 'Nouvel email envoyé. Pensez à regarder dans vos spams.'
+    } else if (res.status === 429) {
+      // Le serveur limite à 3 renvois par heure : le dire vaut mieux que
+      // laisser l'artisan cliquer sans comprendre.
+      renvoiErreur.value = 'Trop de demandes. Réessayez dans une heure, ou écrivez-nous à contact@artisangestion.com.'
+    } else {
+      renvoiErreur.value = "L'envoi a échoué. Réessayez dans un instant."
+    }
+  } catch {
+    renvoiErreur.value = 'Erreur réseau. Vérifiez votre connexion et réessayez.'
+  } finally {
+    renvoiEnCours.value = false
+  }
+}
 
 // Forgot password flow
 const showForgotPassword = ref(false)
@@ -225,9 +280,19 @@ async function handleLogin() {
     
     if (!res.ok) {
       const errorData = await res.json()
+
+      // 403 = compte créé mais email jamais confirmé. C'est le seul échec de
+      // connexion que l'artisan ne peut pas résoudre seul : on lui propose le
+      // renvoi sur place au lieu de l'abandonner sur un message d'erreur.
+      if (res.status === 403) {
+        emailAVerifier.value = loginForm.value.email
+        renvoiMessage.value = ''
+        renvoiErreur.value = ''
+      }
+
       throw new Error(errorData.detail || "Erreur de connexion")
     }
-    
+
     const data = await res.json()
     localStorage.setItem('token', data.access_token)
     router.push('/app')
@@ -273,6 +338,12 @@ async function handleSignup() {
     successMessage.value = "Votre compte a bien été créé ! Un email de vérification vous a été envoyé. Vérifiez votre boîte mail (et vos spams) pour activer votre compte."
     activeTab.value = 'login'
     loginForm.value.email = signupForm.value.email
+
+    // Rend le renvoi immédiatement accessible : c'est maintenant que l'artisan
+    // attend l'email, donc maintenant qu'il constate qu'il n'arrive pas.
+    emailAVerifier.value = signupForm.value.email
+    renvoiMessage.value = ''
+    renvoiErreur.value = ''
     
     // Connect WebSocket to listen for verification from another device
     if (data.waiting_token) {
@@ -553,6 +624,24 @@ onUnmounted(() => {
               </div>
               <div v-if="successMessage" class="auth-sheet-message auth-sheet-message--success">
                 {{ successMessage }}
+              </div>
+
+              <!-- Renvoi du lien de vérification (voir la version web). -->
+              <div v-if="emailAVerifier" class="auth-sheet-renvoi">
+                <p>
+                  Vous n'avez pas reçu l'email de vérification ?
+                  <span class="auth-sheet-renvoi__adresse">{{ emailAVerifier }}</span>
+                </p>
+                <button
+                  type="button"
+                  @click="handleResendVerification"
+                  :disabled="renvoiEnCours"
+                >
+                  <Loader2 v-if="renvoiEnCours" class="w-4 h-4 animate-spin" />
+                  {{ renvoiEnCours ? 'Envoi en cours...' : "Renvoyer l'email de vérification" }}
+                </button>
+                <p v-if="renvoiMessage" class="auth-sheet-renvoi__ok">{{ renvoiMessage }}</p>
+                <p v-if="renvoiErreur" class="auth-sheet-renvoi__ko">{{ renvoiErreur }}</p>
               </div>
 
               <!-- Tabs -->
@@ -853,6 +942,14 @@ onUnmounted(() => {
           </CardHeader>
 
           <CardContent class="space-y-4">
+            <!-- Retour forcé depuis l'application, jeton expiré. -->
+            <div
+              v-if="sessionExpiree"
+              class="p-3 bg-blue-500/10 border border-blue-500/40 rounded-xl text-sm text-center text-foreground"
+            >
+              Votre session a expiré. Reconnectez-vous pour retrouver vos documents.
+            </div>
+
             <!-- Google Auth Button -->
             <GoogleAuthButton @click="handleGoogleAuth" />
 
@@ -872,9 +969,36 @@ onUnmounted(() => {
             <div v-if="errorMessage" class="p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
               {{ errorMessage }}
             </div>
-            
+
             <div v-if="successMessage" class="p-3 bg-green-500/10 border border-green-500/50 rounded-xl text-green-500 text-sm text-center">
               {{ successMessage }}
+            </div>
+
+            <!-- Renvoi du lien de vérification : la seule issue pour un compte
+                 créé dont l'email de confirmation ne s'est jamais affiché. -->
+            <div
+              v-if="emailAVerifier"
+              class="p-3 bg-amber-500/10 border border-amber-500/40 rounded-xl space-y-2 text-sm"
+            >
+              <p class="text-foreground text-center">
+                Vous n'avez pas reçu l'email de vérification ?
+                <span class="block font-semibold break-all mt-0.5">{{ emailAVerifier }}</span>
+              </p>
+              <button
+                type="button"
+                @click="handleResendVerification"
+                :disabled="renvoiEnCours"
+                class="w-full py-2 rounded-lg border border-amber-500/50 text-amber-700 dark:text-amber-400 font-medium hover:bg-amber-500/10 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                <Loader2 v-if="renvoiEnCours" class="w-4 h-4 animate-spin" />
+                {{ renvoiEnCours ? 'Envoi en cours...' : "Renvoyer l'email de vérification" }}
+              </button>
+              <p v-if="renvoiMessage" class="text-green-600 dark:text-green-400 text-center text-xs">
+                {{ renvoiMessage }}
+              </p>
+              <p v-if="renvoiErreur" class="text-red-500 text-center text-xs">
+                {{ renvoiErreur }}
+              </p>
             </div>
 
             <!-- Tabs -->
@@ -1484,6 +1608,54 @@ onUnmounted(() => {
   background: rgba(22, 163, 74, 0.08);
   border: 1px solid rgba(22, 163, 74, 0.3);
   color: #16A34A;
+}
+
+.auth-sheet-renvoi {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-sheet-renvoi button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  background: transparent;
+  color: #B45309;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.auth-sheet-renvoi button:disabled {
+  opacity: 0.6;
+}
+
+.auth-sheet-renvoi__adresse {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.auth-sheet-renvoi__ok {
+  color: #16A34A;
+  font-size: 12px;
+}
+
+.auth-sheet-renvoi__ko {
+  color: #DC2626;
+  font-size: 12px;
 }
 
 /* Animation from index.css referenced here */

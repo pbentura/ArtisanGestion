@@ -65,6 +65,8 @@ const aiForm = ref({
   longueur: 'normal' as 'court' | 'normal' | 'long'
 })
 const aiError = ref('')
+// Dernière saisie envoyée à l'IA, rejouée si le flux casse en cours de route.
+const saisiePrecedente = ref<typeof aiForm.value | null>(null)
 const showPDFModal = ref(false)
 const pdfUrl = ref('')
 const previewHTML = ref('')
@@ -304,7 +306,14 @@ const editorRef = ref<HTMLElement | null>(null)
 onMounted(async () => {
   loadSociete()
   loadClients()
-  
+
+  // Arrivée depuis « Générer mon premier rapport avec l'IA » : on ouvre
+  // directement la modale, sinon l'artisan retombe sur le formulaire vierge
+  // qu'il venait précisément d'éviter.
+  if (!isEditMode.value && route.query.ia === '1') {
+    showAIModal.value = true
+  }
+
   // Si mode édition, charger le rapport existant
   if (isEditMode.value && rapportId.value) {
     await loadExistingRapport(rapportId.value)
@@ -817,7 +826,11 @@ async function generateWithAI() {
     }
 
     const currentLongueur = aiForm.value.longueur
+    // Conservée pour pouvoir rouvrir la modale telle quelle si le flux casse
+    // en route : sans cela, l'artisan devrait ressaisir sa description.
+    const saisie = { ...aiForm.value }
     aiForm.value = { type_intervention: '', description: '', longueur: 'normal' }
+    saisiePrecedente.value = saisie
 
     // Lecture du stream SSE
     const reader = res.body.getReader()
@@ -889,6 +902,17 @@ async function generateWithAI() {
     isGeneratingAI.value = false
     isStreamingAI.value = false
     aiError.value = e.message || 'Une erreur est survenue'
+
+    // `aiError` ne s'affiche que dans la modale, or celle-ci est refermée dès
+    // que le flux s'ouvre : une coupure en cours de rédaction laissait un
+    // rapport à moitié écrit et aucun message. On la rouvre, avec la saisie
+    // d'origine, pour que l'erreur soit lue et la génération relançable.
+    if (!showAIModal.value) {
+      if (saisiePrecedente.value) {
+        aiForm.value = { ...saisiePrecedente.value }
+      }
+      showAIModal.value = true
+    }
   }
 }
 </script>
@@ -1199,6 +1223,38 @@ async function generateWithAI() {
     </div>
 
     <div v-else class="space-y-6">
+      <!-- Génération par l'IA.
+
+           Cette bannière était placée après la date, le titre, le document
+           lié et la fiche client : sur un téléphone, deux à trois écrans de
+           défilement avant de voir la fonctionnalité pour laquelle l'artisan
+           a cliqué sur l'annonce. Elle ouvre maintenant la page.
+
+           Le client et l'adresse alimentent le prompt lorsqu'ils sont déjà
+           saisis, mais ils restent facultatifs : rien ne justifiait d'en
+           faire un préalable. -->
+      <div class="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl p-4">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div class="flex items-center gap-3 flex-1">
+            <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <Sparkles class="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p class="font-semibold text-foreground text-sm">{{ isEditMode ? "Réécrire ce rapport avec l'IA" : "Générer le rapport avec l'IA" }}</p>
+              <p class="text-xs text-muted-foreground">{{ isEditMode ? "Améliorer et restructurer le contenu de ce rapport à l'aide de l'IA" : "Décrivez votre intervention en une phrase, l'IA rédige le rapport en quelques secondes" }}</p>
+            </div>
+          </div>
+          <button
+            @click="showAIModal = true"
+            class="inline-flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto px-5 py-2.5 rounded-[10px] bg-primary text-primary-foreground text-sm font-semibold transition-all hover:bg-primary/90 active:scale-[0.98]"
+          >
+            <Sparkles class="w-4 h-4" />
+            {{ isEditMode ? "Réécrire avec l'IA" : "Générer avec l'IA" }}
+          </button>
+        </div>
+      </div>
+
       <!-- Date d'intervention -->
       <section class="bg-card border border-border rounded-xl p-6">
         <label class="block text-sm font-medium text-foreground mb-2">Date d'intervention *</label>
@@ -1351,31 +1407,6 @@ async function generateWithAI() {
           </div>
         </div>
       </section>
-
-      <!-- AI Generation Banner -->
-    <div class="mb-6">
-      <div class="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl p-4">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div class="flex items-center gap-3 flex-1">
-            <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-              <Sparkles class="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p class="font-semibold text-foreground text-sm">{{ isEditMode ? "Réécrire ce rapport avec l'IA" : "Générer le rapport avec l'IA" }}</p>
-              <p class="text-xs text-muted-foreground">{{ isEditMode ? "Améliorer et restructurer le contenu de ce rapport à l'aide de l'IA" : "Rédiger un rapport professionnel et structuré en quelques secondes avec l'IA" }}</p>
-            </div>
-          </div>
-          <button
-            @click="showAIModal = true"
-            class="btn-primary flex-shrink-0"
-          >
-            <Sparkles class="w-4 h-4" />
-            {{ isEditMode ? "Réécrire avec l'IA" : "Générer avec l'IA" }}
-          </button>
-        </div>
-      </div>
-    </div>
 
       <!-- Rich Editor complet -->
       <section class="bg-card border border-border rounded-xl p-6">

@@ -631,6 +631,43 @@ async def send_relance_facture(
 # étant tenue en base (cf. app/models/email_cycle_vie.py).
 
 
+async def send_verification_reminder(to: str, prenom: str, token: str) -> bool:
+    """
+    Relance un compte créé dont l'adresse n'a jamais été confirmée.
+
+    Sans ce message, ces comptes sont perdus en silence : la connexion leur est
+    refusée tant que l'email n'est pas vérifié, et les relances d'usage les
+    excluent — puisqu'ils n'ont jamais pu se servir du produit. Le clic
+    publicitaire est pourtant déjà payé.
+    """
+    _init_resend()
+
+    verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+
+    content = f"""
+        <div style="width: 64px; height: 64px; background-color: #fffbeb; border-radius: 50%; margin: 0 auto 24px auto; text-align: center; line-height: 64px;">
+            <span style="font-size: 28px;">⏳</span>
+        </div>
+
+        <h1 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 700; text-align: center;">Il reste une étape, {prenom}</h1>
+
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Votre compte ArtisanGestion est créé, mais votre adresse email n'a pas encore été
+            confirmée — sans quoi la connexion reste bloquée. Un seul clic suffit, et vos
+            14 jours d'essai démarrent vraiment.
+        </p>
+
+        {_button(verification_url, 'Confirmer mon email')}
+
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
+            Ce lien ne fonctionne plus ? Répondez à cet email, nous vous débloquons à la main.<br>
+            Si vous n'êtes pas à l'origine de cette inscription, ignorez ce message.
+        </p>
+    """
+
+    return _envoyer(to, f"{prenom}, confirmez votre email pour activer votre essai", content)
+
+
 async def send_activation_reminder(to: str, prenom: str) -> bool:
     """
     Relance un artisan inscrit qui n'a encore créé aucun document.

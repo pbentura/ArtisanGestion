@@ -16,7 +16,8 @@ const router = useRouter()
 
 onMounted(() => {
   const user = dataStore.user?.data
-  if (user && user.societes && user.role !== 'TEAM' && user.role !== 'ADMIN') {
+  // `acces_equipe` inclut l'essai en cours (cf. schemas/user.py).
+  if (user && user.societes && user.acces_equipe !== true) {
     const ownedSocietes = user.societes.filter((s: any) => s.id_user === user.id)
     if (ownedSocietes.length >= 1) {
       uiStore.openSubscriptionModal({

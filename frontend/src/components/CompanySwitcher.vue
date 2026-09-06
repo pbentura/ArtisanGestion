@@ -48,7 +48,8 @@ async function switchSociete(societeId: number) {
 function handleCreateClick() {
   isDropdownOpen.value = false
   const ownedSocietes = societes.value.filter((s: any) => s.id_user === user.value?.id)
-  if (ownedSocietes.length >= 1 && user.value?.role !== 'TEAM' && user.value?.role !== 'ADMIN') {
+  // `acces_equipe` inclut l'essai en cours (cf. schemas/user.py).
+  if (ownedSocietes.length >= 1 && user.value?.acces_equipe !== true) {
     uiStore.openSubscriptionModal({
       title: 'Passez au plan Équipe',
       description: 'Pour créer et gérer plusieurs entreprises, vous devez posséder le plan Équipe.',

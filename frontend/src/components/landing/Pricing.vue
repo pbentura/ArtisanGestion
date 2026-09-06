@@ -41,8 +41,9 @@ const plans = [
   }
 ]
 
+// Les deux formules démarrent par l'essai : l'onglet Inscription, donc.
 function handleCTA() {
-  router.push('/auth')
+  router.push('/auth?mode=signup')
 }
 
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, FileText, Calendar, Download, Trash2, Search, CheckCircle2, Clock, MoreVertical, Share2, Mail } from 'lucide-vue-next'
+import { Plus, Calendar, Download, Trash2, Search, CheckCircle2, Clock, MoreVertical, Share2, Mail, Sparkles } from 'lucide-vue-next'
 import MobileFAB from '@/components/mobile/MobileFAB.vue'
 import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import { useMobile } from '@/composables/useMobile'
@@ -347,22 +347,43 @@ onMounted(fetchRapports)
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div v-else-if="rapports.length === 0" class="bg-card border border-border rounded-xl p-12 text-center">
+    <!-- Empty State.
+
+         C'est le premier écran de l'application, et celui où atterrit
+         l'artisan venu d'une annonce « L'IA rédige vos rapports ». Il ne
+         disait rien de l'IA : la promesse de la publicité disparaissait à la
+         seconde où le compte était créé. On la remet ici, et le bouton mène
+         directement à la génération. -->
+    <div v-else-if="rapports.length === 0" class="bg-card border border-border rounded-xl p-8 sm:p-12 text-center">
       <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-        <FileText class="w-8 h-8 text-primary" />
+        <Sparkles class="w-8 h-8 text-primary" />
       </div>
-      <h3 class="text-lg font-semibold text-foreground mb-2">Aucun rapport</h3>
-      <p class="text-muted-foreground mb-6">Vous n'avez pas encore créé de rapport d'intervention.</p>
-      <button
-        v-if="canCreate"
-        @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/rapports/new')"
-        class="btn-primary w-full sm:w-auto"
-        title="Nouveau rapport"
-      >
-        <Plus class="w-4 h-4" />
-        Créer mon premier rapport
-      </button>
+      <h3 class="text-lg font-semibold text-foreground mb-2">Votre premier rapport, rédigé par l'IA</h3>
+      <p class="text-muted-foreground mb-6 max-w-md mx-auto">
+        Décrivez votre intervention en une phrase — l'IA rédige le rapport professionnel,
+        vous le relisez et l'envoyez. Une dizaine de secondes suffisent.
+      </p>
+      <div v-if="canCreate" class="flex flex-col sm:flex-row gap-3 justify-center">
+        <!-- `btn-primary` est un bouton discret (fond carte, bordure) : c'est
+             l'action secondaire ici. L'entrée IA est peinte en plein pour
+             porter réellement la hiérarchie. -->
+        <button
+          @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/rapports/new?ia=1')"
+          class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-[10px] bg-primary text-primary-foreground text-sm font-semibold transition-all hover:bg-primary/90 hover:-translate-y-px active:translate-y-0 shadow-lg shadow-primary/20"
+          title="Générer un rapport avec l'IA"
+        >
+          <Sparkles class="w-4 h-4" />
+          Générer mon premier rapport avec l'IA
+        </button>
+        <button
+          @click="trialEnded ? uiStore.openSubscriptionModal() : router.push('/app/rapports/new')"
+          class="btn-primary w-full sm:w-auto"
+          title="Nouveau rapport"
+        >
+          <Plus class="w-4 h-4" />
+          Partir d'un rapport vierge
+        </button>
+      </div>
     </div>
 
     <!-- Rapports List -->

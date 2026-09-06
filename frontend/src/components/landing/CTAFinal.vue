@@ -6,8 +6,9 @@ import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-vue-next'
 
 const router = useRouter()
 
+// Cf. HeroSection : les boutons d'essai ouvrent l'onglet Inscription.
 function navigateToAuth() {
-  router.push('/auth')
+  router.push('/auth?mode=signup')
 }
 
 

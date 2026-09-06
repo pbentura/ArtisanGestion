@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.user import User
-from app.schemas.user import jours_essai_restants
+from app.schemas.user import a_acces_equipe, jours_essai_restants
 from app.models.societe import Societe
 from app.schemas.token import TokenPayload
 
@@ -64,16 +64,14 @@ def get_trial_days_remaining(user: User) -> int:
     )
 
 
-async def resoudre_jours_essai(user: User, db: AsyncSession) -> int:
+async def _utilisateur_de_reference(user: User, db: AsyncSession) -> User:
     """
-    Jours d'essai restants en tenant compte du propriétaire de l'entreprise.
+    Compte qui porte réellement les droits.
 
     Un collaborateur a son propre compte, sans abonnement : c'est celui de son
     patron qui ouvre les droits. Sans cette résolution, un collaborateur d'une
     équipe abonnée serait bloqué 14 jours après *sa* propre inscription.
     """
-    a_verifier = user
-
     # On détermine l'entreprise active
     active_id = getattr(user, 'active_societe_id', None) or user.id_societe
     if not active_id:
@@ -84,13 +82,32 @@ async def resoudre_jours_essai(user: User, db: AsyncSession) -> int:
         result = await db.execute(select(Societe.id_user).where(Societe.id == active_id))
         owner_id = result.scalar()
         if owner_id and owner_id != user.id:
-            # Si l'utilisateur consulte une entreprise qu'il ne possède pas, on vérifie l'essai du propriétaire
+            # Si l'utilisateur consulte une entreprise qu'il ne possède pas, on
+            # se réfère au propriétaire.
             owner_result = await db.execute(select(User).where(User.id == owner_id))
             owner = owner_result.scalars().first()
             if owner:
-                a_verifier = owner
+                return owner
 
-    return get_trial_days_remaining(a_verifier)
+    return user
+
+
+async def resoudre_jours_essai(user: User, db: AsyncSession) -> int:
+    """Jours d'essai restants, en tenant compte du propriétaire de l'entreprise."""
+    return get_trial_days_remaining(await _utilisateur_de_reference(user, db))
+
+
+async def resoudre_acces_equipe(user: User, db: AsyncSession) -> bool:
+    """
+    Droit aux fonctions du plan Équipe, propriétaire compris.
+
+    L'essai de 14 jours donne accès au plan Équipe : voir
+    ``app.schemas.user.a_acces_equipe`` pour la règle elle-même.
+    """
+    reference = await _utilisateur_de_reference(user, db)
+    return a_acces_equipe(
+        getattr(reference, "role", None), getattr(reference, "date_inscription", None)
+    )
 
 
 async def check_trial_active(

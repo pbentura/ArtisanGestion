@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.future import select
 
-from app.api.deps import get_db, get_current_user, resoudre_jours_essai
+from app.api.deps import get_db, get_current_user, resoudre_acces_equipe, resoudre_jours_essai
 from app.models.user import User
 from app.schemas.user import UserReadWithSocietes, UserUpdate, UserPasswordUpdate
 from app.core.security import get_password_hash, verify_password
@@ -23,6 +23,7 @@ async def _profil_complet(user: User, db: AsyncSession) -> UserReadWithSocietes:
     """
     user_data = UserReadWithSocietes.model_validate(user)
     user_data.trial_days_remaining = await resoudre_jours_essai(user, db)
+    user_data.acces_equipe = await resoudre_acces_equipe(user, db)
 
     societes_dict = {s.id: s for s in user_data.societes}
     if user.societe_membre and user.societe_membre.id not in societes_dict:

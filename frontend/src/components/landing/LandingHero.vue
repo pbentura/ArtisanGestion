@@ -81,7 +81,7 @@ const router = useRouter()
             <button
               type="button"
               class="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-primary text-primary-foreground rounded-2xl text-base sm:text-lg font-semibold shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-              @click="router.push('/auth')"
+              @click="router.push('/auth?mode=signup')"
             >
               {{ cta }}
               <ArrowRight class="h-5 w-5 group-hover:translate-x-1 transition-transform" />

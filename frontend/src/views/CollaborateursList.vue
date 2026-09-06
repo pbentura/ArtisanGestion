@@ -153,7 +153,8 @@ async function removeCollab(id: number) {
 }
 
 function resetInviteModal() {
-  if (currentUser.value?.role !== 'TEAM' && currentUser.value?.role !== 'ADMIN') {
+  // `acces_equipe` inclut l'essai en cours (cf. schemas/user.py).
+  if (currentUser.value?.acces_equipe !== true) {
     uiStore.openSubscriptionModal({
       title: 'Passez au plan Équipe',
       description: 'Pour inviter des collaborateurs et travailler en équipe, vous devez passer au plan Équipe.',

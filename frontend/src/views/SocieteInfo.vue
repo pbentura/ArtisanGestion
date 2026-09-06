@@ -40,9 +40,11 @@ const form = ref({
   relances_jours: '3,10,21'
 })
 
-// Plan Équipe requis pour l'automatisation des relances.
+// Plan Équipe requis pour l'automatisation des relances — l'essai de 14 jours
+// y donne droit, c'est un essai de ce plan. Le serveur tranche (`acces_equipe`)
+// plutôt que de relire le rôle ici : la règle doit rester à un seul endroit.
 const peutAutomatiserRelances = computed(
-  () => ['TEAM', 'ADMIN'].includes(dataStore.user.data?.role || '')
+  () => dataStore.user.data?.acces_equipe === true
 )
 
 // Saisie confortable des paliers : trois champs numériques plutôt qu'une chaîne.

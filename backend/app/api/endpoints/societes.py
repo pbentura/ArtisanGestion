@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Any, Optional, Dict, List
 
-from app.api.deps import get_db, get_current_user, is_admin, get_user_societe_id, require_permission
+from app.api.deps import get_db, get_current_user, is_admin, get_user_societe_id, require_permission, resoudre_acces_equipe
 from app.models.societe import Societe
 from app.models.user import User
 from app.schemas.societe import SocieteCreate, SocieteRead, SocieteUpdate
@@ -129,7 +129,9 @@ async def create_societe(
     result_count = await db.execute(select(func.count(Societe.id)).where(Societe.id_user == current_user.id))
     societe_count = result_count.scalar()
     
-    if societe_count >= 1 and current_user.role not in ["TEAM", "ADMIN"]:
+    # L'essai de 14 jours ouvre les fonctions Équipe : le rôle seul refusait la
+    # deuxième entreprise à un artisan en train d'essayer le plan.
+    if societe_count >= 1 and not await resoudre_acces_equipe(current_user, db):
         raise HTTPException(
             status_code=403,
             detail="Le plan Équipe est requis pour créer plusieurs entreprises."

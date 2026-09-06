@@ -352,8 +352,16 @@ router.beforeEach(async (to, _from, next) => {
 
   // Mise à jour du titre et de la meta description
   const meta = to.matched.slice().reverse().find(r => r.meta?.title || r.meta?.description)?.meta
-  const title = meta?.title as string
-  
+  let title = meta?.title as string
+
+  // /auth sert les deux intentions. Le titre est posé ici, et non dans la vue,
+  // pour que la vue envoyée à GA4 juste après (afterEach) distingue une
+  // arrivée sur l'inscription d'une arrivée sur la connexion — c'est
+  // exactement l'étape du tunnel que la campagne cherche à mesurer.
+  if (to.name === 'auth' && to.query.mode === 'signup') {
+    title = 'Créer un compte'
+  }
+
   if (title) {
     // Les pages d'atterrissage ont un titre rédigé pour la recherche : le
     // préfixer de « ArtisanGestion | » le tronquerait dans les résultats.

@@ -9,7 +9,8 @@ par palier de retard. Deux garde-fous encadrent l'envoi :
 - seul un palier est envoyé par facture et par exécution, pour qu'un impayé
   ancien découvert tardivement ne déclenche pas trois emails d'affilée.
 
-Réservé au plan Équipe, comme annoncé sur la page de tarifs.
+Réservé au plan Équipe, comme annoncé sur la page de tarifs — l'essai de
+14 jours étant un essai de ce plan, il y donne droit lui aussi.
 """
 
 import logging
@@ -25,12 +26,10 @@ from app.models.facture import Facture
 from app.models.relance import RelanceFacture
 from app.models.societe import Societe
 from app.models.user import User
+from app.schemas.user import a_acces_equipe
 from app.services.email_service import send_relance_facture
 
 logger = logging.getLogger(__name__)
-
-# Rôles autorisant les relances automatiques.
-ROLES_AUTORISES = {"TEAM", "ADMIN"}
 
 
 def paliers(societe: Societe) -> List[int]:
@@ -84,12 +83,17 @@ async def factures_a_relancer(db: AsyncSession, societe_id: Optional[int] = None
 
 
 async def _proprietaire_autorise(db: AsyncSession, societe: Societe) -> Optional[User]:
-    """Retourne le propriétaire de la société s'il a le plan requis."""
+    """
+    Retourne le propriétaire de la société s'il a droit aux relances.
+
+    Le propriétaire est déjà l'utilisateur de référence : le test pur suffit,
+    inutile de repasser par la résolution de `deps`.
+    """
     if not societe or not societe.id_user:
         return None
     result = await db.execute(select(User).where(User.id == societe.id_user))
     user = result.scalars().first()
-    if not user or (user.role or "USER") not in ROLES_AUTORISES:
+    if not user or not a_acces_equipe(user.role, user.date_inscription):
         return None
     return user
 
