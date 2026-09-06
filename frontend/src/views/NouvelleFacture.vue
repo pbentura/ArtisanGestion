@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { dataStore, uiStore, sansMoyenDePaiement } from '@/lib/store'
+import { dataStore, uiStore, avecMoyenDePaiement } from '@/lib/store'
 import { trackConversionOnce } from '@/lib/analytics'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2, CreditCard, Undo2, Share2 } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
@@ -190,9 +190,12 @@ async function creerAvoir() {
   }
 }
 
-async function shareFacture() {
+function shareFacture() {
   if (!factureId.value || isDownloadingFacturX.value) return
-  
+  avecMoyenDePaiement(facture.value.est_avoir, partagerFacturX)
+}
+
+async function partagerFacturX() {
   isDownloadingFacturX.value = true
   try {
     // On utilise Factur-X pour le partage car c'est le format le plus complet
@@ -867,15 +870,12 @@ async function saveAndGeneratePDF() {
     alert('Veuillez remplir les champs obligatoires.')
     return
   }
+  // Le garde exécute `genererPDF`, jamais cette fonction-ci : se repasser par
+  // le test après « Plus tard » rouvrirait la modale sans fin.
+  avecMoyenDePaiement(facture.value.est_avoir, genererPDF)
+}
 
-  // Le PDF est l'autre porte de sortie du document : sans IBAN, le bloc
-  // « RÈGLEMENT PAR VIREMENT » n'y figure tout simplement pas. On le demande
-  // ici, puis on reprend la génération là où elle s'est arrêtée.
-  if (!facture.value.est_avoir && sansMoyenDePaiement()) {
-    uiStore.openPaiementModal(saveAndGeneratePDF)
-    return
-  }
-
+async function genererPDF() {
   isGeneratingPDF.value = true
   try {
     if (!isLocked.value) {
@@ -975,11 +975,14 @@ async function saveAndGeneratePDF() {
     isGeneratingPDF.value = false
   }
 }
-async function downloadFacturX() {
+function downloadFacturX() {
   if (!factureId.value || isDownloadingFacturX.value) return
-  
+  avecMoyenDePaiement(facture.value.est_avoir, telechargerFacturX)
+}
+
+async function telechargerFacturX() {
   isDownloadingFacturX.value = true
-  
+
   try {
     const res = await apiFetch(`factures/${factureId.value}/facturx`)
     

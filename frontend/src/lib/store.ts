@@ -86,6 +86,24 @@ export function sansMoyenDePaiement(): boolean {
   return !iban && societe.stripe_connect_enabled !== true
 }
 
+/**
+ * Interpose la demande de moyen de paiement avant qu'une facture ne sorte.
+ *
+ * `suite` ne doit PAS refaire le test elle-même : « Plus tard » la rappelle
+ * directement, et une fonction qui se repasserait par ce garde rouvrirait la
+ * modale en boucle. En pratique : sépare le bouton (qui appelle ce garde) de
+ * l'action (que le garde exécute).
+ *
+ * Un avoir est exclu : c'est l'artisan qui rembourse, pas le client qui paie.
+ */
+export function avecMoyenDePaiement(estAvoir: boolean, suite: () => void): void {
+  if (!estAvoir && sansMoyenDePaiement()) {
+    uiStore.openPaiementModal(suite)
+    return
+  }
+  suite()
+}
+
 export const dataStore = reactive({
   rapports: {
     data: [] as any[],

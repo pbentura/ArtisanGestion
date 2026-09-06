@@ -9,7 +9,7 @@ import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import EmailModal from '@/components/EmailModal.vue'
 
 import { apiFetch } from '@/lib/api'
-import { dataStore, uiStore, sansMoyenDePaiement } from '@/lib/store'
+import { dataStore, uiStore, avecMoyenDePaiement } from '@/lib/store'
 
 const canCreate = computed(() => dataStore.user.data?.can_create_factures !== false)
 
@@ -64,23 +64,15 @@ const emailDocumentId = ref<number | null>(null)
 const emailDocumentRef = ref('')
 const emailClientEmail = ref('')
 
+// Dernier instant utile : la facture s'apprête à quitter l'application, et
+// sans IBAN ni paiement par carte elle ne dira pas comment la régler.
 function openEmailModal(facture: Facture) {
-  const envoyer = () => {
+  avecMoyenDePaiement(facture.est_avoir, () => {
     emailDocumentId.value = facture.id
     emailDocumentRef.value = facture.numero_facture
     emailClientEmail.value = facture.client?.email || ''
     showEmailModal.value = true
-  }
-
-  // Dernier instant utile : la facture s'apprête à partir chez le client, et
-  // sans IBAN ni paiement par carte elle ne dira pas comment la régler. Un
-  // avoir est exclu — c'est l'artisan qui doit de l'argent, pas l'inverse.
-  if (!facture.est_avoir && sansMoyenDePaiement()) {
-    uiStore.openPaiementModal(envoyer)
-    return
-  }
-
-  envoyer()
+  })
 }
 
 function openBottomSheet(facture: Facture) {
@@ -282,11 +274,14 @@ function isOverdue(facture: Facture): boolean {
   return new Date(facture.date_echeance) < new Date()
 }
 
-async function downloadFacturX(facture: Facture) {
+function downloadFacturX(facture: Facture) {
   if (isDownloadingFacturX.value !== null) return
-  
+  avecMoyenDePaiement(facture.est_avoir, () => telechargerFacturX(facture))
+}
+
+async function telechargerFacturX(facture: Facture) {
   isDownloadingFacturX.value = facture.id
-  
+
   try {
     const res = await apiFetch(`factures/${facture.id}/facturx`)
     
@@ -352,11 +347,14 @@ async function copyPaymentLink(facture: Facture) {
   }
 }
 
-async function shareFacture(facture: Facture) {
+function shareFacture(facture: Facture) {
   if (isDownloadingFacturX.value !== null) return
-  
+  avecMoyenDePaiement(facture.est_avoir, () => partagerFacturX(facture))
+}
+
+async function partagerFacturX(facture: Facture) {
   isDownloadingFacturX.value = facture.id
-  
+
   try {
     const res = await apiFetch(`factures/${facture.id}/facturx`)
     
