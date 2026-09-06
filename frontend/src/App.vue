@@ -6,6 +6,7 @@ import { Browser } from '@capacitor/browser'
 import LandingNavbar from '@/components/landing/LandingNavbar.vue'
 import SubscriptionModal from '@/components/SubscriptionModal.vue'
 import SocieteRequiredModal from '@/components/SocieteRequiredModal.vue'
+import PaiementRequisModal from '@/components/PaiementRequisModal.vue'
 import ConsentBanner from '@/components/ConsentBanner.vue'
 import { trackConversion } from '@/lib/analytics'
 
@@ -58,6 +59,7 @@ onMounted(() => {
     <!-- Global Modals -->
     <SubscriptionModal />
     <SocieteRequiredModal />
+    <PaiementRequisModal />
     <ConsentBanner />
   </div>
 </template>

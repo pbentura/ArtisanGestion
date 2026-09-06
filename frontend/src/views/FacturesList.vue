@@ -9,7 +9,7 @@ import MobileBottomSheet from '@/components/mobile/MobileBottomSheet.vue'
 import EmailModal from '@/components/EmailModal.vue'
 
 import { apiFetch } from '@/lib/api'
-import { dataStore, uiStore } from '@/lib/store'
+import { dataStore, uiStore, sansMoyenDePaiement } from '@/lib/store'
 
 const canCreate = computed(() => dataStore.user.data?.can_create_factures !== false)
 
@@ -65,10 +65,22 @@ const emailDocumentRef = ref('')
 const emailClientEmail = ref('')
 
 function openEmailModal(facture: Facture) {
-  emailDocumentId.value = facture.id
-  emailDocumentRef.value = facture.numero_facture
-  emailClientEmail.value = facture.client?.email || ''
-  showEmailModal.value = true
+  const envoyer = () => {
+    emailDocumentId.value = facture.id
+    emailDocumentRef.value = facture.numero_facture
+    emailClientEmail.value = facture.client?.email || ''
+    showEmailModal.value = true
+  }
+
+  // Dernier instant utile : la facture s'apprête à partir chez le client, et
+  // sans IBAN ni paiement par carte elle ne dira pas comment la régler. Un
+  // avoir est exclu — c'est l'artisan qui doit de l'argent, pas l'inverse.
+  if (!facture.est_avoir && sansMoyenDePaiement()) {
+    uiStore.openPaiementModal(envoyer)
+    return
+  }
+
+  envoyer()
 }
 
 function openBottomSheet(facture: Facture) {

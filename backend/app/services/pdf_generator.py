@@ -68,6 +68,27 @@ COLOR_BG_LIGHT = colors.HexColor("#f8fafc")
 COLOR_HEADER_BORDER = colors.HexColor("#cbd5e1")
 
 
+# ── Mentions obligatoires des factures ──────────────────────────────
+#
+# Le taux retenu est celui qui s'applique à défaut de stipulation dans les
+# conditions générales de vente (art. L441-10 du code de commerce) : c'est le
+# choix sûr tant que l'artisan n'a pas rédigé ses propres CGV. S'il en a, il
+# peut y substituer son taux via les « conditions particulières » de la facture.
+#
+# L'indemnité de 40 € n'est due qu'entre professionnels : la phrase le précise
+# plutôt que de l'affirmer sur une facture adressée à un particulier.
+MENTIONS_LEGALES_FACTURE = (
+    "<b>Pénalités de retard</b> — En cas de retard de paiement, une pénalité calculée au taux "
+    "d'intérêt appliqué par la Banque centrale européenne à son opération de refinancement la plus "
+    "récente, majoré de 10 points de pourcentage, est exigible dès le jour suivant la date "
+    "d'échéance, sans qu'un rappel soit nécessaire (art. L441-10 du code de commerce).<br/>"
+    "<b>Indemnité de recouvrement</b> — Tout retard de paiement entraîne, entre professionnels, "
+    "une indemnité forfaitaire pour frais de recouvrement de 40 € (art. D441-5 du code de "
+    "commerce), sans préjudice d'une indemnisation complémentaire sur justificatifs.<br/>"
+    "<b>Escompte</b> — Aucun escompte n'est accordé pour paiement anticipé."
+)
+
+
 def _get_primary_color(societe: Any) -> colors.HexColor:
     """Retourne la couleur primaire personnalisée ou la couleur par défaut."""
     custom = getattr(societe, "couleur_document", None)
@@ -479,6 +500,19 @@ def generate_invoice_pdf(
             f"<b>Date d'échéance : {_format_date(facture.date_echeance)} ({nb_jours} jours)</b>",
             ParagraphStyle("Echeance", parent=style_normal,
                            fontName="Helvetica-Bold", fontSize=7.5, textColor=COLOR_MUTED)
+        ))
+
+    # ── MENTIONS LÉGALES OBLIGATOIRES ───────────────────────────────
+    # Elles manquaient entièrement. Sur une facture, les pénalités de retard,
+    # l'indemnité de recouvrement et l'escompte sont des mentions imposées par
+    # le code de commerce — et ce sont elles qui fondent juridiquement les
+    # relances d'impayés. Absentes du devis, qui n'appelle aucun règlement.
+    if not is_devis:
+        elements.append(Spacer(1, 3 * mm))
+        elements.append(Paragraph(
+            MENTIONS_LEGALES_FACTURE,
+            ParagraphStyle("MentionsLegales", parent=style_normal,
+                           fontSize=6.5, textColor=COLOR_MUTED, leading=8.5)
         ))
 
     # ── Pied de page ────────────────────────────────────────────────

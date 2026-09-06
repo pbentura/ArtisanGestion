@@ -51,8 +51,40 @@ export const uiStore = reactive({
   closeSocieteModal() {
     this.showSocieteModal = false
     this.onSocieteCreated = null
+  },
+
+  // Moyen de paiement manquant.
+  //
+  // Une facture sans IBAN ni paiement par carte part avec aucun moyen de
+  // régler : le bloc « RÈGLEMENT PAR VIREMENT » du PDF disparaît en silence
+  // quand l'IBAN est vide. Rien ne le demandait nulle part — ni l'onboarding,
+  // ni la modale d'entreprise. On le demande au moment où ça devient
+  // réellement bloquant : l'envoi ou le téléchargement d'une facture. Jamais
+  // sur un devis, qui n'appelle aucun règlement.
+  showPaiementModal: false,
+  onPaiementConfigure: null as null | (() => void),
+  openPaiementModal(onConfigure?: () => void) {
+    this.onPaiementConfigure = onConfigure || null
+    this.showPaiementModal = true
+  },
+  closePaiementModal() {
+    this.showPaiementModal = false
+    this.onPaiementConfigure = null
   }
 })
+
+/**
+ * Vrai quand l'entreprise n'offre aucun moyen d'être payée.
+ *
+ * Les deux mécanismes coexistent volontairement : l'IBAN s'imprime sur le PDF,
+ * le lien Stripe arrive dans l'email. Un seul des deux suffit à ne pas alerter.
+ */
+export function sansMoyenDePaiement(): boolean {
+  const societe = dataStore.user.data?.societes?.[0]
+  if (!societe) return false // pas d'entreprise : ce n'est pas le sujet du moment
+  const iban = (societe.iban || '').trim()
+  return !iban && societe.stripe_connect_enabled !== true
+}
 
 export const dataStore = reactive({
   rapports: {

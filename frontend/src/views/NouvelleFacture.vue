@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { apiFetch } from '@/lib/api'
-import { dataStore, uiStore } from '@/lib/store'
+import { dataStore, uiStore, sansMoyenDePaiement } from '@/lib/store'
 import { trackConversionOnce } from '@/lib/analytics'
 import { ArrowLeft, Save, FileDown, Plus, Trash2, Loader2, X, Eye, Lock, CheckCircle2, FileCheck2, CreditCard, Undo2, Share2 } from 'lucide-vue-next'
 import { useMobile } from '@/composables/useMobile'
@@ -865,6 +865,14 @@ function closePDFModal() {
 async function saveAndGeneratePDF() {
   if (!isValid.value) {
     alert('Veuillez remplir les champs obligatoires.')
+    return
+  }
+
+  // Le PDF est l'autre porte de sortie du document : sans IBAN, le bloc
+  // « RÈGLEMENT PAR VIREMENT » n'y figure tout simplement pas. On le demande
+  // ici, puis on reprend la génération là où elle s'est arrêtée.
+  if (!facture.value.est_avoir && sansMoyenDePaiement()) {
+    uiStore.openPaiementModal(saveAndGeneratePDF)
     return
   }
 
