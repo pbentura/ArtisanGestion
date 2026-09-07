@@ -1,0 +1,24 @@
+# ArtisanGestion — https://artisangestion.com
+#
+# Les pages vitrines sont ouvertes à l'indexation. Tout le reste est fermé,
+# pour deux raisons distinctes :
+#
+#   — l'application (/app/) n'a aucun intérêt en résultat de recherche, et
+#     chaque page explorée dilue le budget d'exploration des pages qui comptent ;
+#   — /signer/ et /join/ sont des URL publiques à jeton. La page de signature
+#     affiche le devis d'un client : montants, nom, adresse. Elle ne doit
+#     jamais se retrouver dans un index.
+
+User-agent: *
+
+Disallow: /app/
+Disallow: /auth
+Disallow: /signer/
+Disallow: /join/
+Disallow: /verify-email
+Disallow: /reset-password
+Disallow: /pay/
+
+Allow: /
+
+Sitemap: https://artisangestion.com/sitemap.xml

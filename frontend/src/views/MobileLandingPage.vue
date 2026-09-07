@@ -24,6 +24,8 @@ import SectionTitre from '@/components/landing/SectionTitre.vue'
 import PointsForts from '@/components/landing/PointsForts.vue'
 import LandingCTA from '@/components/landing/LandingCTA.vue'
 import FAQSection from '@/components/landing/FAQSection.vue'
+// Source unique, partagée avec le balisage FAQPage du prérendu.
+import pagesSeo from '@/lib/pages-seo.json'
 import Footer from '@/components/landing/Footer.vue'
 import MockupIphone from '@/components/landing/MockupIphone.vue'
 
@@ -248,7 +250,7 @@ const points = [
       </div>
     </section>
 
-    <FAQSection :cles="['mobile', 'ia', 'essai', 'securite']" titre="Ce qu’on nous demande souvent" />
+    <FAQSection :cles="pagesSeo['/mobile'].faq" titre="Ce qu’on nous demande souvent" />
 
     <LandingCTA
       badge="Depuis votre téléphone, maintenant"

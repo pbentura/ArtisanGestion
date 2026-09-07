@@ -380,6 +380,28 @@ router.beforeEach(async (to, _from, next) => {
     descriptionTag.setAttribute('content', (meta?.description as string) || 'ArtisanGestion — La solution tout-en-un pour les artisans et PME.')
   }
 
+  // Interdiction d'indexer, en complément de robots.txt.
+  //
+  // robots.txt empêche l'exploration, mais une URL découverte autrement — un
+  // lien envoyé par email, une barre d'adresse qui remonte à Google — peut
+  // quand même être indexée sans être explorée. Or /signer/ affiche le devis
+  // d'un client : montants, nom, adresse. Cette balise ferme le cas restant.
+  const PREFIXES_PRIVES = ['/app', '/auth', '/signer', '/join', '/verify-email', '/reset-password', '/pay']
+  const prive = PREFIXES_PRIVES.some(p => to.path === p || to.path.startsWith(p + '/'))
+
+  let robotsTag = document.querySelector('meta[name="robots"]')
+  if (prive) {
+    if (!robotsTag) {
+      robotsTag = document.createElement('meta')
+      robotsTag.setAttribute('name', 'robots')
+      document.head.appendChild(robotsTag)
+    }
+    robotsTag.setAttribute('content', 'noindex, nofollow')
+  } else if (robotsTag) {
+    // Retour sur une page vitrine : la consigne ne doit pas persister.
+    robotsTag.remove()
+  }
+
   next()
 })
 

@@ -21,6 +21,10 @@ import PointsForts from '@/components/landing/PointsForts.vue'
 import LandingCTA from '@/components/landing/LandingCTA.vue'
 import Pricing from '@/components/landing/Pricing.vue'
 import FAQSection from '@/components/landing/FAQSection.vue'
+// Les questions affichées sont lues dans pages-seo.json, d'où le prérendu tire
+// aussi le balisage FAQPage. Google sanctionne un balisage qui annonce des
+// questions absentes de la page : une seule source évite la divergence.
+import pagesSeo from '@/lib/pages-seo.json'
 import Footer from '@/components/landing/Footer.vue'
 import { useLazyVideo } from '@/composables/useLazyVideo'
 
@@ -273,7 +277,7 @@ const points = [
       </div>
     </section>
 
-    <FAQSection :cles="['ia', 'mobile', 'essai', 'securite']" titre="Ce qu’on nous demande souvent" />
+    <FAQSection :cles="pagesSeo['/rapport-intervention'].faq" titre="Ce qu’on nous demande souvent" />
 
     <Pricing />
 

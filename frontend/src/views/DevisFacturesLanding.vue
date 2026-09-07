@@ -19,6 +19,8 @@ import PointsForts from '@/components/landing/PointsForts.vue'
 import LandingCTA from '@/components/landing/LandingCTA.vue'
 import Pricing from '@/components/landing/Pricing.vue'
 import FAQSection from '@/components/landing/FAQSection.vue'
+// Source unique, partagée avec le balisage FAQPage du prérendu.
+import pagesSeo from '@/lib/pages-seo.json'
 import Footer from '@/components/landing/Footer.vue'
 
 const router = useRouter()
@@ -289,7 +291,7 @@ const points = [
     </section>
 
     <FAQSection
-      :cles="['facturation2026', 'personnalisation', 'migration', 'essai', 'resiliation']"
+      :cles="pagesSeo['/devis-factures'].faq"
       titre="Ce qu’on nous demande souvent"
     />
 
