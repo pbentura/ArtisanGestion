@@ -13,6 +13,7 @@ const isMenuOpen = ref(false)
 const pages = [
   { to: '/rapport-intervention', label: 'Rapports IA' },
   { to: '/devis-factures', label: 'Devis & factures' },
+  { to: '/facturation-electronique-artisan', label: 'Facture électronique' },
   { to: '/mobile', label: 'Sur mobile' },
 ]
 const isScrolled = ref(false)

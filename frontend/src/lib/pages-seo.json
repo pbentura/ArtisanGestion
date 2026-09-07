@@ -52,5 +52,18 @@
       "essai",
       "securite"
     ]
+  },
+  "/facturation-electronique-artisan": {
+    "title": "Facturation électronique pour les artisans : dates et obligations",
+    "description": "Depuis le 1er septembre 2026 vous devez pouvoir recevoir une facture électronique ; au 1er septembre 2027 vous devrez les émettre. Ce qui change concrètement pour un artisan, et comment s'y préparer.",
+    "image": "/og-devis-factures.jpg",
+    "priorite": 0.9,
+    "faq": [
+      "facturation2026",
+      "plateforme_agreee",
+      "clients_particuliers",
+      "essai",
+      "securite"
+    ]
   }
 }

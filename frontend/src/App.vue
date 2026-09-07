@@ -8,12 +8,15 @@ import SubscriptionModal from '@/components/SubscriptionModal.vue'
 import SocieteRequiredModal from '@/components/SocieteRequiredModal.vue'
 import PaiementRequisModal from '@/components/PaiementRequisModal.vue'
 import ConsentBanner from '@/components/ConsentBanner.vue'
+import pagesSeo from '@/lib/pages-seo.json'
 import { trackConversion } from '@/lib/analytics'
 
 const router = useRouter()
 
 // Pages vitrines partageant la même barre de navigation.
-const PAGES_PUBLIQUES = ['/', '/rapport-intervention', '/devis-factures', '/mobile']
+// Dérivé de pages-seo.json : ajouter une page vitrine ne demande plus de
+// penser à l'inscrire ici pour qu'elle reçoive la barre de navigation.
+const PAGES_PUBLIQUES = Object.keys(pagesSeo)
 
 onMounted(() => {
   // Écouter les liens personnalisés (ex: com.artisangestion.app://auth?token=...)

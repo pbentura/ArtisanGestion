@@ -37,6 +37,12 @@ const routes = [
     meta: pagesSeo['/mobile']
   },
   {
+    path: '/facturation-electronique-artisan',
+    name: 'landing-facturation-electronique',
+    component: () => import('@/views/FacturationElectroniqueLanding.vue'),
+    meta: pagesSeo['/facturation-electronique-artisan']
+  },
+  {
     path: '/auth',
     name: 'auth',
     component: AuthPage,
@@ -365,8 +371,10 @@ router.beforeEach(async (to, _from, next) => {
   if (title) {
     // Les pages d'atterrissage ont un titre rédigé pour la recherche : le
     // préfixer de « ArtisanGestion | » le tronquerait dans les résultats.
-    const titresComplets = ['landing', 'landing-rapports', 'landing-devis-factures', 'mobile-landing']
-    if (titresComplets.includes(to.name as string)) {
+    // Toute page décrite dans pages-seo.json a un titre rédigé pour la
+    // recherche. Tester le fichier plutôt qu'une liste de noms de routes
+    // évite d'oublier la mise à jour en ajoutant une page.
+    if (Object.prototype.hasOwnProperty.call(pagesSeo, to.path)) {
       document.title = title
     } else {
       document.title = `ArtisanGestion | ${title}`

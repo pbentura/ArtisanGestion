@@ -20,8 +20,16 @@ export const TOUTES_QUESTIONS: Record<string, { question: string; answer: string
     answer: 'Il n\'y a rien à migrer. Pas besoin d\'importer votre historique : vous commencez simplement vos prochains devis, factures et rapports sur ArtisanGestion. Vos anciens documents restent là où ils sont.',
   },
   facturation2026: {
-    question: 'Qu\'est-ce que la facturation électronique 2026 ?',
-    answer: 'À partir de 2026, les entreprises françaises devront émettre et recevoir leurs factures au format électronique structuré. ArtisanGestion génère vos factures au format Factur-X, conforme au standard européen EN 16931. Vous n\'avez rien à faire de plus, c\'est intégré.',
+    question: 'Qu\'est-ce que la facturation électronique obligatoire ?',
+    answer: 'La réforme se déroule en deux temps. Depuis le 1er septembre 2026, toute entreprise française doit être en mesure de recevoir une facture électronique. À partir du 1er septembre 2027, les PME et micro-entreprises — donc la quasi-totalité des artisans — devront aussi les émettre. ArtisanGestion génère vos factures au format Factur-X, conforme à la norme européenne EN 16931 : le format attendu est donc déjà le bon. La transmission, elle, passe par une plateforme agréée, que vous choisissez séparément.',
+  },
+  plateforme_agreee: {
+    question: 'Ai-je besoin d\'une plateforme agréée en plus d\'ArtisanGestion ?',
+    answer: 'Oui, et c\'est le cas avec n\'importe quel logiciel de facturation. Depuis la réforme, le portail public de l\'État ne transmet plus les factures : il sert d\'annuaire. L\'envoi et la réception passent obligatoirement par une plateforme agréée (anciennement PDP). ArtisanGestion produit la facture au bon format ; la plateforme agréée l\'achemine. Les deux sont complémentaires, pas concurrents.',
+  },
+  clients_particuliers: {
+    question: 'Et si je facture surtout des particuliers ?',
+    answer: 'L\'obligation de facture électronique concerne les échanges entre entreprises. Pour vos clients particuliers, c\'est un autre dispositif qui s\'applique : la transmission à l\'administration des données de vos ventes, sans que la facture elle-même passe par une plateforme. Vous restez donc concerné par la réforme, mais différemment. Comme beaucoup d\'artisans facturent les deux, le plus sûr est d\'en parler à votre comptable.',
   },
   essai: {
     question: 'L\'essai gratuit est-il vraiment gratuit ?',
