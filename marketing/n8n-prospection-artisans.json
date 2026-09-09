@@ -1,0 +1,267 @@
+{
+  "name": "ArtisanGestion - Prospection artisans (SIRENE + enrichissement)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "declencheur-quotidien",
+      "name": "Declencheur quotidien",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================== CONFIGURATION =====================\n// Codes NAF des artisans du batiment (nomenclature INSEE rev.2)\nconst NAF = [\n  '43.21A', // electricien\n  '43.22A', // plombier\n  '43.22B', // chauffagiste / clim\n  '43.32A', // menuisier\n  '43.34Z', // peintre en batiment\n  '43.31Z', // plaquiste\n  '43.99C', // macon\n  '43.91B', // couvreur\n  '43.33Z', // carreleur / solier\n  '43.29A', // isolation\n  '41.20B', // entreprise generale de batiment\n  '43.32B', // metallier-serrurier\n  '43.91A', // charpentier\n  '43.12A', // terrassier\n  '43.99A', // etancheite\n];\n\n// Commence PETIT : 2-3 departements. Tu elargis quand la sequence convertit.\nconst DEPARTEMENTS = ['69', '38', '01'];\n\n// Tranches d'effectif INSEE : 00 = 0 salarie, 01 = 1-2, 02 = 3-5, 03 = 6-9\n// C'est ta cible : l'artisan seul (19 EUR) ou la petite equipe (39 EUR).\nconst EFFECTIFS = ['00', '01', '02', '03'];\n\nconst PAGES = 4;      // 4 pages x 25 = 100 entreprises max par (NAF x departement)\nconst PER_PAGE = 25;  // maximum autorise par l'API\n// =========================================================\n\n// Le sandbox du task runner n8n n'expose PAS les globals Node (URLSearchParams,\n// setTimeout, fetch, Buffer...) : seuls les intrinseques ECMAScript sont la.\n// On construit donc la query string a la main.\nfunction queryString(params) {\n  return Object.keys(params)\n    .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))\n    .join('&');\n}\n\nconst out = [];\nfor (const dep of DEPARTEMENTS) {\n  for (const naf of NAF) {\n    for (let p = 1; p <= PAGES; p++) {\n      const qs = queryString({\n        activite_principale: naf,\n        departement: dep,\n        tranche_effectif_salarie: EFFECTIFS.join(','),\n        etat_administratif: 'A',\n        page: p,\n        per_page: PER_PAGE,\n      });\n      out.push({\n        json: {\n          url: 'https://recherche-entreprises.api.gouv.fr/search?' + qs,\n          naf,\n          departement: dep,\n          page: p,\n        },\n      });\n    }\n  }\n}\n\nconsole.log('Requetes a lancer : ' + out.length);\nreturn out;\n"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 400
+            }
+          },
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "api-recherche-entreprises",
+      "name": "API Recherche Entreprises",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -20,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aplatit les resultats de l'API et ne garde que les vraies cibles.\nconst METIERS = {\n  '41.20A': 'constructeur de maisons',\n  '41.20B': 'entreprise de batiment',\n  '43.11Z': 'demolisseur',\n  '43.12A': 'terrassier',\n  '43.21A': 'electricien',\n  '43.22A': 'plombier',\n  '43.22B': 'chauffagiste',\n  '43.29A': \"specialiste de l'isolation\",\n  '43.29B': 'installateur',\n  '43.31Z': 'plaquiste',\n  '43.32A': 'menuisier',\n  '43.32B': 'metallier-serrurier',\n  '43.33Z': 'carreleur',\n  '43.34Z': 'peintre en batiment',\n  '43.39Z': 'finisseur',\n  '43.91A': 'charpentier',\n  '43.91B': 'couvreur',\n  '43.99A': \"specialiste de l'etancheite\",\n  '43.99C': 'macon',\n  '43.99D': 'entreprise du batiment',\n};\n\nconst MIN_ANCIENNETE_JOURS = 182; // ecarte les boites creees il y a < 6 mois\nconst MAX_ETABLISSEMENTS = 3;     // au-dela, c'est une PME structuree, pas ta cible\n\n// \"SAINT-BONNET-DES-BRUYERES\" -> \"Saint-Bonnet-des-Bruyeres\"\nconst PETITS_MOTS = new Set(['de', 'des', 'du', 'la', 'le', 'les', 'sur', 'sous', 'en', 'et', 'aux', 'au', 'd', 'l']);\nfunction joli(txt) {\n  return String(txt || '')\n    .toLowerCase()\n    .split(/([\\s'-])/)\n    .map((m, i) =>\n      /^[\\s'-]$/.test(m) || (i > 0 && PETITS_MOTS.has(m))\n        ? m\n        : m.charAt(0).toUpperCase() + m.slice(1),\n    )\n    .join('');\n}\n\nconst out = [];\nfor (const item of $input.all()) {\n  const results = (item.json && item.json.results) || [];\n  for (const e of results) {\n    // ATTENTION : le filtre \"departement\" de l'API porte sur les ETABLISSEMENTS,\n    // pas sur le siege. Une boite dont le siege est a Paris peut remonter sur le 69\n    // via un chantier. On prend donc l'etablissement qui a matche en priorite.\n    const etab = (e.matching_etablissements || [])[0] || e.siege || {};\n\n    const dc = e.date_creation ? new Date(e.date_creation) : null;\n    if (dc && (Date.now() - dc.getTime()) < MIN_ANCIENNETE_JOURS * 864e5) continue;\n    if (!etab.code_postal) continue;\n    if (etab.etat_administratif && etab.etat_administratif !== 'A') continue;\n    if ((e.nombre_etablissements || 1) > MAX_ETABLISSEMENTS) continue;\n    if (e.categorie_entreprise && e.categorie_entreprise !== 'PME') continue;\n\n    // L'etablissement qui a matche peut avoir un NAF hors cible (ex: 68.20A\n    // location immobiliere) : on retombe sur le NAF de l'unite legale, et on\n    // jette l'entreprise si aucun des deux n'est un metier du batiment.\n    const naf = METIERS[etab.activite_principale]\n      ? etab.activite_principale\n      : e.activite_principale;\n    if (!METIERS[naf]) continue;\n\n    const dir = (e.dirigeants || []).find((d) => d.prenoms || d.prenom) || {};\n    const rawPrenom = String(dir.prenoms || dir.prenom || '').split(/[\\s,]+/)[0] || '';\n    const prenom = joli(rawPrenom);\n    // L'API renvoie \"DUPONT (DUPONT)\" quand le nom d'usage est identique.\n    const nom = joli(String(dir.nom || '').replace(/\\s*\\(([^)]*)\\)\\s*$/, (m, u) =>\n      u.trim().toUpperCase() === String(dir.nom || '').split('(')[0].trim().toUpperCase() ? '' : ' ' + u,\n    ).trim());\n\n    const comp = e.complements || {};\n\n    out.push({\n      json: {\n        siren: e.siren,\n        siret: etab.siret || null,\n        raison_sociale: e.nom_complet || e.nom_raison_sociale || '',\n        enseigne: etab.nom_commercial || null,\n        dirigeant_prenom: prenom,\n        dirigeant_nom: nom,\n        naf,\n        metier: METIERS[naf] || 'artisan du batiment',\n        effectif: e.tranche_effectif_salarie || '',\n        date_creation: e.date_creation || '',\n        ville: joli(etab.libelle_commune),\n        code_postal: etab.code_postal,\n        adresse: etab.adresse || '',\n        // Segments a fort potentiel :\n        est_rge: !!comp.est_rge,                                         // renovation energetique\n        est_entrepreneur_individuel: !!comp.est_entrepreneur_individuel, // artisan seul -> plan 19 EUR\n        // Tracabilite RGPD : obligatoire, tu dois pouvoir prouver l'origine de la donnee.\n        source: 'recherche-entreprises.api.gouv.fr (base SIRENE, open data)',\n        collecte_le: new Date().toISOString().slice(0, 10),\n      },\n    });\n  }\n}\n\nconsole.log('Entreprises retenues : ' + out.length);\nreturn out;\n"
+      },
+      "id": "normaliser-et-filtrer",
+      "name": "Normaliser et filtrer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "logic": "removeItemsWithAlreadySeenKeyValues",
+        "dedupeValue": "={{ $json.siren }}",
+        "options": {}
+      },
+      "id": "dedoublonner-(memoire)",
+      "name": "Dedoublonner (memoire)",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Compatibilite sandbox task runner n8n -------------------------------\n// Ni setTimeout ni les autres globals Node ne sont garantis dans le sandbox.\n// Sans pause on reste correct, on est juste moins poli avec les serveurs.\nconst pause =\n  typeof setTimeout === 'function'\n    ? (ms) => new Promise((r) => setTimeout(r, ms))\n    : () => Promise.resolve();\n\n// this.helpers.httpRequest est fourni au Code node par RPC. S'il manque,\n// autant le dire clairement plutot que de laisser un \"undefined is not a function\".\nconst http =\n  this && this.helpers && typeof this.helpers.httpRequest === 'function'\n    ? this.helpers.httpRequest.bind(this.helpers)\n    : null;\nif (!http) {\n  throw new Error(\n    \"this.helpers.httpRequest indisponible dans ce runtime n8n. \" +\n      \"Remplace ce noeud Code par un noeud HTTP Request + un noeud Merge.\",\n  );\n}\n// -------------------------------------------------------------------------\n\n// Retrouve le site web + le telephone via Google Places (New).\n// Sans cle : l'etape est simplement ignoree, le workflow continue.\n// $env leve une exception si N8N_BLOCK_ENV_ACCESS_IN_NODE n'est pas a false.\nlet KEY = '';\ntry {\n  KEY = $env.GOOGLE_PLACES_API_KEY || '';\n} catch (err) {\n  console.log(\"Acces a \\$env bloque (N8N_BLOCK_ENV_ACCESS_IN_NODE). Colle la cle ci-dessus.\");\n}\n\nconst items = $input.all();\nif (!KEY) {\n  console.log('GOOGLE_PLACES_API_KEY absente -> enrichissement site web ignore.');\n  return items.map((i) => ({ json: { ...i.json, site_web: null, telephone: null } }));\n}\n\nconst out = [];\nfor (const item of items) {\n  const j = { ...item.json };\n  try {\n    const res = await http({\n      method: 'POST',\n      url: 'https://places.googleapis.com/v1/places:searchText',\n      headers: {\n        'X-Goog-Api-Key': KEY,\n        'X-Goog-FieldMask':\n          'places.websiteUri,places.nationalPhoneNumber,places.displayName,places.formattedAddress',\n      },\n      body: {\n        textQuery: j.raison_sociale + ' ' + j.metier + ' ' + j.ville,\n        languageCode: 'fr',\n        regionCode: 'FR',\n        maxResultCount: 1,\n      },\n      json: true,\n    });\n    const p = (res.places || [])[0] || {};\n    j.site_web = p.websiteUri || null;\n    j.telephone = p.nationalPhoneNumber || null;\n    j.nom_google = (p.displayName && p.displayName.text) || null;\n  } catch (err) {\n    j.site_web = null;\n    j.telephone = null;\n    j.erreur_places = String(err.message || err).slice(0, 200);\n  }\n  out.push({ json: j });\n  await pause(120); // ~8 req/s max\n}\nreturn out;\n"
+      },
+      "id": "trouver-le-site-web",
+      "name": "Trouver le site web",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Compatibilite sandbox task runner n8n -------------------------------\n// Ni setTimeout ni les autres globals Node ne sont garantis dans le sandbox.\n// Sans pause on reste correct, on est juste moins poli avec les serveurs.\nconst pause =\n  typeof setTimeout === 'function'\n    ? (ms) => new Promise((r) => setTimeout(r, ms))\n    : () => Promise.resolve();\n\n// this.helpers.httpRequest est fourni au Code node par RPC. S'il manque,\n// autant le dire clairement plutot que de laisser un \"undefined is not a function\".\nconst http =\n  this && this.helpers && typeof this.helpers.httpRequest === 'function'\n    ? this.helpers.httpRequest.bind(this.helpers)\n    : null;\nif (!http) {\n  throw new Error(\n    \"this.helpers.httpRequest indisponible dans ce runtime n8n. \" +\n      \"Remplace ce noeud Code par un noeud HTTP Request + un noeud Merge.\",\n  );\n}\n// -------------------------------------------------------------------------\n\n// Recupere l'email professionnel publie sur le site de l'entreprise.\n// On ne lit que des pages publiques de contact : c'est de la donnee pro publiee\n// volontairement. On plafonne a 3 emails et on espace les requetes.\nconst CHEMINS = ['', '/contact', '/contact.html', '/nous-contacter', '/mentions-legales'];\nconst RE_MAIL = /[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/g;\nconst EXCLURE = /(sentry|wixpress|wix\\.com|example\\.|\\.png|\\.jpg|\\.jpeg|\\.gif|\\.webp|\\.svg|@2x|godaddy|wordpress\\.com|no-?reply|ne-pas-repondre)/i;\nconst PREFIXE_PRO = /^(contact|info|devis|accueil|commercial|secretariat|entreprise|sav|direction)@/i;\n\nconst out = [];\nfor (const item of $input.all()) {\n  const j = { ...item.json };\n  j.emails = [];\n  j.email = null;\n\n  if (!j.site_web) {\n    out.push({ json: j });\n    continue;\n  }\n\n  const base = String(j.site_web).replace(/\\/+$/, '');\n  j.domaine = base.replace(/^https?:\\/\\//, '').split('/')[0];\n  const trouves = new Set();\n\n  for (const chemin of CHEMINS) {\n    if (trouves.size >= 3) break;\n    try {\n      const html = await http({\n        method: 'GET',\n        url: base + chemin,\n        timeout: 8000,\n        headers: {\n          'User-Agent':\n            'Mozilla/5.0 (compatible; ArtisanGestionBot/1.0; +https://artisangestion.com)',\n          'Accept-Language': 'fr-FR,fr;q=0.9',\n        },\n      });\n      const txt = String(html)\n        .replace(/&#64;|\\(at\\)|\\[at\\]|\\s+arobase\\s+/gi, '@')\n        .replace(/&#46;|\\(dot\\)|\\[dot\\]/gi, '.');\n      for (const m of txt.match(RE_MAIL) || []) {\n        if (!EXCLURE.test(m)) trouves.add(m.toLowerCase());\n      }\n    } catch (err) {\n      // page inexistante ou site injoignable : on passe a la suivante\n    }\n    await pause(250);\n  }\n\n  // Priorite aux boites generiques d'entreprise (contact@, devis@) : moins\n  // intrusif qu'une adresse nominative, et regime B2B plus confortable.\n  const emails = [...trouves].sort(\n    (a, b) => (PREFIXE_PRO.test(b) ? 1 : 0) - (PREFIXE_PRO.test(a) ? 1 : 0),\n  );\n  j.emails = emails;\n  j.email = emails[0] || null;\n  out.push({ json: j });\n}\n\nconsole.log('Avec email : ' + out.filter((i) => i.json.email).length + '/' + out.length);\nreturn out;\n"
+      },
+      "id": "extraire-l-email-pro",
+      "name": "Extraire l email pro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nettoyage final + variables de personnalisation pour la sequence.\n// ---- LISTE DE SUPPRESSION : desinscrits, plaintes, clients existants ----\n// Obligation RGPD : un opt-out doit etre respecte sous 30 jours (vise 48h).\n// Remplace ceci par une lecture de ta table \"desinscrits\" en base.\nconst SUPPRESSION_EMAILS = new Set([\n  // 'exemple@artisan.fr',\n]);\nconst SUPPRESSION_DOMAINES = new Set([\n  // 'artisan-deja-client.fr',\n]);\n// Ne prospecte pas tes concurrents ni les plateformes generalistes.\nconst EXCLURE_DOMAINE = /(batappli|obat|tolteck|axonaut|henrri|sage|ebp|codial|extrabat|mediabat|pagesjaunes|facebook|houzz|travaux\\.com|izi-by-edf)/i;\n\nconst out = [];\nconst vus = new Set();\n\nfor (const item of $input.all()) {\n  const j = item.json;\n  if (!j.email) continue;\n  if (vus.has(j.email)) continue;\n  if (SUPPRESSION_EMAILS.has(j.email)) continue;\n  if (SUPPRESSION_DOMAINES.has(j.domaine || '')) continue;\n  if (EXCLURE_DOMAINE.test(j.domaine || '')) continue;\n  vus.add(j.email);\n\n  const prenom = j.dirigeant_prenom || '';\n  const societe = (j.raison_sociale || '')\n    .replace(/\\b(SARL|SAS|SASU|EURL|SCI|EI|EIRL|SA)\\b/gi, '')\n    .trim();\n\n  out.push({\n    json: {\n      email: j.email,\n      telephone: j.telephone || '',\n      siren: j.siren,\n      siret: j.siret,\n      site_web: j.site_web,\n      domaine: j.domaine,\n      // --- variables utilisables dans Instantly / Smartlead / Lemlist ---\n      var_prenom: prenom,\n      var_accroche: prenom ? 'Bonjour ' + prenom : 'Bonjour',\n      var_societe: societe || j.raison_sociale,\n      var_metier: j.metier,\n      var_ville: j.ville,\n      // --- suivi ---\n      naf: j.naf,\n      effectif: j.effectif,\n      code_postal: j.code_postal,\n      source: j.source,\n      collecte_le: j.collecte_le,\n      statut: 'a_contacter',\n    },\n  });\n}\n\nconsole.log('Prospects prets a l envoi : ' + out.length);\nreturn out;\n"
+      },
+      "id": "preparer-le-prospect",
+      "name": "Preparer le prospect",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REMPLACE_PAR_TON_ID_DE_SHEET",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Prospects",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "enregistrer-(google-sheets)",
+      "name": "Enregistrer (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1300,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Declencheur quotidien": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "API Recherche Entreprises",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API Recherche Entreprises": {
+      "main": [
+        [
+          {
+            "node": "Normaliser et filtrer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normaliser et filtrer": {
+      "main": [
+        [
+          {
+            "node": "Dedoublonner (memoire)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedoublonner (memoire)": {
+      "main": [
+        [
+          {
+            "node": "Trouver le site web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trouver le site web": {
+      "main": [
+        [
+          {
+            "node": "Extraire l email pro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraire l email pro": {
+      "main": [
+        [
+          {
+            "node": "Preparer le prospect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer le prospect": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "artisangestion-prospection"
+  },
+  "tags": []
+}

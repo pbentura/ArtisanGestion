@@ -5,6 +5,7 @@ Ce module construit le fichier XML qui sera embarqué dans le PDF/A-3
 pour créer un document Factur-X conforme au standard européen EN 16931.
 """
 
+import re
 import xml.etree.ElementTree as ET
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -66,6 +67,47 @@ def _add_quantity_element(
     elem.text = _decimal_str(qty)
     elem.set("unitCode", unit)
     return elem
+
+
+def _normaliser_identifiant(valeur: Any) -> Optional[str]:
+    """Ne garde que les chiffres d'un SIREN/SIRET saisi à la main (« 891 234 567 00012 »)."""
+    chiffres = re.sub(r"\D", "", str(valeur or ""))
+    return chiffres or None
+
+
+def _scheme_identifiant_legal(identifiant: str) -> Optional[str]:
+    """
+    Code ISO 6523 (schemeID) de l'identifiant légal français.
+
+    0002 = SIREN (9 chiffres), 0009 = SIRET (14 chiffres). Déclarer un SIRET
+    sous 0002 fait rejeter la facture à la validation d'une plateforme agréée
+    ou de Chorus Pro.
+    """
+    return {9: "0002", 14: "0009"}.get(len(identifiant))
+
+
+def _add_legal_organization(party: ET.Element, identifiant_brut: Any) -> None:
+    """
+    Ajoute l'identifiant légal du vendeur (BT-30) ou de l'acheteur (BT-47).
+
+    Un identifiant qui ne fait ni 9 ni 14 chiffres est omis : l'absence du champ
+    est mieux tolérée qu'un schemeID incohérent avec la valeur déclarée.
+    """
+    identifiant = _normaliser_identifiant(identifiant_brut)
+    if not identifiant:
+        return
+    scheme = _scheme_identifiant_legal(identifiant)
+    if not scheme:
+        return
+    org = ET.SubElement(party, _ns("ram", "SpecifiedLegalOrganization"))
+    id_elem = _add_text_element(org, "ram", "ID", identifiant)
+    id_elem.set("schemeID", scheme)
+
+
+def _normaliser_tva(valeur: Any) -> Optional[str]:
+    """Numéro de TVA intracommunautaire sans espaces ni tirets, en majuscules."""
+    nettoye = re.sub(r"[^A-Za-z0-9]", "", str(valeur or "")).upper()
+    return nettoye or None
 
 
 def generate_cii_xml(
@@ -164,11 +206,8 @@ def generate_cii_xml(
     seller = ET.SubElement(agreement, _ns("ram", "SellerTradeParty"))
     _add_text_element(seller, "ram", "Name", societe.nom)
 
-    # SIRET vendeur
-    if societe.siret:
-        seller_id = ET.SubElement(seller, _ns("ram", "SpecifiedLegalOrganization"))
-        id_elem = _add_text_element(seller_id, "ram", "ID", societe.siret)
-        id_elem.set("schemeID", "0002")  # 0002 = SIRET (FR)
+    # Identifiant légal vendeur (BT-30) — SIREN ou SIRET, schemeID déduit
+    _add_legal_organization(seller, societe.siret)
 
     # Adresse vendeur
     seller_addr = ET.SubElement(seller, _ns("ram", "PostalTradeAddress"))
@@ -187,20 +226,18 @@ def generate_cii_xml(
         uri_id.set("schemeID", "EM")
 
     # TVA intracommunautaire vendeur
-    if societe.tva_intracommunautaire:
+    tva_vendeur = _normaliser_tva(societe.tva_intracommunautaire)
+    if tva_vendeur:
         seller_tax = ET.SubElement(seller, _ns("ram", "SpecifiedTaxRegistration"))
-        tax_id = _add_text_element(seller_tax, "ram", "ID", societe.tva_intracommunautaire)
+        tax_id = _add_text_element(seller_tax, "ram", "ID", tva_vendeur)
         tax_id.set("schemeID", "VA")
 
     # --- Acheteur (Client) ---
     buyer = ET.SubElement(agreement, _ns("ram", "BuyerTradeParty"))
     _add_text_element(buyer, "ram", "Name", client.nom)
 
-    # SIRET acheteur
-    if client.siret:
-        buyer_legal = ET.SubElement(buyer, _ns("ram", "SpecifiedLegalOrganization"))
-        buyer_legal_id = _add_text_element(buyer_legal, "ram", "ID", client.siret)
-        buyer_legal_id.set("schemeID", "0002")
+    # Identifiant légal acheteur (BT-47) — SIREN ou SIRET, schemeID déduit
+    _add_legal_organization(buyer, client.siret)
 
     # Adresse acheteur
     buyer_addr = ET.SubElement(buyer, _ns("ram", "PostalTradeAddress"))
@@ -219,7 +256,7 @@ def generate_cii_xml(
         buyer_uri.set("schemeID", "EM")
 
     # TVA intracommunautaire acheteur
-    tva_intracom_client = getattr(client, "tva_intracommunautaire", None)
+    tva_intracom_client = _normaliser_tva(getattr(client, "tva_intracommunautaire", None))
     if tva_intracom_client:
         buyer_tax = ET.SubElement(buyer, _ns("ram", "SpecifiedTaxRegistration"))
         buyer_tax_id = _add_text_element(buyer_tax, "ram", "ID", tva_intracom_client)
