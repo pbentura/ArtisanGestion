@@ -33,6 +33,13 @@ Branche B — enrichissement (8h, tous les jours, 100 fiches max)
                 └─ Notion : mettre à jour la fiche  Email, Tél, Site, Statut
 ```
 
+**Choix du site** (nœud *Trouver le site web*) : un résultat Tavily n'est retenu que s'il
+parle vraiment de l'entreprise — nom complet ou mot distinctif du nom dans le domaine
+(`Confiance site = Haute`), ou tous les mots du nom dans le titre d'une page racine
+(`Moyenne`). Les annuaires, forums, médias et pages auto-générées sont exclus ; les mots
+du métier (étanch-, isol-, rénov-…) ne comptent pas comme identifiants. En cas de doute :
+`Sans site` plutôt qu'un faux site. Trie ta vue Notion sur `Confiance site` avant d'envoyer.
+
 **Notion est la file d'attente** : toutes les entreprises du département sont dans la base dès
 le premier passage (utilisables tout de suite pour du téléphone / courrier), puis l'enrichissement
 avance de 100 fiches par jour. Statuts : `À enrichir` → `A contacter` (email trouvé) /
