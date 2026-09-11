@@ -1,5 +1,5 @@
 {
-  "name": "ArtisanGestion - Prospection artisans (SIRENE + enrichissement)",
+  "name": "ArtisanGestion - Prospection artisans (SIRENE -> Notion -> enrichissement gratuit)",
   "nodes": [
     {
       "parameters": {
@@ -18,12 +18,12 @@
       "typeVersion": 1.2,
       "position": [
         -460,
-        300
+        200
       ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================== CONFIGURATION =====================\n// Codes NAF des artisans du batiment (nomenclature INSEE rev.2)\nconst NAF = [\n  '43.21A', // electricien\n  '43.22A', // plombier\n  '43.22B', // chauffagiste / clim\n  '43.32A', // menuisier\n  '43.34Z', // peintre en batiment\n  '43.31Z', // plaquiste\n  '43.99C', // macon\n  '43.91B', // couvreur\n  '43.33Z', // carreleur / solier\n  '43.29A', // isolation\n  '41.20B', // entreprise generale de batiment\n  '43.32B', // metallier-serrurier\n  '43.91A', // charpentier\n  '43.12A', // terrassier\n  '43.99A', // etancheite\n];\n\n// Commence PETIT : 2-3 departements. Tu elargis quand la sequence convertit.\nconst DEPARTEMENTS = ['69', '38', '01'];\n\n// Tranches d'effectif INSEE : 00 = 0 salarie, 01 = 1-2, 02 = 3-5, 03 = 6-9\n// C'est ta cible : l'artisan seul (19 EUR) ou la petite equipe (39 EUR).\nconst EFFECTIFS = ['00', '01', '02', '03'];\n\nconst PAGES = 4;      // 4 pages x 25 = 100 entreprises max par (NAF x departement)\nconst PER_PAGE = 25;  // maximum autorise par l'API\n// =========================================================\n\n// Le sandbox du task runner n8n n'expose PAS les globals Node (URLSearchParams,\n// setTimeout, fetch, Buffer...) : seuls les intrinseques ECMAScript sont la.\n// On construit donc la query string a la main.\nfunction queryString(params) {\n  return Object.keys(params)\n    .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))\n    .join('&');\n}\n\nconst out = [];\nfor (const dep of DEPARTEMENTS) {\n  for (const naf of NAF) {\n    for (let p = 1; p <= PAGES; p++) {\n      const qs = queryString({\n        activite_principale: naf,\n        departement: dep,\n        tranche_effectif_salarie: EFFECTIFS.join(','),\n        etat_administratif: 'A',\n        page: p,\n        per_page: PER_PAGE,\n      });\n      out.push({\n        json: {\n          url: 'https://recherche-entreprises.api.gouv.fr/search?' + qs,\n          naf,\n          departement: dep,\n          page: p,\n        },\n      });\n    }\n  }\n}\n\nconsole.log('Requetes a lancer : ' + out.length);\nreturn out;\n"
+        "jsCode": "// ===================== CONFIGURATION =====================\n// Codes NAF des artisans du batiment (nomenclature INSEE rev.2)\nconst NAF = [\n  '43.21A', // electricien\n  '43.22A', // plombier\n  '43.22B', // chauffagiste / clim\n  '43.32A', // menuisier\n  '43.34Z', // peintre en batiment\n  '43.31Z', // plaquiste\n  '43.99C', // macon\n  '43.91B', // couvreur\n  '43.33Z', // carreleur / solier\n  '43.29A', // isolation\n  '41.20B', // entreprise generale de batiment\n  '43.32B', // metallier-serrurier\n  '43.91A', // charpentier\n  '43.12A', // terrassier\n  '43.99A', // etancheite\n];\n\n// Commence PETIT : un departement (~1 100 entreprises, dans le quota gratuit Places).\n// Chaque entreprise n'est enrichie qu'une fois (dedup SIREN) : tu peux ajouter\n// '38', '01'... un par un, quand la sequence convertit.\nconst DEPARTEMENTS = ['69'];\n\n// Tranches d'effectif INSEE : 00 = 0 salarie, 01 = 1-2, 02 = 3-5, 03 = 6-9\n// C'est ta cible : l'artisan seul (19 EUR) ou la petite equipe (39 EUR).\nconst EFFECTIFS = ['00', '01', '02', '03'];\n\nconst PAGES = 4;      // 4 pages x 25 = 100 entreprises max par (NAF x departement)\nconst PER_PAGE = 25;  // maximum autorise par l'API\n// =========================================================\n\n// Le sandbox du task runner n8n n'expose PAS les globals Node (URLSearchParams,\n// setTimeout, fetch, Buffer...) : seuls les intrinseques ECMAScript sont la.\n// On construit donc la query string a la main.\nfunction queryString(params) {\n  return Object.keys(params)\n    .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))\n    .join('&');\n}\n\nconst out = [];\nfor (const dep of DEPARTEMENTS) {\n  for (const naf of NAF) {\n    for (let p = 1; p <= PAGES; p++) {\n      const qs = queryString({\n        activite_principale: naf,\n        departement: dep,\n        tranche_effectif_salarie: EFFECTIFS.join(','),\n        etat_administratif: 'A',\n        page: p,\n        per_page: PER_PAGE,\n      });\n      out.push({\n        json: {\n          url: 'https://recherche-entreprises.api.gouv.fr/search?' + qs,\n          naf,\n          departement: dep,\n          page: p,\n        },\n      });\n    }\n  }\n}\n\nconsole.log('Requetes a lancer : ' + out.length);\nreturn out;\n"
       },
       "id": "config",
       "name": "Config",
@@ -31,7 +31,7 @@
       "typeVersion": 2,
       "position": [
         -240,
-        300
+        200
       ]
     },
     {
@@ -58,7 +58,7 @@
       "typeVersion": 4.2,
       "position": [
         -20,
-        300
+        200
       ],
       "onError": "continueRegularOutput",
       "alwaysOutputData": true
@@ -73,7 +73,7 @@
       "typeVersion": 2,
       "position": [
         200,
-        300
+        200
       ]
     },
     {
@@ -83,86 +83,269 @@
         "dedupeValue": "={{ $json.siren }}",
         "options": {}
       },
-      "id": "dedoublonner-(memoire)",
-      "name": "Dedoublonner (memoire)",
+      "id": "dedoublonner-siren",
+      "name": "Dedoublonner (SIREN)",
       "type": "n8n-nodes-base.removeDuplicates",
       "typeVersion": 2,
       "position": [
         420,
-        300
+        200
       ]
     },
     {
       "parameters": {
-        "jsCode": "// --- Compatibilite sandbox task runner n8n -------------------------------\n// Ni setTimeout ni les autres globals Node ne sont garantis dans le sandbox.\n// Sans pause on reste correct, on est juste moins poli avec les serveurs.\nconst pause =\n  typeof setTimeout === 'function'\n    ? (ms) => new Promise((r) => setTimeout(r, ms))\n    : () => Promise.resolve();\n\n// this.helpers.httpRequest est fourni au Code node par RPC. S'il manque,\n// autant le dire clairement plutot que de laisser un \"undefined is not a function\".\nconst http =\n  this && this.helpers && typeof this.helpers.httpRequest === 'function'\n    ? this.helpers.httpRequest.bind(this.helpers)\n    : null;\nif (!http) {\n  throw new Error(\n    \"this.helpers.httpRequest indisponible dans ce runtime n8n. \" +\n      \"Remplace ce noeud Code par un noeud HTTP Request + un noeud Merge.\",\n  );\n}\n// -------------------------------------------------------------------------\n\n// Retrouve le site web + le telephone via Google Places (New).\n// Sans cle : l'etape est simplement ignoree, le workflow continue.\n// $env leve une exception si N8N_BLOCK_ENV_ACCESS_IN_NODE n'est pas a false.\nlet KEY = '';\ntry {\n  KEY = $env.GOOGLE_PLACES_API_KEY || '';\n} catch (err) {\n  console.log(\"Acces a \\$env bloque (N8N_BLOCK_ENV_ACCESS_IN_NODE). Colle la cle ci-dessus.\");\n}\n\nconst items = $input.all();\nif (!KEY) {\n  console.log('GOOGLE_PLACES_API_KEY absente -> enrichissement site web ignore.');\n  return items.map((i) => ({ json: { ...i.json, site_web: null, telephone: null } }));\n}\n\nconst out = [];\nfor (const item of items) {\n  const j = { ...item.json };\n  try {\n    const res = await http({\n      method: 'POST',\n      url: 'https://places.googleapis.com/v1/places:searchText',\n      headers: {\n        'X-Goog-Api-Key': KEY,\n        'X-Goog-FieldMask':\n          'places.websiteUri,places.nationalPhoneNumber,places.displayName,places.formattedAddress',\n      },\n      body: {\n        textQuery: j.raison_sociale + ' ' + j.metier + ' ' + j.ville,\n        languageCode: 'fr',\n        regionCode: 'FR',\n        maxResultCount: 1,\n      },\n      json: true,\n    });\n    const p = (res.places || [])[0] || {};\n    j.site_web = p.websiteUri || null;\n    j.telephone = p.nationalPhoneNumber || null;\n    j.nom_google = (p.displayName && p.displayName.text) || null;\n  } catch (err) {\n    j.site_web = null;\n    j.telephone = null;\n    j.erreur_places = String(err.message || err).slice(0, 200);\n  }\n  out.push({ json: j });\n  await pause(120); // ~8 req/s max\n}\nreturn out;\n"
+        "jsCode": "// Prepare la fiche Notion d'une entreprise (avant enrichissement).\n// L'email / le site / le telephone seront ajoutes plus tard par la branche\n// \"enrichissement\" (quota gratuit Tavily : 1 000 recherches / mois).\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  const prenom = j.dirigeant_prenom || '';\n  const societe = (j.raison_sociale || '')\n    .replace(/\\b(SARL|SAS|SASU|EURL|SCI|EI|EIRL|SA)\\b/gi, '')\n    .replace(/\\s{2,}/g, ' ')\n    .trim();\n\n  out.push({\n    json: {\n      siren: j.siren,\n      siret: j.siret || '',\n      var_societe: societe || j.raison_sociale,\n      var_prenom: prenom,\n      var_accroche: prenom ? 'Bonjour ' + prenom : 'Bonjour',\n      var_metier: j.metier,\n      var_ville: j.ville,\n      dirigeant: [prenom, j.dirigeant_nom].filter(Boolean).join(' '),\n      naf: j.naf,\n      effectif: j.effectif,\n      code_postal: j.code_postal,\n      adresse: j.adresse || '',\n      est_rge: !!j.est_rge,\n      est_entrepreneur_individuel: !!j.est_entrepreneur_individuel,\n      source: j.source,\n      collecte_le: j.collecte_le,\n      statut: 'À enrichir',\n    },\n  });\n}\nconsole.log('Fiches a creer dans Notion : ' + out.length);\nreturn out;\n"
+      },
+      "id": "preparer-la-fiche",
+      "name": "Preparer la fiche",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "3d8515c2-a75a-817b-8492-e3e0fdccb04b",
+          "mode": "id"
+        },
+        "title": "={{ $json.var_societe }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Prénom|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.var_prenom }}"
+            },
+            {
+              "key": "Accroche|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.var_accroche }}"
+            },
+            {
+              "key": "Métier|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.var_metier }}"
+            },
+            {
+              "key": "Ville|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.var_ville }}"
+            },
+            {
+              "key": "Code postal|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.code_postal }}"
+            },
+            {
+              "key": "Adresse|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.adresse }}"
+            },
+            {
+              "key": "Dirigeant|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.dirigeant }}"
+            },
+            {
+              "key": "SIREN|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.siren }}"
+            },
+            {
+              "key": "SIRET|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.siret }}"
+            },
+            {
+              "key": "NAF|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.naf }}"
+            },
+            {
+              "key": "Effectif|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.effectif }}"
+            },
+            {
+              "key": "RGE|checkbox",
+              "checkboxValue": "={{ $json.est_rge }}"
+            },
+            {
+              "key": "Entrepreneur individuel|checkbox",
+              "checkboxValue": "={{ $json.est_entrepreneur_individuel }}"
+            },
+            {
+              "key": "Statut|select",
+              "selectValue": "={{ $json.statut }}"
+            },
+            {
+              "key": "Collecté le|date",
+              "range": false,
+              "includeTime": false,
+              "date": "={{ $json.collecte_le }}",
+              "timezone": "default"
+            },
+            {
+              "key": "Source|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.source }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notion-creer-la-fiche",
+      "name": "Notion : creer la fiche",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        860,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "declencheur-enrichissement",
+      "name": "Declencheur enrichissement",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "3d8515c2-a75a-817b-8492-e3e0fdccb04b",
+          "mode": "id"
+        },
+        "returnAll": false,
+        "limit": 100,
+        "simple": false,
+        "filterType": "json",
+        "filterJson": "{\"property\": \"Statut\", \"select\": {\"equals\": \"À enrichir\"}}",
+        "options": {}
+      },
+      "id": "notion-fiches-a-enrichir",
+      "name": "Notion : fiches a enrichir",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Compatibilite sandbox task runner n8n -------------------------------\nconst pause =\n  typeof setTimeout === 'function'\n    ? (ms) => new Promise((r) => setTimeout(r, ms))\n    : () => Promise.resolve();\nconst http =\n  this && this.helpers && typeof this.helpers.httpRequest === 'function'\n    ? this.helpers.httpRequest.bind(this.helpers)\n    : null;\nif (!http) {\n  throw new Error(\n    \"this.helpers.httpRequest indisponible dans ce runtime n8n. \" +\n      \"Remplace ce noeud Code par un noeud HTTP Request + un noeud Merge.\",\n  );\n}\n// -------------------------------------------------------------------------\n\n// Retrouve le site web via l'API de recherche Tavily.\n// GRATUIT : 1 000 recherches / mois, SANS carte bancaire.\n//   https://app.tavily.com -> \"Sign in with Google\" -> la cle API (tvly-...) s'affiche\n//   sur le tableau de bord.\n// Colle la cle ci-dessous OU expose-la en variable d'environnement TAVILY_API_KEY\n// (avec N8N_BLOCK_ENV_ACCESS_IN_NODE=false).\nconst TAVILY_KEY_EN_DUR = '';\n\nlet KEY = TAVILY_KEY_EN_DUR;\ntry {\n  KEY = KEY || $env.TAVILY_API_KEY || '';\n} catch (err) {\n  // $env bloque : on se contente de la valeur en dur\n}\nif (!KEY) {\n  throw new Error(\n    'TAVILY_API_KEY manquante : colle-la en haut du noeud \"Trouver le site web\".',\n  );\n}\n\n// Annuaires et plateformes : ce ne sont pas le site de l'artisan.\nconst ANNUAIRES =\n  /(pagesjaunes|societe\\.com|infogreffe|annuaire|verif\\.com|pappers|manageo|kompass|mappy|yelp|facebook|instagram|linkedin|houzz|travaux\\.com|habitatpresto|123devis|quotatis|starofservice|hellopro|leboncoin|google\\.|bing\\.|wikipedia|dirigeant|entreprises\\.lefigaro|lannuaire|118|score3|b-reputation|solocal|europages|trustpilot|indeed|welcometothejungle|qualibat\\.com|france-renov|artisans-du-batiment|justacote|cylex|hoodspot|petitfute|foursquare|tripadvisor|artizo|hubsite|bilansgratuits|entreprises\\.gouv|service-public|data\\.gouv|opendatasoft|cci\\.fr|dnb\\.com|corporama|siren-info|rubypayeur|ellisphere|creditsafe|l-expert-comptable|horaires|nextdoor|waze|apple\\.com|monartisan|trouver-un-artisan|guide-artisans|qualifelec|quefaire|allovoisins|needhelp|frizbiz|yoojo|jemepropose|bonjour-artisan|plus-que-pro|artisans-de-france|batiactu|le-guide-du-batiment|companeo|kelest|firmania|infobel|orange\\.fr|pagespro|118712|118218|localhost|forum|quechoisir|60millions|signal-arnaques|avis-verifies|jeuxvideo|reddit|youtube|tiktok|pinterest|amazon|cdiscount|leroymerlin|castorama|bricodepot|manomano)/i;\n\n// Un resultat n'est retenu que s'il parle VRAIMENT de cette entreprise : un mot\n// significatif du nom doit apparaitre dans le domaine (plomberie-dupont.fr), ou\n// tous les mots du nom dans le titre. Sinon on prefere \"Sans site\" a un faux site.\nconst GENERIQUES = new Set([\n  'entreprise', 'societe', 'batiment', 'batiments', 'construction', 'constructions', 'renovation',\n  'renovations', 'travaux', 'services', 'service', 'artisan', 'artisans', 'groupe', 'compagnie',\n  'maison', 'maisons', 'france', 'lyon', 'rhone', 'plomberie', 'plombier', 'electricite',\n  'electricien', 'menuiserie', 'menuisier', 'peinture', 'peintre', 'maconnerie', 'macon',\n  'couverture', 'couvreur', 'chauffage', 'chauffagiste', 'carrelage', 'carreleur', 'isolation',\n  'charpente', 'charpentier', 'etancheite', 'terrassement', 'general', 'generale', 'habitat',\n  'concept', 'multi', 'multiservices', 'depannage', 'installation', 'installations',\n  'amenagement', 'amenagements', 'decoration', 'energie', 'energies', 'solution', 'solutions',\n  'technique', 'techniques', 'design', 'pose', 'agencement', 'facade', 'facades', 'toiture',\n  'toitures', 'sanitaire', 'sanitaires', 'climatisation', 'renovateur', 'monsieur', 'madame',\n]);\nconst deburr = (s) => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();\nfunction motsDuNom(nom) {\n  return deburr(nom).split(/[^a-z0-9]+/).filter((t) => t.length >= 4 && !GENERIQUES.has(t));\n}\nfunction choisirSite(items, societe) {\n  const mots = motsDuNom(societe);\n  if (!mots.length) return null; // nom trop generique pour valider quoi que ce soit\n  const cands = items.filter((r) => r.url && !ANNUAIRES.test(r.url));\n  const domaine = (u) => deburr(u.replace(/^https?:\\/\\//, '').split('/')[0]).replace(/[^a-z0-9]/g, '');\n  return (\n    cands.find((r) => mots.some((m) => domaine(r.url).includes(m))) ||\n    cands.find((r) => mots.every((m) => deburr(r.title).includes(m))) ||\n    null\n  );\n}\n\n// Lit une page Notion brute (simplify OFF) -> valeurs texte.\nfunction plain(prop) {\n  if (!prop) return '';\n  const t = prop.type;\n  if (t === 'title' || t === 'rich_text') return (prop[t] || []).map((x) => x.plain_text).join('');\n  if (t === 'select') return prop.select ? prop.select.name : '';\n  return prop[t] == null ? '' : String(prop[t]);\n}\n\nconst out = [];\nlet quotaEpuise = false;\n\nfor (const item of $input.all()) {\n  const page = item.json;\n  const p = page.properties || {};\n  const j = {\n    page_id: page.id,\n    societe: plain(p['Société']),\n    ville: plain(p['Ville']),\n    metier: plain(p['Métier']),\n    site_web: null,\n    telephone: null,\n    skip: false,\n  };\n\n  if (quotaEpuise) {\n    j.skip = true; // reste \"À enrichir\", sera repris demain\n    out.push({ json: j });\n    continue;\n  }\n\n  try {\n    const res = await http({\n      method: 'POST',\n      url: 'https://api.tavily.com/search',\n      headers: { Authorization: 'Bearer ' + KEY },\n      body: {\n        query: j.societe + ' ' + j.metier + ' ' + j.ville,\n        search_depth: 'basic',\n        max_results: 5,\n        country: 'france',\n        include_answer: false,\n        include_raw_content: false,\n      },\n      json: true,\n      timeout: 20000,\n    });\n    const items = (res && res.results) || [];\n    const hit = choisirSite(items, j.societe);\n    if (hit) {\n      // On garde la racine du site, pas la page profonde.\n      const m = hit.url.match(/^https?:\\/\\/[^/]+/);\n      j.site_web = m ? m[0] : hit.url;\n    }\n  } catch (err) {\n    const msg = String((err && err.message) || err);\n    j.erreur_recherche = msg.slice(0, 200);\n    // 429 / 432 = quota mensuel (1 000) atteint : on arrete proprement, le reste\n    // restera \"À enrichir\" et sera repris quand le quota se renouvelle.\n    if (/429|432|quota|rate ?limit|usage limit|exceeded/i.test(msg)) {\n      quotaEpuise = true;\n      j.skip = true;\n    }\n  }\n  out.push({ json: j });\n  await pause(200);\n}\n\nconsole.log(\n  'Sites trouves : ' + out.filter((i) => i.json.site_web).length + '/' + out.length +\n  (quotaEpuise ? ' (quota Tavily atteint, reprise au renouvellement)' : ''),\n);\nreturn out;\n"
       },
       "id": "trouver-le-site-web",
       "name": "Trouver le site web",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        640,
-        300
-      ],
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "// --- Compatibilite sandbox task runner n8n -------------------------------\n// Ni setTimeout ni les autres globals Node ne sont garantis dans le sandbox.\n// Sans pause on reste correct, on est juste moins poli avec les serveurs.\nconst pause =\n  typeof setTimeout === 'function'\n    ? (ms) => new Promise((r) => setTimeout(r, ms))\n    : () => Promise.resolve();\n\n// this.helpers.httpRequest est fourni au Code node par RPC. S'il manque,\n// autant le dire clairement plutot que de laisser un \"undefined is not a function\".\nconst http =\n  this && this.helpers && typeof this.helpers.httpRequest === 'function'\n    ? this.helpers.httpRequest.bind(this.helpers)\n    : null;\nif (!http) {\n  throw new Error(\n    \"this.helpers.httpRequest indisponible dans ce runtime n8n. \" +\n      \"Remplace ce noeud Code par un noeud HTTP Request + un noeud Merge.\",\n  );\n}\n// -------------------------------------------------------------------------\n\n// Recupere l'email professionnel publie sur le site de l'entreprise.\n// On ne lit que des pages publiques de contact : c'est de la donnee pro publiee\n// volontairement. On plafonne a 3 emails et on espace les requetes.\nconst CHEMINS = ['', '/contact', '/contact.html', '/nous-contacter', '/mentions-legales'];\nconst RE_MAIL = /[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/g;\nconst EXCLURE = /(sentry|wixpress|wix\\.com|example\\.|\\.png|\\.jpg|\\.jpeg|\\.gif|\\.webp|\\.svg|@2x|godaddy|wordpress\\.com|no-?reply|ne-pas-repondre)/i;\nconst PREFIXE_PRO = /^(contact|info|devis|accueil|commercial|secretariat|entreprise|sav|direction)@/i;\n\nconst out = [];\nfor (const item of $input.all()) {\n  const j = { ...item.json };\n  j.emails = [];\n  j.email = null;\n\n  if (!j.site_web) {\n    out.push({ json: j });\n    continue;\n  }\n\n  const base = String(j.site_web).replace(/\\/+$/, '');\n  j.domaine = base.replace(/^https?:\\/\\//, '').split('/')[0];\n  const trouves = new Set();\n\n  for (const chemin of CHEMINS) {\n    if (trouves.size >= 3) break;\n    try {\n      const html = await http({\n        method: 'GET',\n        url: base + chemin,\n        timeout: 8000,\n        headers: {\n          'User-Agent':\n            'Mozilla/5.0 (compatible; ArtisanGestionBot/1.0; +https://artisangestion.com)',\n          'Accept-Language': 'fr-FR,fr;q=0.9',\n        },\n      });\n      const txt = String(html)\n        .replace(/&#64;|\\(at\\)|\\[at\\]|\\s+arobase\\s+/gi, '@')\n        .replace(/&#46;|\\(dot\\)|\\[dot\\]/gi, '.');\n      for (const m of txt.match(RE_MAIL) || []) {\n        if (!EXCLURE.test(m)) trouves.add(m.toLowerCase());\n      }\n    } catch (err) {\n      // page inexistante ou site injoignable : on passe a la suivante\n    }\n    await pause(250);\n  }\n\n  // Priorite aux boites generiques d'entreprise (contact@, devis@) : moins\n  // intrusif qu'une adresse nominative, et regime B2B plus confortable.\n  const emails = [...trouves].sort(\n    (a, b) => (PREFIXE_PRO.test(b) ? 1 : 0) - (PREFIXE_PRO.test(a) ? 1 : 0),\n  );\n  j.emails = emails;\n  j.email = emails[0] || null;\n  out.push({ json: j });\n}\n\nconsole.log('Avec email : ' + out.filter((i) => i.json.email).length + '/' + out.length);\nreturn out;\n"
-      },
-      "id": "extraire-l-email-pro",
-      "name": "Extraire l email pro",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        860,
-        300
-      ],
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Nettoyage final + variables de personnalisation pour la sequence.\n// ---- LISTE DE SUPPRESSION : desinscrits, plaintes, clients existants ----\n// Obligation RGPD : un opt-out doit etre respecte sous 30 jours (vise 48h).\n// Remplace ceci par une lecture de ta table \"desinscrits\" en base.\nconst SUPPRESSION_EMAILS = new Set([\n  // 'exemple@artisan.fr',\n]);\nconst SUPPRESSION_DOMAINES = new Set([\n  // 'artisan-deja-client.fr',\n]);\n// Ne prospecte pas tes concurrents ni les plateformes generalistes.\nconst EXCLURE_DOMAINE = /(batappli|obat|tolteck|axonaut|henrri|sage|ebp|codial|extrabat|mediabat|pagesjaunes|facebook|houzz|travaux\\.com|izi-by-edf)/i;\n\nconst out = [];\nconst vus = new Set();\n\nfor (const item of $input.all()) {\n  const j = item.json;\n  if (!j.email) continue;\n  if (vus.has(j.email)) continue;\n  if (SUPPRESSION_EMAILS.has(j.email)) continue;\n  if (SUPPRESSION_DOMAINES.has(j.domaine || '')) continue;\n  if (EXCLURE_DOMAINE.test(j.domaine || '')) continue;\n  vus.add(j.email);\n\n  const prenom = j.dirigeant_prenom || '';\n  const societe = (j.raison_sociale || '')\n    .replace(/\\b(SARL|SAS|SASU|EURL|SCI|EI|EIRL|SA)\\b/gi, '')\n    .trim();\n\n  out.push({\n    json: {\n      email: j.email,\n      telephone: j.telephone || '',\n      siren: j.siren,\n      siret: j.siret,\n      site_web: j.site_web,\n      domaine: j.domaine,\n      // --- variables utilisables dans Instantly / Smartlead / Lemlist ---\n      var_prenom: prenom,\n      var_accroche: prenom ? 'Bonjour ' + prenom : 'Bonjour',\n      var_societe: societe || j.raison_sociale,\n      var_metier: j.metier,\n      var_ville: j.ville,\n      // --- suivi ---\n      naf: j.naf,\n      effectif: j.effectif,\n      code_postal: j.code_postal,\n      source: j.source,\n      collecte_le: j.collecte_le,\n      statut: 'a_contacter',\n    },\n  });\n}\n\nconsole.log('Prospects prets a l envoi : ' + out.length);\nreturn out;\n"
-      },
-      "id": "preparer-le-prospect",
-      "name": "Preparer le prospect",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1080,
-        300
+        -20,
+        520
       ]
     },
     {
       "parameters": {
-        "operation": "append",
-        "documentId": {
+        "jsCode": "// --- Compatibilite sandbox task runner n8n -------------------------------\nconst pause =\n  typeof setTimeout === 'function'\n    ? (ms) => new Promise((r) => setTimeout(r, ms))\n    : () => Promise.resolve();\nconst http =\n  this && this.helpers && typeof this.helpers.httpRequest === 'function'\n    ? this.helpers.httpRequest.bind(this.helpers)\n    : null;\nif (!http) {\n  throw new Error(\n    \"this.helpers.httpRequest indisponible dans ce runtime n8n. \" +\n      \"Remplace ce noeud Code par un noeud HTTP Request + un noeud Merge.\",\n  );\n}\n// -------------------------------------------------------------------------\n\n// Recupere l'email professionnel et le telephone publies sur le site.\n// On ne lit que des pages publiques de contact : c'est de la donnee pro publiee\n// volontairement. On plafonne a 3 emails et on espace les requetes.\nconst CHEMINS = ['', '/contact', '/contact.html', '/nous-contacter', '/mentions-legales'];\nconst RE_MAIL = /[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/g;\nconst RE_TEL = /(?:\\+33\\s?|0)[1-9](?:[\\s.\\-]?\\d{2}){4}/g;\nconst EXCLURE = /(sentry|wixpress|wix\\.com|example\\.|\\.png|\\.jpg|\\.jpeg|\\.gif|\\.webp|\\.svg|@2x|godaddy|wordpress\\.com|no-?reply|ne-pas-repondre|domain\\.com|email\\.com|votre|exemple)/i;\nconst PREFIXE_PRO = /^(contact|info|devis|accueil|commercial|secretariat|entreprise|sav|direction)@/i;\n\nfunction normTel(t) {\n  const d = t.replace(/\\D/g, '');\n  const n = d.startsWith('33') ? '0' + d.slice(2) : d;\n  return n.length === 10 ? n.replace(/(\\d{2})(?=\\d)/g, '$1 ') : null;\n}\n\nconst out = [];\nfor (const item of $input.all()) {\n  const j = { ...item.json };\n  j.emails = [];\n  j.email = null;\n\n  if (j.skip || !j.site_web) {\n    out.push({ json: j });\n    continue;\n  }\n\n  const base = String(j.site_web).replace(/\\/+$/, '');\n  j.domaine = base.replace(/^https?:\\/\\//, '').split('/')[0];\n  const trouves = new Set();\n  const tels = new Set();\n\n  for (const chemin of CHEMINS) {\n    if (trouves.size >= 3) break;\n    try {\n      const html = await http({\n        method: 'GET',\n        url: base + chemin,\n        timeout: 8000,\n        headers: {\n          'User-Agent':\n            'Mozilla/5.0 (compatible; ArtisanGestionBot/1.0; +https://artisangestion.com)',\n          'Accept-Language': 'fr-FR,fr;q=0.9',\n        },\n      });\n      const txt = String(html)\n        .replace(/&#64;|\\(at\\)|\\[at\\]|\\s+arobase\\s+/gi, '@')\n        .replace(/&#46;|\\(dot\\)|\\[dot\\]/gi, '.');\n      for (const m of txt.match(RE_MAIL) || []) {\n        if (!EXCLURE.test(m)) trouves.add(m.toLowerCase());\n      }\n      // Le telephone : on privilegie les liens tel: (fiables), sinon le texte.\n      for (const m of txt.match(/href=\"tel:([^\"]+)\"/gi) || []) {\n        const t = normTel(m);\n        if (t) tels.add(t);\n      }\n      if (!tels.size) {\n        for (const m of txt.match(RE_TEL) || []) {\n          const t = normTel(m);\n          if (t && !/^0[89]/.test(t)) tels.add(t); // pas de numeros surtaxes\n        }\n      }\n    } catch (err) {\n      // page inexistante ou site injoignable : on passe a la suivante\n    }\n    await pause(250);\n  }\n\n  // Priorite aux boites generiques d'entreprise (contact@, devis@) : moins\n  // intrusif qu'une adresse nominative, et regime B2B plus confortable.\n  const emails = [...trouves].sort(\n    (a, b) => (PREFIXE_PRO.test(b) ? 1 : 0) - (PREFIXE_PRO.test(a) ? 1 : 0),\n  );\n  j.emails = emails;\n  j.email = emails[0] || null;\n  j.telephone = j.telephone || [...tels][0] || null;\n  out.push({ json: j });\n}\n\nconsole.log('Avec email : ' + out.filter((i) => i.json.email).length + '/' + out.length);\nreturn out;\n"
+      },
+      "id": "extraire-email-et-telephone",
+      "name": "Extraire email et telephone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        520
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decide du statut Notion et applique la liste de suppression.\n// ---- LISTE DE SUPPRESSION : desinscrits, plaintes, clients existants ----\n// Obligation RGPD : un opt-out doit etre respecte sous 30 jours (vise 48h).\n// Astuce : passe simplement la fiche en \"Désinscrit\" dans Notion, elle ne sera\n// plus jamais touchee (seules les fiches \"À enrichir\" sont lues).\nconst SUPPRESSION_EMAILS = new Set([\n  // 'exemple@artisan.fr',\n]);\nconst SUPPRESSION_DOMAINES = new Set([\n  // 'artisan-deja-client.fr',\n]);\n// Ne prospecte pas tes concurrents ni les plateformes generalistes.\nconst EXCLURE_DOMAINE = /(batappli|obat|tolteck|axonaut|henrri|sage|ebp|codial|extrabat|mediabat|pagesjaunes|facebook|houzz|travaux\\.com|izi-by-edf)/i;\n\nconst out = [];\nfor (const item of $input.all()) {\n  const j = { ...item.json };\n  if (j.skip) continue; // quota atteint : la fiche reste \"À enrichir\"\n\n  if (!j.site_web) {\n    j.statut = 'Sans site';\n  } else if (!j.email) {\n    j.statut = 'Sans email';\n  } else if (\n    SUPPRESSION_EMAILS.has(j.email) ||\n    SUPPRESSION_DOMAINES.has(j.domaine || '') ||\n    EXCLURE_DOMAINE.test(j.domaine || '')\n  ) {\n    j.statut = 'Désinscrit';\n  } else {\n    j.statut = 'A contacter';\n  }\n  out.push({ json: j });\n}\n\nconsole.log(\n  'Prospects a contacter : ' + out.filter((i) => i.json.statut === 'A contacter').length +\n  ' / fiches mises a jour : ' + out.length,\n);\nreturn out;\n"
+      },
+      "id": "qualifier-le-prospect",
+      "name": "Qualifier le prospect",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
           "__rl": true,
-          "value": "REMPLACE_PAR_TON_ID_DE_SHEET",
+          "value": "={{ $json.page_id }}",
           "mode": "id"
         },
-        "sheetName": {
-          "__rl": true,
-          "value": "Prospects",
-          "mode": "name"
-        },
-        "columns": {
-          "mappingMode": "autoMapInputData",
-          "value": {},
-          "matchingColumns": []
+        "simple": true,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email || null }}"
+            },
+            {
+              "key": "Téléphone|phone_number",
+              "phoneValue": "={{ $json.telephone || null }}"
+            },
+            {
+              "key": "Site web|url",
+              "urlValue": "={{ $json.site_web || null }}"
+            },
+            {
+              "key": "Domaine|rich_text",
+              "richText": false,
+              "textContent": "={{ $json.domaine || '' }}"
+            },
+            {
+              "key": "Statut|select",
+              "selectValue": "={{ $json.statut }}"
+            }
+          ]
         },
         "options": {}
       },
-      "id": "enregistrer-(google-sheets)",
-      "name": "Enregistrer (Google Sheets)",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
+      "id": "notion-mettre-a-jour-la-fiche",
+      "name": "Notion : mettre a jour la fiche",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
       "position": [
-        1300,
-        300
+        640,
+        520
       ],
       "onError": "continueRegularOutput",
-      "alwaysOutputData": true
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
     }
   ],
   "connections": {
@@ -203,14 +386,47 @@
       "main": [
         [
           {
-            "node": "Dedoublonner (memoire)",
+            "node": "Dedoublonner (SIREN)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Dedoublonner (memoire)": {
+    "Dedoublonner (SIREN)": {
+      "main": [
+        [
+          {
+            "node": "Preparer la fiche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer la fiche": {
+      "main": [
+        [
+          {
+            "node": "Notion : creer la fiche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Declencheur enrichissement": {
+      "main": [
+        [
+          {
+            "node": "Notion : fiches a enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion : fiches a enrichir": {
       "main": [
         [
           {
@@ -225,29 +441,29 @@
       "main": [
         [
           {
-            "node": "Extraire l email pro",
+            "node": "Extraire email et telephone",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extraire l email pro": {
+    "Extraire email et telephone": {
       "main": [
         [
           {
-            "node": "Preparer le prospect",
+            "node": "Qualifier le prospect",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Preparer le prospect": {
+    "Qualifier le prospect": {
       "main": [
         [
           {
-            "node": "Enregistrer (Google Sheets)",
+            "node": "Notion : mettre a jour la fiche",
             "type": "main",
             "index": 0
           }
@@ -259,7 +475,6 @@
     "executionOrder": "v1",
     "saveManualExecutions": true
   },
-  "pinData": {},
   "meta": {
     "instanceId": "artisangestion-prospection"
   },
