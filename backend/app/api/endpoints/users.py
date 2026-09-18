@@ -204,9 +204,13 @@ async def delete_user_me(
         societes_ids = result.scalars().all()
         
         if societes_ids:
-            # Détacher tous les membres de ces sociétés
+            # Détacher tous les membres de ces sociétés (rattachement et
+            # entreprise active : les deux colonnes référencent la société)
             await db.execute(
                 update(User).where(User.id_societe.in_(societes_ids)).values(id_societe=None, is_owner=False)
+            )
+            await db.execute(
+                update(User).where(User.active_societe_id.in_(societes_ids)).values(active_societe_id=None)
             )
             # Supprimer les invitations pour ces sociétés
             await db.execute(
@@ -243,8 +247,12 @@ async def delete_user_me(
                 await db.execute(update(Rapport).where(Rapport.id_user == uid).values(id_user=owner_id))
                 await db.execute(update(Client).where(Client.id_user == uid).values(id_user=owner_id))
 
-    # Détacher l'utilisateur courant
-    await db.execute(update(User).where(User.id == uid).values(id_societe=None))
+    # Détacher l'utilisateur courant. `active_societe_id` est posé dès la
+    # création de l'entreprise : l'oublier faisait échouer la suppression de
+    # la société (clé étrangère) et donc tout l'effacement du compte.
+    await db.execute(
+        update(User).where(User.id == uid).values(id_societe=None, active_societe_id=None)
+    )
     
     # 2. Supprimer les invitations envoyées par l'utilisateur
     await db.execute(delete(Invitation).where(Invitation.invited_by == uid))

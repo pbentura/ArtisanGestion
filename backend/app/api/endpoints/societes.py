@@ -140,17 +140,29 @@ async def create_societe(
     if settings.ENVIRONMENT == "production" and current_user.role != "ADMIN":
         import re
         if not societe_in.siret:
-            raise HTTPException(status_code=400, detail="Le SIRET est obligatoire en production.")
+            raise HTTPException(
+                status_code=400,
+                detail="Le numéro SIRET est obligatoire : il doit figurer sur vos devis et factures.",
+            )
             
         siret_clean = societe_in.siret.replace(" ", "")
         if not re.match(r"^\d{14}$", siret_clean):
             raise HTTPException(status_code=400, detail="Le SIRET doit contenir exactement 14 chiffres.")
             
-        async with httpx.AsyncClient() as client:
-            res = await client.get(f"https://recherche-entreprises.api.gouv.fr/search?q={siret_clean}")
-            if res.status_code != 200:
-                raise HTTPException(status_code=400, detail="Erreur lors de la vérification du SIRET.")
-            
+        # Vérification dans la base SIRENE. Si l'API publique ne répond pas, on
+        # accepte le SIRET (le format est déjà contrôlé) : une panne chez
+        # data.gouv ne doit pas empêcher un artisan de créer son entreprise.
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                res = await client.get(
+                    "https://recherche-entreprises.api.gouv.fr/search",
+                    params={"q": siret_clean},
+                    headers={"User-Agent": "ArtisanGestion/1.0"},
+                )
+        except httpx.HTTPError:
+            res = None
+
+        if res is not None and res.status_code == 200:
             data = res.json()
             results = data.get("results", [])
             
@@ -169,7 +181,10 @@ async def create_societe(
                     break
                     
             if not siret_found:
-                raise HTTPException(status_code=400, detail="Ce SIRET est introuvable dans la base INSEE.")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Ce SIRET est introuvable dans la base INSEE. Vérifiez les 14 chiffres sur votre Kbis ou une de vos factures.",
+                )
 
     new_societe = Societe(
         id_user=current_user.id,
@@ -227,12 +242,19 @@ async def search_sirene(
         "per_page": min(max(per_page, 1), 25)
     }
     
+    # Le champ du formulaire accepte « code postal ou ville ». Un code à 2 ou
+    # 5 chiffres devient un filtre ; tout autre texte (une ville) est ajouté à
+    # la recherche plein texte, que l'API sait exploiter. Transmis tel quel en
+    # `code_postal`, un nom de ville faisait répondre l'API en erreur et
+    # l'artisan voyait « Aucune entreprise trouvée » pour sa propre entreprise.
     if code_postal and code_postal.strip():
         cp_clean = code_postal.strip().replace(" ", "")
-        if len(cp_clean) == 2:
+        if cp_clean.isdigit() and len(cp_clean) == 2:
             params["departement"] = cp_clean
-        elif len(cp_clean) >= 4:
+        elif cp_clean.isdigit() and len(cp_clean) == 5:
             params["code_postal"] = cp_clean
+        elif not cp_clean.isdigit():
+            params["q"] = f"{q_search} {code_postal.strip()}"
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:

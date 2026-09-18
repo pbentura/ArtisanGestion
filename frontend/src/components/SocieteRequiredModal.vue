@@ -223,6 +223,7 @@ function selectEnterprise(item: any) {
   enterpriseSelected.value = true
   manualEntry.value = false
   searchError.value = ''
+  erreur.value = ''
   searchResults.value = []
 }
 
@@ -242,6 +243,7 @@ function startManualEntry() {
   manualEntry.value = true
   enterpriseSelected.value = false
   searchError.value = ''
+  erreur.value = ''
   searchResults.value = []
   if (!form.value.nom && searchNameQuery.value) {
     form.value.nom = searchNameQuery.value.trim()
@@ -449,8 +451,9 @@ function annuler() {
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div class="space-y-1.5">
-                  <Label for="manual-siret" class="text-xs text-muted-foreground">SIRET (optionnel)</Label>
-                  <Input id="manual-siret" v-model="form.siret" placeholder="14 chiffres" class="h-10 text-sm" />
+                  <Label for="manual-siret" class="text-xs text-muted-foreground">SIRET <span class="text-destructive">*</span></Label>
+                  <Input id="manual-siret" v-model="form.siret" placeholder="14 chiffres" inputmode="numeric" class="h-10 text-sm" />
+                  <p class="text-[11px] text-muted-foreground">Sur votre Kbis, vos factures ou votre attestation URSSAF.</p>
                 </div>
                 <div class="space-y-1.5">
                   <Label for="manual-ville" class="text-xs text-muted-foreground">Ville</Label>
