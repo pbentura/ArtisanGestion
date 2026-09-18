@@ -12,14 +12,14 @@ const beforeItems = [
   { icon: FileX, text: 'Rapports bâclés sur papier', color: 'text-destructive' },
   { icon: FolderOpen, text: 'Infos éparpillées dans Excel', color: 'text-destructive' },
   { icon: Clock, text: 'Relances de paiement oubliées', color: 'text-destructive' },
-  { icon: AlertTriangle, text: 'Non-conforme facturation 2026', color: 'text-warning' },
+  { icon: AlertTriangle, text: 'PDF simple, sans données structurées', color: 'text-warning' },
 ]
 
 const afterItems = [
   { icon: Sparkles, text: 'Rapports pro générés par l\'IA', color: 'text-success' },
   { icon: FileCheck2, text: 'Tout centralisé en un clic', color: 'text-success' },
   { icon: Smartphone, text: 'Factures envoyées depuis le terrain', color: 'text-success' },
-  { icon: Shield, text: 'Factur-X conforme automatiquement', color: 'text-success' },
+  { icon: Shield, text: 'Factur-X (EN 16931) automatique', color: 'text-success' },
 ]
 
 function handleMove(e: MouseEvent | TouchEvent) {

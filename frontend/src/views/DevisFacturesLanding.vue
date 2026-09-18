@@ -79,8 +79,8 @@ const parcours = [
 const points = [
   {
     icone: Shield,
-    titre: 'Conforme à la facturation 2026',
-    texte: 'Vos factures sont générées au format Factur-X, conforme au standard européen EN 16931. Vous n’avez rien à faire de plus.',
+    titre: 'Le format de la réforme 2026-2027',
+    texte: 'Vos factures sont générées au format Factur-X, conforme à la norme européenne EN 16931 — celui que les plateformes agréées attendent. Vous n’avez rien à faire de plus.',
   },
   {
     icone: Palette,
@@ -116,8 +116,8 @@ const points = [
       badge="Devis et factures pour artisans"
       :icone="Receipt"
       :titre="titre"
-      sous-titre="Chiffrez sur le chantier, faites signer, convertissez en facture et encaissez. Un seul outil pour toute la chaîne, conforme à la facturation électronique 2026."
-      :preuves="['Essai gratuit 14 jours', 'Sans carte bancaire', 'Factur-X conforme 2026']"
+      sous-titre="Chiffrez sur le chantier, faites signer, convertissez en facture et encaissez. Un seul outil pour toute la chaîne, avec des factures au format Factur-X."
+      :preuves="['Essai gratuit 14 jours', 'Sans carte bancaire', 'Format Factur-X']"
     >
       <!-- Aperçu de facture reconstruit en HTML : net sur tout écran, aucune
            image à télécharger, et il suit le thème clair comme sombre. -->
@@ -161,7 +161,7 @@ const points = [
 
             <div class="px-6 py-4 bg-primary/5 border-t border-border flex items-center gap-2.5">
               <Shield class="h-4 w-4 text-primary flex-shrink-0" />
-              <span class="text-xs text-foreground font-medium">Format Factur-X — conforme 2026</span>
+              <span class="text-xs text-foreground font-medium">Format Factur-X — norme EN 16931</span>
             </div>
           </div>
         </div>

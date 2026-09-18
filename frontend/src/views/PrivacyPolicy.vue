@@ -181,9 +181,29 @@ function ouvrirConsentement() {
                     <td>Envoi de communications (pannes, mise à jour)</td>
                     <td>Intérêt légitime / Consentement (Art. 6.1.a/f)</td>
                   </tr>
+                  <tr>
+                    <td>Prospection commerciale auprès de professionnels du bâtiment (voir ci-dessous)</td>
+                    <td>Intérêt légitime (Art. 6.1.f) — opposition possible à tout moment</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
+
+            <h3 class="font-semibold text-foreground mt-6">Prospection auprès des professionnels</h3>
+            <p>
+              Nous pouvons contacter par email des entreprises du bâtiment (artisans, TPE) pour leur présenter
+              ArtisanGestion. Les coordonnées utilisées (raison sociale, dirigeant, adresse email professionnelle,
+              activité, commune) proviennent de <strong>sources publiques</strong> : le répertoire SIRENE
+              (via l'API Recherche d'entreprises de l'État) et le site internet de l'entreprise elle-même.
+              Ces messages portent uniquement sur l'activité professionnelle du destinataire.
+            </p>
+            <p>
+              Chaque message indique son expéditeur et sa source, et permet de <strong>s'opposer en un clic ou en
+              répondant « stop »</strong>. Toute opposition est prise en compte sous 48 h et l'adresse est placée
+              sur une liste d'exclusion pour ne plus jamais être sollicitée. Les données de prospection sont
+              conservées au maximum <strong>3 ans</strong> après le dernier contact, ou supprimées immédiatement
+              sur demande.
+            </p>
           </div>
         </section>
 

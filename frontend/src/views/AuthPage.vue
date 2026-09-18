@@ -881,22 +881,16 @@ onUnmounted(() => {
             Simplifiez la gestion de votre activité
           </h2>
           <p class="text-lg text-muted-foreground">
-            Rejoignez plus de 500 artisans et PME qui gagnent du temps chaque jour avec ArtisanGestion.
+            Devis, factures et rapports d'intervention depuis votre téléphone, sur le chantier.
           </p>
-          
-          <!-- Testimonial -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl p-6 border border-border/50">
-            <p class="text-foreground mb-4 italic">
-              "ArtisanGestion a transformé notre façon de travailler. Nous gagnons 10 heures par semaine sur l'administratif."
-            </p>
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600" />
-              <div>
-                <p class="text-sm font-semibold text-foreground">Marc Dupont</p>
-                <p class="text-xs text-muted-foreground">Dupont Electricité</p>
-              </div>
-            </div>
-          </div>
+
+          <!-- Ce que comprend l'essai : des faits, pas de témoignage inventé -->
+          <ul class="bg-card/50 backdrop-blur-sm rounded-2xl p-6 border border-border/50 space-y-3 text-sm text-foreground">
+            <li class="flex gap-3"><span class="text-primary font-bold">✓</span> 14 jours d'essai, toutes les fonctions, sans carte bancaire</li>
+            <li class="flex gap-3"><span class="text-primary font-bold">✓</span> Rapports d'intervention rédigés par l'IA à partir de quelques mots</li>
+            <li class="flex gap-3"><span class="text-primary font-bold">✓</span> Signature du devis sur l'écran, facture en un clic</li>
+            <li class="flex gap-3"><span class="text-primary font-bold">✓</span> Factures au format Factur-X (norme EN 16931)</li>
+          </ul>
         </div>
 
         <!-- Footer -->

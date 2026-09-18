@@ -60,7 +60,7 @@ onMounted(() => {
           <!-- Badge -->
           <div v-apparait class="hero-badge inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-5 sm:mb-8 max-[359px]:hidden">
             <Shield class="h-4 w-4" />
-            <span>Conforme facturation électronique 2026</span>
+            <span>Factures au format Factur-X (norme EN 16931)</span>
           </div>
 
           <!-- Headline -->
@@ -178,7 +178,7 @@ onMounted(() => {
               </div>
               <div>
                 <div class="text-xs font-semibold text-foreground">Factur-X</div>
-                <div class="text-[10px] text-muted-foreground">Conforme 2026</div>
+                <div class="text-[10px] text-muted-foreground">Norme EN 16931</div>
               </div>
             </div>
           </div>
